@@ -5,21 +5,55 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
 import { PageNavigation } from "@/components/page-navigation"
+import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { CloudSun, LeafIcon, Activity, Hand, Search, Settings, Plus, Thermometer, Droplets, Sun, Wind, AlertCircle, TrendingUp, Wifi, WifiOff } from "lucide-react"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import type { UserPublic } from "@/lib/db/user-service"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export default function MonitorPage() {
+  const router = useRouter()
+
   // Connect to SSE for real-time device data
   const { deviceData, connectionStatus } = useDeviceData()
-  
+
   // Use shared weather data from context
   const { weatherData, loading: weatherLoading } = useWeatherContext()
-  
+
   // Track EC value history for chart (last 20 data points)
   const [ecHistory, setEcHistory] = useState<number[]>([])
-  
+
+  // User authentication state
+  const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        const data = await response.json()
+
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user)
+        } else {
+          // Not authenticated, redirect to login
+          router.push("/login")
+        }
+      } catch (error) {
+        console.error("获取用户信息失败:", error)
+        router.push("/login")
+      } finally {
+        setIsLoadingUser(false)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [router])
+
   useEffect(() => {
     if (deviceData?.earth_ec !== undefined) {
       setEcHistory(prev => {
@@ -29,438 +63,327 @@ export default function MonitorPage() {
       })
     }
   }, [deviceData?.earth_ec])
+
+  // Show loading state while checking authentication
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen w-screen h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground animate-pulse">加载中...</div>
+      </div>
+    )
+  }
+
+  // Don't render page if no user (will redirect)
+  if (!currentUser) {
+    return null
+  }
   return (
     <>
-      <style jsx global>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
-          50% { transform: translateY(-20px) translateX(10px); opacity: 0.8; }
-        }
-        @keyframes drift {
-          0% { transform: translateX(0px) translateY(0px); }
-          50% { transform: translateX(30px) translateY(-10px); }
-          100% { transform: translateX(0px) translateY(0px); }
-        }
-        @keyframes rain {
-          0% { transform: translateY(-100%); opacity: 0; }
-          10% { opacity: 0.5; }
-          90% { opacity: 0.5; }
-          100% { transform: translateY(400%); opacity: 0; }
-        }
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-5px); }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-float { animation: float 4s ease-in-out infinite; }
-        .animate-drift { animation: drift 8s ease-in-out infinite; }
-        .animate-rain { animation: rain 1s linear infinite; }
-        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-        .animate-fade-in { animation: fade-in 0.5s ease-out; }
-      `}</style>
-      <div className="min-h-screen w-screen h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0E1524] to-[#0a0e1a] text-white">
-      <div className="grid grid-rows-[72px_1fr] h-full w-full">
-        <div className="relative flex items-center px-8 border-b border-white/5 bg-[#0a0e1a]/50 backdrop-blur-sm">
-          <div className="flex items-center gap-4 text-white">
-            <Image src="/logo.svg" alt="logo" width={64} height={64} />
-            <div className="leading-tight">
-              <div className="text-base font-bold tracking-wide">STRAVISION</div>
-              <div className="text-xs text-white/60">莓界 · 智慧农业平台</div>
-            </div>
-          </div>
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-            <PageNavigation />
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            {connectionStatus.connected ? (
-              <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
-                <Wifi className="size-3 mr-1" />
-                已连接
-              </Badge>
-            ) : (
-              <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
-                <WifiOff className="size-3 mr-1" />
-                {connectionStatus.error || '未连接'}
-              </Badge>
-            )}
-            {connectionStatus.lastUpdate && (
-              <span className="text-xs text-white/40">
-                更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
+      <div className="min-h-screen w-screen h-screen bg-background text-foreground transition-colors duration-500 overflow-hidden">
+        {/* Background Gradients */}
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] animate-[float_10s_ease-in-out_infinite]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-[120px] animate-[float_12s_ease-in-out_infinite_reverse]" />
         </div>
-        <div className="relative px-8 pb-8 pt-6">
-          <div className="grid grid-cols-[1fr_440px] gap-6 h-[calc(100vh-72px-56px)]">
-            <div className="relative rounded-3xl bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-white/5 shadow-2xl overflow-hidden">
-              {/* 3D 视图区域 - 这里可以放置 3D 模型或图像 */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-white/20 text-center">
-                  <CloudSun className="size-32 mx-auto mb-4" strokeWidth={0.5} />
-                  <p className="text-lg">3D 农作物监测视图</p>
-                </div>
+
+        <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
+          {/* Header */}
+          <div className="relative flex items-center px-8 border-b border-border/40 bg-background/60 backdrop-blur-md z-20">
+            <div className="flex items-center gap-4">
+              <div className="relative size-12 animate-[breathe_4s_ease-in-out_infinite]">
+                <Image src="/logo.svg" alt="logo" fill className="object-contain" />
               </div>
-              
-              {/* 天气卡片 */}
-              {(() => {
-                // 根据天气状况确定样式
-                const getWeatherStyle = (code: number) => {
-                  // 晴天
-                  if (code === 1000) {
-                    return {
-                      gradient: 'from-amber-500/30 via-orange-500/20 to-yellow-500/30',
-                      border: 'border-amber-400/30',
-                      icon: <Sun className="size-6 text-amber-300 animate-pulse" />,
-                      particles: Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute size-1 bg-yellow-300/60 rounded-full animate-float"
-                          style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 3}s`,
-                            animationDuration: `${3 + Math.random() * 2}s`
-                          }}
-                        />
-                      ))
-                    }
-                  }
-                  // 多云
-                  if ([1003, 1006, 1009].includes(code)) {
-                    return {
-                      gradient: 'from-slate-500/30 via-gray-500/20 to-blue-500/20',
-                      border: 'border-slate-400/30',
-                      icon: <CloudSun className="size-6 text-slate-300 animate-bounce-slow" />,
-                      particles: Array.from({ length: 5 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute size-8 bg-white/10 rounded-full blur-xl animate-drift"
-                          style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 60}%`,
-                            animationDelay: `${Math.random() * 4}s`,
-                            animationDuration: `${6 + Math.random() * 3}s`
-                          }}
-                        />
-                      ))
-                    }
-                  }
-                  // 雨天
-                  if ([1063, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246].includes(code)) {
-                    return {
-                      gradient: 'from-blue-600/30 via-cyan-600/20 to-blue-700/30',
-                      border: 'border-blue-400/40',
-                      icon: <Droplets className="size-6 text-blue-300 animate-bounce" />,
-                      particles: Array.from({ length: 20 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="absolute w-0.5 h-4 bg-blue-300/40 animate-rain"
-                          style={{
-                            left: `${Math.random() * 100}%`,
-                            animationDelay: `${Math.random() * 2}s`,
-                            animationDuration: `${0.5 + Math.random() * 0.5}s`
-                          }}
-                        />
-                      ))
-                    }
-                  }
-                  // 默认
-                  return {
-                    gradient: 'from-blue-500/20 to-cyan-500/20',
-                    border: 'border-white/10',
-                    icon: <CloudSun className="size-6 text-white/80" />,
-                    particles: []
-                  }
-                }
-                
-                const weatherStyle = weatherData?.current ? getWeatherStyle(weatherData.current.condition.code) : {
-                  gradient: 'from-blue-500/20 to-cyan-500/20',
-                  border: 'border-white/10',
-                  icon: <CloudSun className="size-6 text-white/80" />,
-                  particles: []
-                }
-                
-                return (
-                  <Card className={`absolute left-6 bottom-6 w-[320px] rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md bg-gradient-to-br ${weatherStyle.gradient} ${weatherStyle.border} border transition-all duration-700`}>
-                    {/* 动态粒子效果 */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                      {weatherStyle.particles}
-                    </div>
-                    
-                    <CardContent className="p-5 relative z-10">
-                      {weatherLoading ? (
-                        <div className="text-white/50 text-center py-4">加载天气数据...</div>
-                      ) : weatherData?.current ? (
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-3">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-5xl font-bold text-white animate-fade-in">
-                                {Math.round(weatherData.current.temp_c)}
-                              </span>
-                              <span className="text-2xl text-white/80">°C</span>
-                            </div>
-                            <div className="space-y-1 text-sm text-white/70">
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="size-4" />
-                                <span>最高 {Math.round(weatherData.forecast?.forecastday?.[0]?.day?.maxtemp_c || 0)}°C</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="size-4 rotate-180" />
-                                <span>最低 {Math.round(weatherData.forecast?.forecastday?.[0]?.day?.mintemp_c || 0)}°C</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right space-y-2">
-                            <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                              {weatherData.location.name === 'Ningbo' ? '宁波' : weatherData.location.name}
-                            </Badge>
-                            <div className="flex items-center gap-2 text-white/90">
-                              {weatherStyle.icon}
-                              <span className="text-sm font-medium">{weatherData.current.condition.text}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-white/50 text-center py-4">天气数据不可用</div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })()}
-              
-              {/* 工具栏 */}
-              <div className="absolute right-6 bottom-6 flex flex-col items-center gap-3">
-                <Button size="icon" className="size-12 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-sm shadow-lg transition-all hover:scale-110">
-                  <Hand className="size-5" />
-                </Button>
-                <Button size="icon" className="size-12 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-sm shadow-lg transition-all hover:scale-110">
-                  <Search className="size-5" />
-                </Button>
-                <Button size="icon" className="size-12 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-sm shadow-lg transition-all hover:scale-110">
-                  <Settings className="size-5" />
-                </Button>
-                <Button size="icon" className="size-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transition-all hover:scale-110">
-                  <Plus className="size-5" />
-                </Button>
+              <div className="leading-tight">
+                <div className="text-base font-bold tracking-wide">STRAVISION</div>
+                <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
               </div>
             </div>
-            <Card className="h-full rounded-3xl bg-gradient-to-br from-[#0f1419] to-[#0a0e14] border border-white/5 text-white shadow-2xl overflow-auto">
-              <CardHeader className="px-6 pt-6 pb-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-white">草莓栽培监测</CardTitle>
-                  <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
-                    实时数据
-                  </Badge>
+            <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+              <PageNavigation />
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              <ModeToggle />
+              {connectionStatus.connected ? (
+                <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                  <Wifi className="size-3 mr-1" />
+                  已连接
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
+                  <WifiOff className="size-3 mr-1" />
+                  {connectionStatus.error || '未连接'}
+                </Badge>
+              )}
+              <UserAvatarMenu user={currentUser} />
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="relative px-8 pb-8 pt-6 overflow-hidden">
+            <div className="grid grid-cols-[1fr_440px] gap-6 h-[calc(100vh-72px-56px)]">
+
+              {/* Left Panel - 3D View */}
+              <div className="relative rounded-3xl glass overflow-hidden group">
+                {/* 3D Placeholder */}
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-secondary/50 to-background/50">
+                  <div className="text-muted-foreground/40 text-center transition-transform duration-700 group-hover:scale-105">
+                    <CloudSun className="size-32 mx-auto mb-4 animate-[float_6s_ease-in-out_infinite]" strokeWidth={0.5} />
+                    <p className="text-lg font-light tracking-widest">3D 农作物监测视图</p>
+                  </div>
                 </div>
-                <Separator className="bg-white/5" />
-              </CardHeader>
-              <CardContent className="space-y-5 px-6 pb-6">
-                <Card className="rounded-xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] border-white/5 p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-white/90 font-semibold">环境参数</h3>
-                      <Badge variant="outline" className="border-blue-500/30 text-blue-300">实时</Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-3">
-                      <Card className="rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20 p-3 hover:border-orange-500/40 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Thermometer className="size-4 text-orange-400" />
-                          <span className="text-xs text-orange-300/80 font-medium">温度</span>
-                        </div>
-                        <div className="text-2xl font-bold text-white">
-                          {deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}°C
-                        </div>
-                      </Card>
-                      
-                      <Card className="rounded-xl bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20 p-3 hover:border-red-500/40 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Thermometer className="size-4 text-red-400" />
-                          <span className="text-xs text-red-300/80 font-medium">土壤温度</span>
-                        </div>
-                        <div className="text-2xl font-bold text-white">
-                          {deviceData ? (deviceData.earth_temp / 10).toFixed(1) : '--'}°C
-                        </div>
-                      </Card>
-                      
-                      <Card className="rounded-xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20 p-3 hover:border-yellow-500/40 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sun className="size-4 text-yellow-400" />
-                          <span className="text-xs text-yellow-300/80 font-medium">光照</span>
-                        </div>
-                        <div className="text-2xl font-bold text-white">
-                          {deviceData ? deviceData.light : '--'} lux
-                        </div>
-                      </Card>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-3">
-                      <Card className="rounded-xl bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-500/20 p-3 hover:border-cyan-500/40 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Wind className="size-4 text-cyan-400" />
-                          <span className="text-xs text-cyan-300/80 font-medium">CO₂</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">
-                          {deviceData ? deviceData.co2 : '--'} ppm
-                        </div>
-                      </Card>
-                      
-                      <Card className="rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 p-3 hover:border-blue-500/40 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Droplets className="size-4 text-blue-400" />
-                          <span className="text-xs text-blue-300/80 font-medium">湿度</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">
-                          {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}%
-                        </div>
-                      </Card>
-                      
-                      <Card className="rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20 p-3 hover:border-purple-500/40 transition-all">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Droplets className="size-4 text-purple-400" />
-                          <span className="text-xs text-purple-300/80 font-medium">土壤湿度</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">
-                          {deviceData ? deviceData.earth_water : '--'}%
-                        </div>
-                      </Card>
-                    </div>
-                  </div>
-                </Card>
-                
-                <Card className="rounded-xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] border-white/5">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-white/90">
-                        <Activity className="size-5" />
-                        <span className="font-semibold">土壤 EC 值趋势</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-right mr-2">
-                          <div className="text-2xl font-bold text-white">
-                            {deviceData ? deviceData.earth_ec : '--'}
+
+                {/* Weather Card */}
+                {(() => {
+                  const getWeatherStyle = (code: number) => {
+                    // Sunny / Clear
+                    if (code === 1000) return {
+                      icon: <Sun className="size-6 text-amber-500 animate-[spin_12s_linear_infinite]" />,
+                      containerClass: "bg-gradient-to-br from-amber-400/20 to-orange-500/20 border-amber-400/30 shadow-[0_0_30px_rgba(251,191,36,0.2)]",
+                      textClass: "text-amber-700 dark:text-amber-100"
+                    }
+                    // Cloudy / Overcast
+                    if ([1003, 1006, 1009].includes(code)) return {
+                      icon: <CloudSun className="size-6 text-blue-400 animate-[pulse_4s_ease-in-out_infinite]" />,
+                      containerClass: "bg-gradient-to-br from-blue-400/10 to-slate-500/10 border-blue-400/20",
+                      textClass: "text-blue-900 dark:text-blue-100"
+                    }
+                    // Rain / Drizzle
+                    if ([1063, 1180, 1183, 1186, 1189, 1192, 1195, 1240, 1243, 1246].includes(code)) return {
+                      icon: <Droplets className="size-6 text-blue-500 animate-[bounce_2s_infinite]" />,
+                      containerClass: "bg-gradient-to-br from-blue-600/20 to-indigo-700/20 border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.2)]",
+                      textClass: "text-blue-950 dark:text-blue-50"
+                    }
+                    // Default
+                    return {
+                      icon: <CloudSun className="size-6 text-muted-foreground" />,
+                      containerClass: "glass",
+                      textClass: "text-foreground"
+                    }
+                  }
+
+                  const weatherStyle = weatherData?.current
+                    ? getWeatherStyle(weatherData.current.condition.code)
+                    : {
+                      icon: <CloudSun className="size-6 text-muted-foreground" />,
+                      containerClass: "glass",
+                      textClass: "text-foreground"
+                    }
+
+                  return (
+                    <Card className={`absolute left-6 bottom-6 w-[320px] rounded-2xl overflow-hidden shadow-2xl transition-all duration-1000 ${weatherStyle.containerClass}`}>
+                      <CardContent className="p-5 relative z-10">
+                        {weatherLoading ? (
+                          <div className="text-muted-foreground text-center py-4">加载天气数据...</div>
+                        ) : weatherData?.current ? (
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-3">
+                              <div className="flex items-baseline gap-1">
+                                <span className={`text-5xl font-bold animate-[fade-in_0.5s_ease-out] ${weatherStyle.textClass}`}>
+                                  {Math.round(weatherData.current.temp_c)}
+                                </span>
+                                <span className={`text-2xl ${weatherStyle.textClass} opacity-80`}>°C</span>
+                              </div>
+                              <div className={`space-y-1 text-sm ${weatherStyle.textClass} opacity-80`}>
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="size-4" />
+                                  <span>最高 {Math.round(weatherData.forecast?.forecastday?.[0]?.day?.maxtemp_c || 0)}°C</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="size-4 rotate-180" />
+                                  <span>最低 {Math.round(weatherData.forecast?.forecastday?.[0]?.day?.mintemp_c || 0)}°C</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-2">
+                              <Badge variant="secondary" className="bg-background/20 backdrop-blur-md border-white/10 text-current">
+                                {weatherData.location.name === 'Ningbo' ? '宁波' : weatherData.location.name}
+                              </Badge>
+                              <div className={`flex items-center gap-2 justify-end ${weatherStyle.textClass}`}>
+                                {weatherStyle.icon}
+                                <span className="text-sm font-medium">{weatherData.current.condition.text}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-xs text-white/60">μS/cm</div>
-                        </div>
-                        <Badge variant="outline" className="border-green-500/30 text-green-300">实时</Badge>
-                      </div>
-                    </div>
-                    <svg viewBox="0 0 360 120" className="w-full h-[120px]">
-                      <defs>
-                        <linearGradient id="ecGradient" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      {ecHistory.length > 1 && (() => {
-                        const maxEc = Math.max(...ecHistory, 1)
-                        const minEc = Math.min(...ecHistory, 0)
-                        const range = maxEc - minEc || 1
-                        const points = ecHistory.map((value, index) => {
-                          const x = (index / (ecHistory.length - 1)) * 360
-                          const y = 100 - ((value - minEc) / range) * 80
-                          return `${x},${y}`
-                        }).join(' ')
-                        const pathD = ecHistory.map((value, index) => {
-                          const x = (index / (ecHistory.length - 1)) * 360
-                          const y = 100 - ((value - minEc) / range) * 80
-                          return index === 0 ? `M${x},${y}` : `L${x},${y}`
-                        }).join(' ')
-                        const areaD = `${pathD} L360,120 L0,120 Z`
-                        return (
-                          <>
-                            <path d={pathD} fill="none" stroke="#10b981" strokeWidth="2.5" />
-                            <path d={areaD} fill="url(#ecGradient)" />
-                          </>
-                        )
-                      })()}
-                      {ecHistory.length <= 1 && (
-                        <text x="180" y="60" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="14">
-                          等待数据...
-                        </text>
-                      )}
-                    </svg>
-                    <div className="mt-2 text-xs text-white/50 text-center">
-                      电导率 (Electrical Conductivity) - 最近 {ecHistory.length} 个数据点
-                    </div>
-                  </CardContent>
-                </Card>
+                        ) : (
+                          <div className="text-muted-foreground text-center py-4">天气数据不可用</div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })()}
 
-                <Card className="rounded-xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] border-white/5 p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-white/90">
-                        <LeafIcon className="size-5" />
-                        <span className="font-semibold">土壤养分 (NPK)</span>
-                      </div>
-                      <Badge variant="outline" className="border-green-500/30 text-green-300">实时</Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-3">
-                      <Card className="rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="size-8 rounded-full bg-purple-400 flex items-center justify-center text-white font-bold text-sm">N</div>
-                          <span className="text-xs text-purple-300/80 font-medium">氮</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">
-                          {deviceData ? deviceData.earth_n : '--'}
-                        </div>
-                        <div className="text-xs text-white/50 mt-1">mg/kg</div>
-                      </Card>
-                      
-                      <Card className="rounded-xl bg-gradient-to-br from-pink-500/10 to-pink-600/5 border-pink-500/20 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="size-8 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold text-sm">P</div>
-                          <span className="text-xs text-pink-300/80 font-medium">磷</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">
-                          {deviceData ? deviceData.earth_p : '--'}
-                        </div>
-                        <div className="text-xs text-white/50 mt-1">mg/kg</div>
-                      </Card>
-                      
-                      <Card className="rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="size-8 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-sm">K</div>
-                          <span className="text-xs text-amber-300/80 font-medium">钾</span>
-                        </div>
-                        <div className="text-xl font-bold text-white">
-                          {deviceData ? deviceData.earth_k : '--'}
-                        </div>
-                        <div className="text-xs text-white/50 mt-1">mg/kg</div>
-                      </Card>
-                    </div>
+                {/* Floating Toolbar */}
+                <div className="absolute right-6 bottom-6 flex flex-col items-center gap-3">
+                  {[Hand, Search, Settings].map((Icon, i) => (
+                    <Button key={i} size="icon" variant="secondary" className="size-12 rounded-full shadow-lg hover:scale-110 transition-all duration-300 bg-background/40 backdrop-blur-md border border-border">
+                      <Icon className="size-5 text-foreground/80" />
+                    </Button>
+                  ))}
+                  <Button size="icon" className="size-12 rounded-full shadow-lg hover:scale-110 transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <Plus className="size-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right Panel - Data Dashboard */}
+              <Card className="h-full rounded-3xl glass shadow-2xl overflow-hidden flex flex-col">
+                <CardHeader className="px-6 pt-6 pb-4 space-y-3 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                      <LeafIcon className="size-5 text-primary" />
+                      草莓栽培监测
+                    </CardTitle>
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 animate-pulse">
+                      实时数据
+                    </Badge>
                   </div>
-                </Card>
+                  <Separator className="bg-border/50" />
+                </CardHeader>
 
-                <Card className="rounded-xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] border-white/5 p-4">
-                  <div className="space-y-4">
+                <CardContent className="space-y-5 px-6 pb-6 overflow-y-auto custom-scrollbar">
+                  {/* Environment Params */}
+                  <Card className="rounded-2xl bg-secondary/30 border-none p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-white/90">
-                        <LeafIcon className="size-5" />
-                        <span className="font-semibold">植株生长状态</span>
-                      </div>
-                      <Badge variant="outline" className="border-green-500/30 text-green-300">第4阶段</Badge>
+                      <h3 className="text-foreground/90 font-semibold text-sm">环境参数</h3>
                     </div>
-                    
-                    <div className="grid grid-cols-6 gap-2">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div 
-                          key={i} 
-                          className="aspect-square rounded-lg bg-gradient-to-br from-[#1F2937] to-[#0f1419] border border-white/10 grid place-content-center hover:border-green-500/30 transition-all group"
-                        >
-                          <LeafIcon className="size-6 text-white/70 group-hover:text-green-400 transition-colors" />
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { icon: Thermometer, label: "温度", value: deviceData ? (deviceData.temperature / 10).toFixed(1) : '--', unit: "°C", color: "text-orange-500", bg: "bg-orange-500/10" },
+                        { icon: Thermometer, label: "土温", value: deviceData ? (deviceData.earth_temp / 10).toFixed(1) : '--', unit: "°C", color: "text-red-500", bg: "bg-red-500/10" },
+                        { icon: Sun, label: "光照", value: deviceData ? deviceData.light : '--', unit: "lux", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+                      ].map((item, i) => (
+                        <div key={i} className={`rounded-xl p-3 ${item.bg} hover:scale-105 transition-transform duration-300 cursor-default`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <item.icon className={`size-4 ${item.color}`} />
+                            <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
+                          </div>
+                          <div className="text-xl font-bold text-foreground">
+                            {item.value}<span className="text-xs font-normal text-muted-foreground ml-1">{item.unit}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
-                    
-                    <Separator className="bg-white/5" />
-                    
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { icon: Wind, label: "CO₂", value: deviceData ? deviceData.co2 : '--', unit: "ppm", color: "text-cyan-500", bg: "bg-cyan-500/10" },
+                        { icon: Droplets, label: "湿度", value: deviceData ? (deviceData.humidity / 10).toFixed(1) : '--', unit: "%", color: "text-blue-500", bg: "bg-blue-500/10" },
+                        { icon: Droplets, label: "土湿", value: deviceData ? deviceData.earth_water : '--', unit: "%", color: "text-purple-500", bg: "bg-purple-500/10" },
+                      ].map((item, i) => (
+                        <div key={i} className={`rounded-xl p-3 ${item.bg} hover:scale-105 transition-transform duration-300 cursor-default`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <item.icon className={`size-4 ${item.color}`} />
+                            <span className="text-xs text-muted-foreground font-medium">{item.label}</span>
+                          </div>
+                          <div className="text-lg font-bold text-foreground">
+                            {item.value}<span className="text-xs font-normal text-muted-foreground ml-1">{item.unit}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {/* EC Chart */}
+                  <Card className="rounded-2xl bg-secondary/30 border-none p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2 text-foreground/90">
+                        <Activity className="size-4 text-primary" />
+                        <span className="font-semibold text-sm">土壤 EC 值趋势</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-bold text-primary mr-1">
+                          {deviceData ? deviceData.earth_ec : '--'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">μS/cm</span>
+                      </div>
+                    </div>
+                    <div className="h-[100px] w-full relative">
+                      <svg viewBox="0 0 360 100" className="w-full h-full overflow-visible">
+                        <defs>
+                          <linearGradient id="ecGradient" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+                        {ecHistory.length > 1 ? (() => {
+                          const maxEc = Math.max(...ecHistory, 1)
+                          const minEc = Math.min(...ecHistory, 0)
+                          const range = maxEc - minEc || 1
+                          const points = ecHistory.map((value, index) => {
+                            const x = (index / (ecHistory.length - 1)) * 360
+                            const y = 100 - ((value - minEc) / range) * 80
+                            return `${x},${y}`
+                          }).join(' ')
+                          const areaD = `${points} L360,100 L0,100 Z`
+                          return (
+                            <>
+                              <path d={`M${points.replace(/ /g, ' L')}`} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-md" />
+                              <path d={areaD} fill="url(#ecGradient)" />
+                            </>
+                          )
+                        })() : (
+                          <text x="180" y="50" textAnchor="middle" fill="currentColor" className="text-muted-foreground text-sm">
+                            等待数据...
+                          </text>
+                        )}
+                      </svg>
+                    </div>
+                  </Card>
+
+                  {/* NPK */}
+                  <Card className="rounded-2xl bg-secondary/30 border-none p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-foreground/90">
+                        <LeafIcon className="size-4 text-green-500" />
+                        <span className="font-semibold text-sm">土壤养分 (NPK)</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: "氮", symbol: "N", value: deviceData ? deviceData.earth_n : '--', color: "bg-purple-500" },
+                        { label: "磷", symbol: "P", value: deviceData ? deviceData.earth_p : '--', color: "bg-pink-500" },
+                        { label: "钾", symbol: "K", value: deviceData ? deviceData.earth_k : '--', color: "bg-amber-500" },
+                      ].map((item, i) => (
+                        <div key={i} className="rounded-xl bg-background/50 p-3 flex flex-col items-center gap-2 hover:bg-background/80 transition-colors">
+                          <div className={`size-8 rounded-full ${item.color} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
+                            {item.symbol}
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-foreground leading-none mb-1">{item.value}</div>
+                            <div className="text-[10px] text-muted-foreground">mg/kg</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {/* Growth Status */}
+                  <Card className="rounded-2xl bg-secondary/30 border-none p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-foreground/90">
+                        <LeafIcon className="size-4 text-green-600" />
+                        <span className="font-semibold text-sm">植株生长状态</span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">第4阶段</Badge>
+                    </div>
+
+                    <div className="grid grid-cols-6 gap-2">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="aspect-square rounded-lg bg-background/50 border border-border/50 grid place-content-center hover:border-green-500/50 hover:text-green-500 transition-all group cursor-pointer"
+                        >
+                          <LeafIcon className="size-5 text-muted-foreground group-hover:scale-110 transition-transform" />
+                        </div>
+                      ))}
+                    </div>
+
+                    <Separator className="bg-border/50" />
+
                     <div>
-                      <div className="text-white/70 text-sm mb-3">健康度热力图</div>
+                      <div className="text-muted-foreground text-xs mb-3">健康度热力图</div>
                       <div className="grid grid-cols-6 gap-2">
                         {[
                           { color: "#9EE09E", label: "优秀" },
@@ -470,27 +393,25 @@ export default function MonitorPage() {
                           { color: "#FF8FA3", label: "警告" },
                           { color: "#FF6F91", label: "异常" }
                         ].map((item, i) => (
-                          <div 
-                            key={i} 
-                            className="aspect-square rounded-lg border border-white/10 hover:scale-105 transition-all cursor-pointer relative group"
+                          <div
+                            key={i}
+                            className="aspect-square rounded-lg hover:scale-110 transition-all cursor-pointer relative group shadow-sm"
                             style={{ backgroundColor: item.color }}
                           >
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors" />
-                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-white/60 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-foreground bg-background/90 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-sm">
                               {item.label}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </CardContent>
-            </Card>
+                  </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   )
 }

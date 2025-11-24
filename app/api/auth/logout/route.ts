@@ -1,7 +1,21 @@
-import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
+import { clearAuthCookie } from "@/lib/auth"
 
+/**
+ * POST /api/auth/logout
+ * 用户登出接口
+ */
 export async function POST() {
-  const cookieStore = await cookies()
-  cookieStore.set({ name: "auth", value: "", path: "/", maxAge: 0 })
-  return Response.json({ ok: true })
+  try {
+    // 清除认证 Cookie
+    await clearAuthCookie()
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error("登出失败:", error)
+    return NextResponse.json(
+      { error: "登出失败" },
+      { status: 500 }
+    )
+  }
 }

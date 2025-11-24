@@ -120,16 +120,16 @@ export function AISettingsDialog({ open, onOpenChange, onSave }: AISettingsDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-[#1a2332] to-[#0f1419] border-white/10 text-white">
+      <DialogContent className="sm:max-w-[600px] glass border-border text-foreground">
         <DialogHeader>
-          <DialogTitle className="text-white text-lg">AI 助手设置</DialogTitle>
-          <DialogDescription className="text-white/60">
+          <DialogTitle className="text-foreground text-lg">AI 助手设置</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             配置 AI 助手的 API 密钥和参数，支持 OpenAI 及兼容服务
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-5 py-4">
           <div className="grid gap-2.5">
-            <Label className="text-white text-sm font-medium">API 类型</Label>
+            <Label className="text-foreground text-sm font-medium">API 类型</Label>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -146,7 +146,7 @@ export function AISettingsDialog({ open, onOpenChange, onSave }: AISettingsDialo
                 className={
                   apiType === "dashscope"
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                    : "border-white/20 bg-white/5 hover:bg-white/10 text-white"
+                    : "border-border bg-muted/50 hover:bg-muted text-foreground"
                 }
               >
                 阿里云 DashScope
@@ -165,20 +165,20 @@ export function AISettingsDialog({ open, onOpenChange, onSave }: AISettingsDialo
                 className={
                   apiType === "openai"
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                    : "border-white/20 bg-white/5 hover:bg-white/10 text-white"
+                    : "border-border bg-muted/50 hover:bg-muted text-foreground"
                 }
               >
                 OpenAI
               </Button>
             </div>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-muted-foreground/70">
               {apiType === "dashscope"
                 ? "使用阿里云通义千问模型（推荐国内用户）"
                 : "使用 OpenAI GPT 模型"}
             </p>
           </div>
           <div className="grid gap-2.5">
-            <Label htmlFor="apiKey" className="text-white text-sm font-medium">
+            <Label htmlFor="apiKey" className="text-foreground text-sm font-medium">
               API Key
             </Label>
             <Input
@@ -187,12 +187,12 @@ export function AISettingsDialog({ open, onOpenChange, onSave }: AISettingsDialo
               placeholder="sk-..."
               value={settings.apiKey}
               onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
-              className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-blue-500/50"
+              className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-blue-500/50"
             />
-            <p className="text-xs text-white/50">你的 API 密钥将安全存储在本地浏览器中</p>
+            <p className="text-xs text-muted-foreground/70">你的 API 密钥将安全存储在本地浏览器中</p>
           </div>
           <div className="grid gap-2.5">
-            <Label htmlFor="apiUrl" className="text-white text-sm font-medium">
+            <Label htmlFor="apiUrl" className="text-foreground text-sm font-medium">
               API URL
             </Label>
             <Input
@@ -206,16 +206,16 @@ export function AISettingsDialog({ open, onOpenChange, onSave }: AISettingsDialo
               onChange={(e) =>
                 setSettings({ ...settings, apiUrl: e.target.value })
               }
-              className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-blue-500/50"
+              className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-blue-500/50"
             />
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-muted-foreground/70">
               {apiType === "dashscope"
                 ? "阿里云 DashScope API 端点"
                 : "支持 OpenAI、Azure OpenAI 及其他兼容端点"}
             </p>
           </div>
           <div className="grid gap-2.5">
-            <Label htmlFor="model" className="text-white text-sm font-medium">
+            <Label htmlFor="model" className="text-foreground text-sm font-medium">
               模型
             </Label>
             <Input
@@ -227,31 +227,31 @@ export function AISettingsDialog({ open, onOpenChange, onSave }: AISettingsDialo
               onChange={(e) =>
                 setSettings({ ...settings, model: e.target.value })
               }
-              className="bg-white/5 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-blue-500/50"
+              className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-blue-500/50"
             />
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-muted-foreground/70">
               {apiType === "dashscope"
                 ? "例如: qwen-turbo, qwen-plus, qwen-max"
                 : "例如: gpt-3.5-turbo, gpt-4, gpt-4-turbo"}
             </p>
           </div>
           <div className="grid gap-2.5">
-            <Label htmlFor="systemPrompt" className="text-white text-sm font-medium">系统提示词</Label>
+            <Label htmlFor="systemPrompt" className="text-foreground text-sm font-medium">系统提示词</Label>
             <Textarea
               id="systemPrompt"
               placeholder="输入系统提示词..."
               value={settings.systemPrompt}
               onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })}
-              className="min-h-[120px] resize-none bg-white/5 border-white/20 text-white placeholder:text-white/40 focus-visible:ring-blue-500/50"
+              className="min-h-[120px] resize-none bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-blue-500/50"
             />
-            <p className="text-xs text-white/50">定制 AI 助手的角色和行为方式</p>
+            <p className="text-xs text-muted-foreground/70">定制 AI 助手的角色和行为方式</p>
           </div>
         </div>
         <DialogFooter className="gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="border-white/20 bg-white/5 hover:bg-white/10 text-white hover:text-white"
+            className="border-border bg-muted/50 hover:bg-muted text-foreground hover:text-foreground"
           >
             取消
           </Button>

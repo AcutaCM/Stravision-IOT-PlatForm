@@ -14,18 +14,70 @@ import { useState } from "react";
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
+  const validateEmail = (value: string) => {
+    if (!value) {
+      setEmailError("邮箱不能为空");
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setEmailError("邮箱格式不正确");
+      return false;
+    }
+    setEmailError("");
+    return true;
+  };
+
+  const validateUsername = (value: string) => {
+    if (!value) {
+      setUsernameError("用户名不能为空");
+      return false;
+    }
+    if (value.length < 2 || value.length > 20) {
+      setUsernameError("用户名长度需在2-20个字符之间");
+      return false;
+    }
+    setUsernameError("");
+    return true;
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) {
+      setPasswordError("密码不能为空");
+      return false;
+    }
+    if (value.length < 8) {
+      setPasswordError("密码至少需要8个字符");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
 
   const onSubmit = async () => {
+    // Validate all fields
+    const isEmailValid = validateEmail(email);
+    const isUsernameValid = validateUsername(username);
+    const isPasswordValid = validatePassword(password);
+
+    if (!isEmailValid || !isUsernameValid || !isPasswordValid) {
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, username, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -33,7 +85,7 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
-      router.replace("/");
+      router.replace("/monitor");
     } catch {
       setError("网络错误");
       setLoading(false);
@@ -80,19 +132,45 @@ export default function RegisterPage() {
                   placeholder="请输入登录邮箱"
                   className="h-12 rounded-xl bg-[#F7FBFF] placeholder:text-[#8897AD] border-[#D4D7E3]"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) validateEmail(e.target.value);
+                  }}
+                  onBlur={(e) => validateEmail(e.target.value)}
                 />
+                {emailError && <p className="text-sm text-red-600">{emailError}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-[#0C1421]">用户名</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="请输入用户名(2-20个字符)"
+                  className="h-12 rounded-xl bg-[#F7FBFF] placeholder:text-[#8897AD] border-[#D4D7E3]"
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    if (usernameError) validateUsername(e.target.value);
+                  }}
+                  onBlur={(e) => validateUsername(e.target.value)}
+                />
+                {usernameError && <p className="text-sm text-red-600">{usernameError}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-[#0C1421]">密码</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="请输入密码"
+                  placeholder="请输入密码(至少8个字符)"
                   className="h-12 rounded-xl bg-[#F7FBFF] placeholder:text-[#8897AD] border-[#D4D7E3]"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (passwordError) validatePassword(e.target.value);
+                  }}
+                  onBlur={(e) => validatePassword(e.target.value)}
                 />
+                {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
               </div>
               <Button className="w-full h-12 rounded-xl bg-[#162D3A] text-white" onClick={onSubmit} disabled={loading}>
                 {loading ? "注册中…" : "注册"}

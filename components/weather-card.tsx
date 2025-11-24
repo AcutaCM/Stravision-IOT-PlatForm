@@ -51,7 +51,7 @@ const weatherIcons = {
 
 export function WeatherCard({ deviceData }: WeatherCardProps) {
   const { weatherData, loading, error } = useWeatherContext()
-  
+
   // Map weather condition codes to our icon types
   const getWeatherIcon = (code: number): "sun" | "cloud" | "rain" | "snow" => {
     // WeatherAPI.com condition codes
@@ -61,7 +61,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
     if ([1066, 1114, 1210, 1213, 1216, 1219, 1222, 1225, 1255, 1258].includes(code)) return 'snow' // Snow
     return 'cloud'
   }
-  
+
   // Get forecast data from API or use defaults
   const forecast = weatherData?.forecast?.forecastday?.slice(0, 7).map((day, index) => ({
     date: index === 0 ? '今天' : index === 1 ? '明天' : new Date(day.date).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }),
@@ -69,7 +69,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
     temp: Math.round(day.day.avgtemp_c),
     humidity: day.day.avghumidity
   })) || []
-  
+
   // Temperature curve data
   const tempData = forecast.map(f => f.temp)
   const maxTemp = tempData.length > 0 ? Math.max(...tempData) : 25
@@ -79,9 +79,9 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
     <div className="space-y-4">
       {/* 标题 */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+        <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
           环境多维感知数据
-          <span className="text-white/50">›</span>
+          <span className="text-muted-foreground">›</span>
         </h3>
       </div>
 
@@ -90,12 +90,12 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="p-4 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-600/10 border border-orange-500/20"
+          className="p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-600/5 dark:from-orange-500/20 dark:to-orange-600/10 border border-orange-500/20"
         >
-          <div className="text-orange-200/70 text-sm mb-1">温度</div>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-orange-700/70 dark:text-orange-200/70 text-sm mb-1">温度</div>
+          <div className="text-3xl font-bold text-orange-950 dark:text-white">
             {deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
-            <span className="text-lg text-white/70 ml-1">°C</span>
+            <span className="text-lg text-orange-900/70 dark:text-white/70 ml-1">°C</span>
           </div>
         </motion.div>
 
@@ -103,12 +103,12 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="p-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20"
+          className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 dark:from-blue-500/20 dark:to-blue-600/10 border border-blue-500/20"
         >
-          <div className="text-blue-200/70 text-sm mb-1">湿度</div>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-blue-700/70 dark:text-blue-200/70 text-sm mb-1">湿度</div>
+          <div className="text-3xl font-bold text-blue-950 dark:text-white">
             {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
-            <span className="text-lg text-white/70 ml-1">%</span>
+            <span className="text-lg text-blue-900/70 dark:text-white/70 ml-1">%</span>
           </div>
         </motion.div>
 
@@ -116,12 +116,12 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="p-4 rounded-xl bg-gradient-to-br from-gray-500/20 to-gray-600/10 border border-gray-500/20"
+          className="p-4 rounded-xl bg-gradient-to-br from-gray-500/10 to-gray-600/5 dark:from-gray-500/20 dark:to-gray-600/10 border border-gray-500/20"
         >
-          <div className="text-gray-200/70 text-sm mb-1">二氧化碳</div>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-gray-700/70 dark:text-gray-200/70 text-sm mb-1">二氧化碳</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-white">
             {deviceData ? deviceData.co2 : '--'}
-            <span className="text-lg text-white/70 ml-1">ppm</span>
+            <span className="text-lg text-gray-800/70 dark:text-white/70 ml-1">ppm</span>
           </div>
         </motion.div>
 
@@ -129,12 +129,12 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="p-4 rounded-xl bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 border border-yellow-500/20"
+          className="p-4 rounded-xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 dark:from-yellow-500/20 dark:to-yellow-600/10 border border-yellow-500/20"
         >
-          <div className="text-yellow-200/70 text-sm mb-1">光照</div>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-yellow-700/70 dark:text-yellow-200/70 text-sm mb-1">光照</div>
+          <div className="text-3xl font-bold text-yellow-950 dark:text-white">
             {deviceData ? deviceData.light : '--'}
-            <span className="text-lg text-white/70 ml-1">lux</span>
+            <span className="text-lg text-yellow-900/70 dark:text-white/70 ml-1">lux</span>
           </div>
         </motion.div>
       </div>
@@ -145,46 +145,46 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
       >
-        <Card className="bg-gradient-to-br from-blue-500/30 to-blue-600/20 border-blue-400/30 overflow-hidden">
+        <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 dark:from-blue-500/30 dark:to-blue-600/20 border-blue-400/30 overflow-hidden">
           <CardContent className="p-6 space-y-4">
             {/* 当前天气和定位 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-              {loading ? (
-                <div className="text-white/50">加载中...</div>
-              ) : error ? (
-                <div className="text-red-400 text-sm">天气数据加载失败</div>
-              ) : weatherData?.current ? (
-                <>
-                  {(() => {
-                    const Icon = weatherIcons[getWeatherIcon(weatherData.current.condition.code)]
-                    return <Icon className="size-12 text-white" strokeWidth={1.5} />
-                  })()}
-                  <div>
-                    <div className="text-4xl font-bold text-white">
-                      {Math.round(weatherData.current.temp_c)}°C
+                {loading ? (
+                  <div className="text-white/50">加载中...</div>
+                ) : error ? (
+                  <div className="text-red-400 text-sm">天气数据加载失败</div>
+                ) : weatherData?.current ? (
+                  <>
+                    {(() => {
+                      const Icon = weatherIcons[getWeatherIcon(weatherData.current.condition.code)]
+                      return <Icon className="size-12 text-blue-600 dark:text-white" strokeWidth={1.5} />
+                    })()}
+                    <div>
+                      <div className="text-4xl font-bold text-blue-950 dark:text-white">
+                        {Math.round(weatherData.current.temp_c)}°C
+                      </div>
+                      <div className="text-sm text-blue-800/70 dark:text-white/70 mt-1">
+                        {weatherData.current.condition.text}
+                      </div>
                     </div>
-                    <div className="text-sm text-white/70 mt-1">
-                      {weatherData.current.condition.text}
+                  </>
+                ) : (
+                  <>
+                    <Cloud className="size-12 text-white" strokeWidth={1.5} />
+                    <div>
+                      <div className="text-4xl font-bold text-white">--°C</div>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Cloud className="size-12 text-white" strokeWidth={1.5} />
-                  <div>
-                    <div className="text-4xl font-bold text-white">--°C</div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
               </div>
               {/* 定位信息 */}
               {weatherData?.location && (
                 <div className="text-right">
-                  <div className="text-xl font-medium text-white">
+                  <div className="text-xl font-medium text-blue-950 dark:text-white">
                     {weatherData.location.name === 'Ningbo' ? '宁波' : weatherData.location.name}
                   </div>
-                  <div className="text-sm text-white/60">
+                  <div className="text-sm text-blue-800/60 dark:text-white/60">
                     {weatherData.location.region === 'Zhejiang' ? '浙江' : weatherData.location.region}
                   </div>
                 </div>
@@ -197,8 +197,8 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                 const Icon = weatherIcons[day.icon]
                 return (
                   <div key={i} className="space-y-2">
-                    <div className="text-xs text-white/70 font-medium">{day.date}</div>
-                    <Icon className="size-5 text-white mx-auto" strokeWidth={1.5} />
+                    <div className="text-xs text-blue-900/70 dark:text-white/70 font-medium">{day.date}</div>
+                    <Icon className="size-5 text-blue-700 dark:text-white mx-auto" strokeWidth={1.5} />
                   </div>
                 )
               }) : (
@@ -226,7 +226,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                     {(() => {
                       const range = maxTemp - minTemp || 1
                       const padding = 25 // 上下留白
-                      
+
                       // 计算每个点的位置，使其与列对齐
                       const points = tempData.map((temp, i) => {
                         // 计算 x 坐标：每列中心位置
@@ -236,14 +236,14 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                         const y = padding + ((maxTemp - temp) / range) * (100 - padding * 2)
                         return { x, y, temp }
                       })
-                      
+
                       // 构建路径
-                      const linePath = points.map((p, i) => 
+                      const linePath = points.map((p, i) =>
                         `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
                       ).join(' ')
-                      
+
                       const areaPath = `${linePath} L ${points[points.length - 1].x} 100 L ${points[0].x} 100 Z`
-                      
+
                       return (
                         <>
                           {/* 填充区域 */}
@@ -254,11 +254,12 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
                           {points.map((p, i) => (
                             <g key={i}>
                               <circle cx={p.x} cy={p.y} r="4" fill="white" />
-                              <text 
-                                x={p.x} 
-                                y={p.y - 12} 
-                                textAnchor="middle" 
-                                fill="white" 
+                              <text
+                                x={p.x}
+                                y={p.y - 12}
+                                textAnchor="middle"
+                                fill="currentColor"
+                                className="text-blue-900 dark:text-white"
                                 fontSize="16"
                                 fontWeight="600"
                                 style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
@@ -283,8 +284,8 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
             <div className="grid grid-cols-7 gap-2 text-center">
               {weatherData?.forecast?.forecastday?.slice(0, 7).map((day, i) => (
                 <div key={i} className="space-y-1">
-                  <Droplets className="size-4 text-blue-300 mx-auto" />
-                  <div className="text-xs text-white/90">{day.day.avghumidity}%</div>
+                  <Droplets className="size-4 text-blue-500 dark:text-blue-300 mx-auto" />
+                  <div className="text-xs text-blue-900/90 dark:text-white/90">{day.day.avghumidity}%</div>
                 </div>
               )) || Array.from({ length: 7 }).map((_, i) => (
                 <div key={i} className="space-y-1">
@@ -312,13 +313,13 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 + i * 0.05 }}
-            className="p-3 rounded-lg bg-white/5 border border-white/10"
+            className="p-3 rounded-lg bg-secondary/50 dark:bg-white/5 border border-border dark:border-white/10"
           >
             <div className="flex items-center gap-2 mb-2">
-              <item.icon className="size-4 text-white/70" />
-              <div className="text-xs text-white/60">{item.label}</div>
+              <item.icon className="size-4 text-muted-foreground dark:text-white/70" />
+              <div className="text-xs text-muted-foreground dark:text-white/60">{item.label}</div>
             </div>
-            <div className="text-lg font-bold text-white">{item.value}</div>
+            <div className="text-lg font-bold text-foreground dark:text-white">{item.value}</div>
           </motion.div>
         ))}
       </div>
@@ -328,22 +329,21 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
-        className="p-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30"
+        className="p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/30"
       >
-        <div className="text-sm text-green-200/70 mb-3">草莓生长阶段</div>
+        <div className="text-sm text-green-800/70 dark:text-green-200/70 mb-3">草莓生长阶段</div>
         <div className="flex items-center justify-between">
           {["🌱", "🌿", "🌸", "🍓", "🍓"].map((emoji, i) => (
             <div
               key={i}
-              className={`text-3xl transition-all ${
-                i <= 3 ? "opacity-100 scale-110" : "opacity-40"
-              }`}
+              className={`text-3xl transition-all ${i <= 3 ? "opacity-100 scale-110" : "opacity-40"
+                }`}
             >
               {emoji}
             </div>
           ))}
         </div>
-        <div className="mt-3 text-xs text-green-200/70">
+        <div className="mt-3 text-xs text-green-800/70 dark:text-green-200/70">
           当前阶段：开花结果期
         </div>
       </motion.div>

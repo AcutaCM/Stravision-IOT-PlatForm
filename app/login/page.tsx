@@ -24,7 +24,7 @@ export default function LoginPage() {
       try {
         const res = await fetch("/api/auth/me");
         const data = await res.json();
-        if (data?.authenticated) router.replace("/");
+        if (data?.authenticated) router.replace("/monitor");
       } catch {}
     };
     check();
@@ -45,7 +45,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.replace("/");
+      router.replace("/monitor");
     } catch {
       setError("网络错误");
       setLoading(false);
@@ -124,7 +124,9 @@ export default function LoginPage() {
               </div>
               {/* Social buttons */}
               <div className="space-y-4">
-                <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]">
+                <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]" onClick={() => {
+                  window.location.href = "/api/auth/wechat/login"
+                }}>
                   {/* Using Mail icon to approximate Google brand */}
                   <Mail className="h-6 w-6 text-[#4285F4]" />
                   <span className="text-[16px]">使用微信登录</span>

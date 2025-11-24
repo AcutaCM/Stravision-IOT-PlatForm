@@ -6,15 +6,18 @@ import dynamic from "next/dynamic"
 import { VegaEmbed } from "react-vega"
 const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false })
 import { PageNavigation } from "@/components/page-navigation"
+import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import Link from "next/link"
 import { CloudSun, Settings as SettingsIcon, Activity, Sun, Droplets, Wind, Bug, Leaf, ArrowUpIcon, Edit, Save, User, Copy, RotateCcw, PaperclipIcon, MicIcon, Globe, Wifi, WifiOff, Plus, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
-import { 
-  AssistantModal, 
-  AssistantModalHeader, 
-  AssistantModalContent, 
+import { useRouter } from "next/navigation"
+import type { UserPublic } from "@/lib/db/user-service"
+import {
+  AssistantModal,
+  AssistantModalHeader,
+  AssistantModalContent,
   AssistantModalFooter,
   Message,
   MessageAvatar,
@@ -96,12 +99,18 @@ interface AISettings {
 interface SessionMeta { id: string; title: string; createdAt: number; updatedAt: number }
 
 export default function DashboardPage() {
+  const router = useRouter()
+
+  // User authentication state
+  const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+
   // Connect to SSE for real-time device data
   const { deviceData, connectionStatus } = useDeviceData()
-  
+
   // Use shared weather data from context
   const { weatherData } = useWeatherContext()
-  
+
   const defaultLayout = [
     { i: "humidity", x: 0, y: 0, w: 3, h: 2 },
     { i: "temperature", x: 3, y: 0, w: 3, h: 2 },
@@ -185,12 +194,12 @@ export default function DashboardPage() {
     )
   }
 
-  
+
 
   const renderMarkdownWithCitations = (text: string, citations?: Citation[], keyParam?: string) => {
     // 清理 HTML 标签（如 </ref>）
     const cleanText = text.replace(/<\/?ref>/g, '')
-    
+
     const nodes: React.ReactNode[] = []
     const r = /\[(\d+)\]/g
     let li = 0
@@ -200,13 +209,13 @@ export default function DashboardPage() {
       if (m.index > li) {
         const seg = cleanText.slice(li, m.index)
         nodes.push(
-          <ReactMarkdown 
-            remarkPlugins={[remarkGfm]} 
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             key={`md-${keyParam}-${idx++}`}
             components={{
-              img: ({node, ...props}) => (
-                <img 
-                  {...props} 
+              img: ({ node, ...props }) => (
+                <img
+                  {...props}
                   className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => setPreviewImage(typeof props.src === 'string' ? props.src : '')}
                   alt={props.alt || ''}
@@ -240,13 +249,13 @@ export default function DashboardPage() {
     if (li < cleanText.length) {
       const seg = cleanText.slice(li)
       nodes.push(
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]} 
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
           key={`md-end-${keyParam}`}
           components={{
-            img: ({node, ...props}) => (
-              <img 
-                {...props} 
+            img: ({ node, ...props }) => (
+              <img
+                {...props}
                 className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => setPreviewImage(typeof props.src === 'string' ? props.src : '')}
                 alt={props.alt || ''}
@@ -281,7 +290,7 @@ export default function DashboardPage() {
       if (p.type === "code") {
         try {
           const maybe = JSON.parse(p.value)
-          
+
           // 检测设备控制命令
           const isDeviceCommand = maybe && typeof maybe === "object" && maybe.action && (maybe.action === "toggle_relay" || maybe.action === "set_led")
           if (isDeviceCommand) {
@@ -325,7 +334,7 @@ export default function DashboardPage() {
               </div>
             )
           }
-          
+
           const looksEcharts = maybe && typeof maybe === "object" && (maybe.series || maybe.xAxis || maybe.yAxis)
           if (looksEcharts) {
             return (
@@ -334,14 +343,14 @@ export default function DashboardPage() {
               </div>
             )
           }
-        } catch {}
+        } catch { }
         return (
           <pre key={`code-${i}`} className="mt-2 w-full overflow-x-auto rounded-lg bg-black/50 text-white p-3 border border-white/10"><code className="font-mono text-xs">{p.value}</code></pre>
         )
       }
       if (p.type === "chart" && String(p.chartType).toLowerCase() === "vega-lite") {
         let spec: unknown = null
-        try { spec = JSON.parse(p.value) } catch {}
+        try { spec = JSON.parse(p.value) } catch { }
         if (spec && typeof spec === "object") {
           const defaultConfig = {
             background: "transparent",
@@ -379,7 +388,7 @@ export default function DashboardPage() {
       }
       if (p.type === "chart" && String(p.chartType).toLowerCase() === "echarts") {
         let option: unknown = null
-        try { option = JSON.parse(p.value) } catch {}
+        try { option = JSON.parse(p.value) } catch { }
         if (option && typeof option === "object") {
           return (
             <div key={`chart-e-${i}`} className="mt-2 w-full overflow-x-auto rounded-lg bg-black/30 p-2 border border-white/10">
@@ -474,7 +483,7 @@ export default function DashboardPage() {
                             return { title: String(t.title ?? "任务"), items, status: String(t.status ?? "pending") as TaskModel["status"] }
                           })
                         }
-                      } catch {}
+                      } catch { }
                       display = display.slice(0, tStart) + display.slice(tEnd + 8)
                     } else {
                       display = display.slice(0, tStart)
@@ -487,7 +496,7 @@ export default function DashboardPage() {
                     return newMsgs
                   })
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           }
         }
@@ -533,7 +542,7 @@ export default function DashboardPage() {
               }
               citations = (arr.map((v) => toCitation(v)).filter((x): x is Citation => !!x))
             }
-          } catch {}
+          } catch { }
           clean = clean.replace(m[0], "").trim()
         }
         let tasks: TaskModel[] | undefined
@@ -548,7 +557,7 @@ export default function DashboardPage() {
                 return { title: String(o.title ?? "任务"), items, status: String(o.status ?? "pending") as TaskModel["status"] }
               })
             }
-          } catch {}
+          } catch { }
           clean = clean.replace(mt[0], "").trim()
         }
         clean = clean.replace(/<REASONING>\s*([\s\S]*?)\s*<\/REASONING>/, "").trim()
@@ -560,18 +569,18 @@ export default function DashboardPage() {
         try {
           const needRefine = (citations.length === 0) || citations.some(c => !(/^https?:\/\//i.test(c.url)))
           if (needRefine && aiSettings?.apiKey) {
-          const r = await fetch('/api/citations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [...messages, { role: 'assistant', content: clean }].map(m => ({ role: m.role, content: m.content })),
-              apiKey: aiSettings.apiKey,
-              apiUrl: aiSettings.apiUrl,
-              model: selectedModel || aiSettings.model,
-              systemPrompt: aiSettings.systemPrompt,
-              enableSearch,
+            const r = await fetch('/api/citations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: [...messages, { role: 'assistant', content: clean }].map(m => ({ role: m.role, content: m.content })),
+                apiKey: aiSettings.apiKey,
+                apiUrl: aiSettings.apiUrl,
+                model: selectedModel || aiSettings.model,
+                systemPrompt: aiSettings.systemPrompt,
+                enableSearch,
+              })
             })
-          })
             if (r.ok) {
               const data = await r.json()
               const refined = Array.isArray(data?.citations) ? data.citations as Citation[] : []
@@ -585,8 +594,8 @@ export default function DashboardPage() {
               }
             }
           }
-        } catch {}
-      } catch {}
+        } catch { }
+      } catch { }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error)
       console.error("Chat error:", error)
@@ -597,7 +606,7 @@ export default function DashboardPage() {
   }
 
   const copyText = async (text: string) => {
-    try { await navigator.clipboard.writeText(text) } catch {}
+    try { await navigator.clipboard.writeText(text) } catch { }
   }
 
   const retryAssistantAtIndex = async (index: number) => {
@@ -618,6 +627,29 @@ export default function DashboardPage() {
   const handleSuggestionClick = async (s: string) => {
     await sendByContent(s)
   }
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        const data = await response.json()
+
+        if (data.authenticated && data.user) {
+          setCurrentUser(data.user)
+        } else {
+          router.push("/login")
+        }
+      } catch (error) {
+        console.error("获取用户信息失败:", error)
+        router.push("/login")
+      } finally {
+        setIsLoadingUser(false)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [router])
 
   // 从 localStorage 加载布局和AI设置
   useEffect(() => {
@@ -678,7 +710,7 @@ export default function DashboardPage() {
           const arr = Array.isArray(data?.sessions) ? (data.sessions as SessionMeta[]) : []
           setSessions(arr)
         }
-      } catch {}
+      } catch { }
     }
     loadSessions()
   }, [])
@@ -688,7 +720,7 @@ export default function DashboardPage() {
       const v = localStorage.getItem('ai-enable-search')
       if (v === 'true') setEnableSearch(true)
       else if (v === 'false') setEnableSearch(false)
-    } catch {}
+    } catch { }
   }, [])
 
   useEffect(() => {
@@ -709,13 +741,13 @@ export default function DashboardPage() {
           if (normalized.length > 0) setMessages(normalized)
         }
       }
-    } catch {}
+    } catch { }
   }, [])
 
   useEffect(() => {
     try {
       localStorage.setItem('dashboard-messages', JSON.stringify(messages))
-    } catch {}
+    } catch { }
   }, [messages])
 
   useEffect(() => {
@@ -737,7 +769,7 @@ export default function DashboardPage() {
           const arr = Array.isArray(data?.messages) ? data.messages as Message[] : []
           if (arr.length > 0) setMessages(arr)
         }
-      } catch {}
+      } catch { }
     }
     init()
   }, [])
@@ -748,11 +780,11 @@ export default function DashboardPage() {
     savingTimer.current = setTimeout(async () => {
       try {
         await fetch(`/api/sessions/${sessionId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) })
-      } catch {}
+      } catch { }
     }, 400)
     return () => { if (savingTimer.current) clearTimeout(savingTimer.current) }
   }, [messages, sessionId])
-  
+
   // 只有当 autoScroll 为 true 时才滚动到底部
   useEffect(() => {
     if (autoScroll && messagesEndRef.current) {
@@ -762,7 +794,7 @@ export default function DashboardPage() {
     }
   }, [autoScroll])  // 移除 messages 依赖，避免每次消息更新都触发
 
-  
+
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
@@ -868,7 +900,7 @@ export default function DashboardPage() {
                             return { title: String(t.title ?? "任务"), items, status: String(t.status ?? "pending") as TaskModel["status"] }
                           })
                         }
-                      } catch {}
+                      } catch { }
                       display = display.slice(0, tStart) + display.slice(tEnd + 8)
                     } else {
                       display = display.slice(0, tStart)
@@ -881,7 +913,7 @@ export default function DashboardPage() {
                     return newMsgs
                   })
                 }
-              } catch (e) {}
+              } catch (e) { }
             }
           }
         }
@@ -927,7 +959,7 @@ export default function DashboardPage() {
               }
               citations = (arr.map((v) => toCitation(v)).filter((x): x is Citation => !!x))
             }
-          } catch {}
+          } catch { }
           clean = clean.replace(m[0], "").trim()
         }
         let tasks: TaskModel[] | undefined
@@ -942,7 +974,7 @@ export default function DashboardPage() {
                 return { title: String(o.title ?? "任务"), items, status: String(o.status ?? "pending") as TaskModel["status"] }
               })
             }
-          } catch {}
+          } catch { }
           clean = clean.replace(mt[0], "").trim()
         }
         clean = clean.replace(/<REASONING>\s*([\s\S]*?)\s*<\/REASONING>/, "").trim()
@@ -951,7 +983,7 @@ export default function DashboardPage() {
           newMsgs[newMsgs.length - 1] = { role: "assistant", content: clean, citations, reasoning: { text: reasoningText, durationMs: Date.now() - startTs }, tasks }
           return newMsgs
         })
-      } catch {}
+      } catch { }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error)
       console.error("Chat error:", error)
@@ -986,6 +1018,20 @@ export default function DashboardPage() {
     setIsEditMode(!isEditMode)
   }
 
+  // Show loading state while checking authentication
+  if (isLoadingUser) {
+    return (
+      <div className="min-h-screen w-screen h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-muted-foreground">加载中...</div>
+      </div>
+    )
+  }
+
+  // Don't render page if no user (will redirect)
+  if (!currentUser) {
+    return null
+  }
+
   return (
     <>
       <style jsx global>{`
@@ -1007,857 +1053,858 @@ export default function DashboardPage() {
         .animate-fade-in-dashboard { animation: fade-in-dashboard 0.6s ease-out; }
         .animate-grow-bar { animation: grow-bar 0.8s ease-out; }
       `}</style>
-      <div className="min-h-screen w-screen h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0E1524] to-[#0a0e1a] text-white">
-      <div className="grid grid-rows-[72px_1fr] h-full w-full">
-        {/* Header */}
-        <div className="relative flex items-center px-8 border-b border-white/5 bg-[#0a0e1a]/50 backdrop-blur-sm">
-          <div className="flex items-center gap-4 text-white">
-            <Image src="/logo.svg" alt="logo" width={64} height={64} />
-            <div className="leading-tight">
-              <div className="text-base font-bold tracking-wide">STRAVISION</div>
-              <div className="text-xs text-white/60">莓界 · 智慧农业平台</div>
+      <div className="min-h-screen w-screen h-screen bg-background text-foreground">
+        <div className="grid grid-rows-[72px_1fr] h-full w-full">
+          {/* Header */}
+          <div className="relative flex items-center px-8 border-b border-border bg-background/50 backdrop-blur-sm">
+            <div className="flex items-center gap-4 text-foreground">
+              <Image src="/logo.svg" alt="logo" width={64} height={64} />
+              <div className="leading-tight">
+                <div className="text-base font-bold tracking-wide">STRAVISION</div>
+                <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
+              </div>
+            </div>
+            <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+              <PageNavigation />
+            </div>
+
+            {/* 布局编辑按钮和连接状态 */}
+            <div className="ml-auto flex items-center gap-3">
+              {connectionStatus.connected ? (
+                <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
+                  <Wifi className="size-3 mr-1" />
+                  已连接
+                </Badge>
+              ) : (
+                <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
+                  <WifiOff className="size-3 mr-1" />
+                  {connectionStatus.error || '未连接'}
+                </Badge>
+              )}
+              {connectionStatus.lastUpdate && (
+                <span className="text-xs text-muted-foreground/60">
+                  更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
+                </span>
+              )}
+              {isEditMode ? (
+                <Button
+                  onClick={handleSaveLayout}
+                  className="h-9 rounded-full px-5 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Save className="mr-2" size={18} /> 保存布局
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleEditMode}
+                  variant="ghost"
+                  className="h-9 rounded-full px-5 text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                >
+                  <Edit className="mr-2" size={18} /> 编辑布局
+                </Button>
+              )}
+              <UserAvatarMenu user={currentUser} />
             </div>
           </div>
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-            <PageNavigation />
-          </div>
-          
-          {/* 布局编辑按钮和连接状态 */}
-          <div className="ml-auto flex items-center gap-3">
-            {connectionStatus.connected ? (
-              <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
-                <Wifi className="size-3 mr-1" />
-                已连接
-              </Badge>
-            ) : (
-              <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
-                <WifiOff className="size-3 mr-1" />
-                {connectionStatus.error || '未连接'}
-              </Badge>
-            )}
-            {connectionStatus.lastUpdate && (
-              <span className="text-xs text-white/40">
-                更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
-            {isEditMode ? (
-              <Button 
-                onClick={handleSaveLayout}
-                className="h-9 rounded-full px-5 bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
+
+          {/* Dashboard Content */}
+          <div className="relative px-8 pb-8 pt-6">
+            <div className="w-full">
+              <GridLayout
+                className="layout"
+                layout={layout}
+                cols={12}
+                rowHeight={80}
+                width={typeof window !== 'undefined' ? window.innerWidth - 64 : 1600}
+                onLayoutChange={onLayoutChange}
+                isDraggable={isEditMode}
+                isResizable={isEditMode}
+                compactType={null}
+                preventCollision={true}
               >
-                <Save className="mr-2" size={18}/> 保存布局
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleEditMode}
-                variant="ghost"
-                className="h-9 rounded-full px-5 text-white/70 hover:text-white hover:bg-white/10 transition-all"
-              >
-                <Edit className="mr-2" size={18}/> 编辑布局
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Dashboard Content */}
-        <div className="relative px-8 pb-8 pt-6">
-          <div className="w-full">
-            <GridLayout
-              className="layout"
-              layout={layout}
-              cols={12}
-              rowHeight={80}
-              width={typeof window !== 'undefined' ? window.innerWidth - 64 : 1600}
-              onLayoutChange={onLayoutChange}
-              isDraggable={isEditMode}
-              isResizable={isEditMode}
-              compactType={null}
-              preventCollision={true}
-            >
-            {/* 湿度 */}
-            <div key="humidity">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">
-                        {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
-                        <span className="text-2xl font-normal text-white/70">%</span>
-                      </div>
-                      <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30">湿度</Badge>
-                    </div>
-                    <Droplets className="size-10 text-blue-400" />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="humidity" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,40 Q75,30 150,35 T300,30" fill="none" stroke="#60a5fa" strokeWidth="2.5" />
-                    <path d="M0,40 Q75,30 150,35 T300,30 L300,60 L0,60 Z" fill="url(#humidity)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 温度 */}
-            <div key="temperature">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">
-                        {deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
-                        <span className="text-2xl font-normal text-white/70">°C</span>
-                      </div>
-                      <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30">温度</Badge>
-                    </div>
-                    <Sun className="size-10 text-orange-400" />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="temp" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#fb923c" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#fb923c" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,45 Q75,35 150,40 T300,35" fill="none" stroke="#fb923c" strokeWidth="2.5" />
-                    <path d="M0,45 Q75,35 150,40 T300,35 L300,60 L0,60 Z" fill="url(#temp)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 光照 */}
-            <div key="light">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">
-                        {deviceData ? deviceData.light : '--'}
-                        <span className="text-2xl font-normal text-white/70">lux</span>
-                      </div>
-                      <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30">光照强度</Badge>
-                    </div>
-                    <Sun className="size-10 text-yellow-400" strokeWidth={1.5} />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="light" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#facc15" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#facc15" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,50 Q75,25 150,30 T300,20" fill="none" stroke="#facc15" strokeWidth="2.5" />
-                    <path d="M0,50 Q75,25 150,30 T300,20 L300,60 L0,60 Z" fill="url(#light)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* CO2 */}
-            <div key="co2">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">
-                        {deviceData ? deviceData.co2 : '--'}
-                        <span className="text-2xl font-normal text-white/70">ppm</span>
-                      </div>
-                      <Badge className="bg-gray-500/20 text-white/70 border-gray-500/30">CO₂浓度</Badge>
-                    </div>
-                    <Wind className="size-10 text-gray-500" />
-                  </div>
-                  <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                    {[60, 75, 50, 85, 65, 70, 55, 80].map((height, i) => (
-                      <div key={i} className="flex-1 bg-gradient-to-t from-gray-400 to-gray-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 土壤湿度 */}
-            <div key="soilMoisture">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">
-                        {deviceData ? deviceData.earth_water : '--'}
-                        <span className="text-2xl font-normal text-white/70">%</span>
-                      </div>
-                      <Badge className="bg-cyan-500/20 text-cyan-600 border-cyan-500/30">土壤湿度</Badge>
-                    </div>
-                    <Droplets className="size-10 text-cyan-400" />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="soilMoisture" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,42 Q75,38 150,40 T300,38" fill="none" stroke="#22d3ee" strokeWidth="2.5" />
-                    <path d="M0,42 Q75,38 150,40 T300,38 L300,60 L0,60 Z" fill="url(#soilMoisture)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 土壤肥力 */}
-            <div key="fertility">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">78.5<span className="text-2xl font-normal text-white/70">%</span></div>
-                      <Badge className="bg-green-500/20 text-green-600 border-green-500/30">土壤肥力</Badge>
-                    </div>
-                    <Leaf className="size-10 text-green-500" />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="fertility" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#4ade80" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#4ade80" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,48 Q75,32 150,38 T300,28" fill="none" stroke="#4ade80" strokeWidth="2.5" />
-                    <path d="M0,48 Q75,32 150,38 T300,28 L300,60 L0,60 Z" fill="url(#fertility)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 氮含量 */}
-            <div key="nitrogen">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-4xl font-bold text-white mb-2">
-                        {deviceData ? deviceData.earth_n : '--'}
-                        <span className="text-xl font-normal text-white/70">mg/kg</span>
-                      </div>
-                      <Badge className="bg-purple-500/20 text-purple-600 border-purple-500/30">氮含量 (N)</Badge>
-                    </div>
-                    <div className="size-10 rounded-full bg-purple-400 flex items-center justify-center text-white font-bold text-xl">N</div>
-                  </div>
-                  <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                    {[55, 70, 60, 75, 65].map((height, i) => (
-                      <div key={i} className="flex-1 bg-gradient-to-t from-purple-400 to-purple-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 磷含量 */}
-            <div key="phosphorus">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-4xl font-bold text-white mb-2">
-                        {deviceData ? deviceData.earth_p : '--'}
-                        <span className="text-xl font-normal text-white/70">mg/kg</span>
-                      </div>
-                      <Badge className="bg-pink-500/20 text-pink-600 border-pink-500/30">磷含量 (P)</Badge>
-                    </div>
-                    <div className="size-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold text-xl">P</div>
-                  </div>
-                  <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                    {[50, 65, 55, 70, 60].map((height, i) => (
-                      <div key={i} className="flex-1 bg-gradient-to-t from-pink-400 to-pink-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 钾含量 */}
-            <div key="potassium">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-4xl font-bold text-white mb-2">
-                        {deviceData ? deviceData.earth_k : '--'}
-                        <span className="text-xl font-normal text-white/70">mg/kg</span>
-                      </div>
-                      <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">钾含量 (K)</Badge>
-                    </div>
-                    <div className="size-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-xl">K</div>
-                  </div>
-                  <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                    {[65, 75, 70, 80, 72].map((height, i) => (
-                      <div key={i} className="flex-1 bg-gradient-to-t from-amber-400 to-amber-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 病虫害率 */}
-            <div key="pest">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">2.3<span className="text-2xl font-normal text-white/70">%</span></div>
-                      <Badge className="bg-red-500/20 text-red-600 border-red-500/30">病虫害率</Badge>
-                    </div>
-                    <Bug className="size-10 text-red-500" />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="pest" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,55 Q75,52 150,54 T300,52" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-                    <path d="M0,55 Q75,52 150,54 T300,52 L300,60 L0,60 Z" fill="url(#pest)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 成熟率 */}
-            <div key="maturity">
-              <Card className="h-full rounded-3xl border border-white/5 overflow-hidden shadow-2xl bg-gradient-to-br from-[#1a2332] to-[#0f1419] hover:shadow-3xl transition-all cursor-move">
-                <CardContent className="p-6 h-full flex flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-5xl font-bold text-white mb-2">87.6<span className="text-2xl font-normal text-white/70">%</span></div>
-                      <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">成熟率</Badge>
-                    </div>
-                    <Leaf className="size-10 text-emerald-500" />
-                  </div>
-                  <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                    <defs>
-                      <linearGradient id="maturity" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.1" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M0,50 Q75,28 150,32 T300,22" fill="none" stroke="#10b981" strokeWidth="2.5" />
-                    <path d="M0,50 Q75,28 150,32 T300,22 L300,60 L0,60 Z" fill="url(#maturity)" />
-                  </svg>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 降雨量 */}
-            <div key="rainfall">
-              {(() => {
-                const todayPrecip = weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0
-                const isRaining = todayPrecip > 0
-                
-                return (
-                  <Card className={`h-full rounded-3xl border overflow-hidden shadow-2xl bg-gradient-to-br transition-all cursor-move relative ${
-                    isRaining 
-                      ? 'from-blue-600/20 via-cyan-600/15 to-blue-700/20 border-blue-400/30 hover:shadow-blue-500/20' 
-                      : 'from-[#1a2332] to-[#0f1419] border-white/5 hover:shadow-3xl'
-                  }`}>
-                    {/* 雨滴动画效果 */}
-                    {isRaining && (
-                      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        {Array.from({ length: 15 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="absolute w-0.5 h-3 bg-blue-300/30 animate-rain-dashboard"
-                            style={{
-                              left: `${Math.random() * 100}%`,
-                              animationDelay: `${Math.random() * 2}s`,
-                              animationDuration: `${0.8 + Math.random() * 0.4}s`
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    
-                    <CardContent className="p-6 h-full flex flex-col justify-between relative z-10">
+                {/* 湿度 */}
+                <div key="humidity">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="text-5xl font-bold text-white mb-2 animate-fade-in-dashboard">
-                            {weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm?.toFixed(1) || '--'}
-                            <span className="text-2xl font-normal text-white/70">mm</span>
+                          <div className="text-5xl font-bold text-foreground mb-2">
+                            {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
+                            <span className="text-2xl font-normal text-muted-foreground">%</span>
                           </div>
-                          <Badge className={`${isRaining ? 'bg-blue-400/30 text-blue-200 border-blue-400/40' : 'bg-blue-500/20 text-blue-600 border-blue-500/30'}`}>
-                            今日降雨量
-                          </Badge>
+                          <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30">湿度</Badge>
                         </div>
-                        <Droplets className={`size-10 transition-all ${isRaining ? 'text-blue-300 animate-bounce' : 'text-blue-400'}`} />
+                        <Droplets className="size-10 text-blue-400" />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="humidity" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,40 Q75,30 150,35 T300,30" fill="none" stroke="#60a5fa" strokeWidth="2.5" />
+                        <path d="M0,40 Q75,30 150,35 T300,30 L300,60 L0,60 Z" fill="url(#humidity)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 温度 */}
+                <div key="temperature">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-5xl font-bold text-foreground mb-2">
+                            {deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
+                            <span className="text-2xl font-normal text-muted-foreground">°C</span>
+                          </div>
+                          <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30">温度</Badge>
+                        </div>
+                        <Sun className="size-10 text-orange-400" />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="temp" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#fb923c" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#fb923c" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,45 Q75,35 150,40 T300,35" fill="none" stroke="#fb923c" strokeWidth="2.5" />
+                        <path d="M0,45 Q75,35 150,40 T300,35 L300,60 L0,60 Z" fill="url(#temp)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 光照 */}
+                <div key="light">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-5xl font-bold text-foreground mb-2">
+                            {deviceData ? deviceData.light : '--'}
+                            <span className="text-2xl font-normal text-muted-foreground">lux</span>
+                          </div>
+                          <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30">光照强度</Badge>
+                        </div>
+                        <Sun className="size-10 text-yellow-400" strokeWidth={1.5} />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="light" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#facc15" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#facc15" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,50 Q75,25 150,30 T300,20" fill="none" stroke="#facc15" strokeWidth="2.5" />
+                        <path d="M0,50 Q75,25 150,30 T300,20 L300,60 L0,60 Z" fill="url(#light)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* CO2 */}
+                <div key="co2">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-5xl font-bold text-foreground mb-2">
+                            {deviceData ? deviceData.co2 : '--'}
+                            <span className="text-2xl font-normal text-muted-foreground">ppm</span>
+                          </div>
+                          <Badge className="bg-gray-500/20 text-white/70 border-gray-500/30">CO₂浓度</Badge>
+                        </div>
+                        <Wind className="size-10 text-gray-500" />
                       </div>
                       <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                        {weatherData?.forecast?.forecastday?.slice(0, 7).map((day, i) => {
-                          const maxPrecip = Math.max(...(weatherData.forecast.forecastday.slice(0, 7).map(d => d.day.totalprecip_mm || 0)), 1)
-                          const height = ((day.day.totalprecip_mm || 0) / maxPrecip) * 100
-                          const hasRain = (day.day.totalprecip_mm || 0) > 0
-                          return (
-                            <div 
-                              key={i} 
-                              className={`flex-1 rounded-t-lg transition-all duration-500 ${
-                                hasRain 
-                                  ? 'bg-gradient-to-t from-blue-400 to-blue-300 hover:from-blue-500 hover:to-blue-400 animate-grow-bar' 
-                                  : 'bg-gradient-to-t from-blue-400/20 to-blue-300/20 hover:from-blue-400/30 hover:to-blue-300/30'
-                              }`}
-                              style={{ 
-                                height: `${Math.max(height, 5)}%`,
-                                animationDelay: `${i * 0.1}s`
-                              }}
-                              title={`${day.date}: ${day.day.totalprecip_mm?.toFixed(1) || 0}mm`}
-                            />
-                          )
-                        }) || [40, 60, 35, 70, 45, 55, 50].map((height, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-blue-400/30 to-blue-300/30 rounded-t-lg" style={{ height: `${height}%` }} />
+                        {[60, 75, 50, 85, 65, 70, 55, 80].map((height, i) => (
+                          <div key={i} className="flex-1 bg-gradient-to-t from-gray-400 to-gray-300 rounded-t-lg" style={{ height: `${height}%` }} />
                         ))}
                       </div>
                     </CardContent>
                   </Card>
-                )
-              })()}
-            </div>
+                </div>
 
-            {/* AI 助手聊天 */}
-            <div key="aiChat">
-              <AssistantModal className="h-full bg-gradient-to-br from-[#1a2332] to-[#0f1419] border-white/5">
-                {/* Header */}
-                <AssistantModalHeader className="border-white/10">
-                  <div className="w-full flex flex-col gap-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <MessageAvatar className="bg-gradient-to-br from-blue-500 to-blue-600" src="/logo.svg" name="AI" />
+                {/* 土壤湿度 */}
+                <div key="soilMoisture">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
                         <div>
-                          <div className="text-white font-semibold text-sm">莓界 AI 助手</div>
-                          <div className="text-xs text-white/60">{aiSettings?.apiKey ? "已配置 API" : "未配置 API"}</div>
+                          <div className="text-5xl font-bold text-foreground mb-2">
+                            {deviceData ? (deviceData.earth_water / 10).toFixed(1) : '--'}
+                            <span className="text-2xl font-normal text-muted-foreground">%</span>
+                          </div>
+                          <Badge className="bg-cyan-500/20 text-cyan-600 border-cyan-500/30">土壤湿度</Badge>
+                        </div>
+                        <Droplets className="size-10 text-cyan-400" />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="soilMoisture" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,42 Q75,38 150,40 T300,38" fill="none" stroke="#22d3ee" strokeWidth="2.5" />
+                        <path d="M0,42 Q75,38 150,40 T300,38 L300,60 L0,60 Z" fill="url(#soilMoisture)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 土壤肥力 */}
+                <div key="fertility">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-5xl font-bold text-foreground mb-2">78.5<span className="text-2xl font-normal text-muted-foreground">%</span></div>
+                          <Badge className="bg-green-500/20 text-green-600 border-green-500/30">土壤肥力</Badge>
+                        </div>
+                        <Leaf className="size-10 text-green-500" />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="fertility" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#4ade80" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#4ade80" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,48 Q75,32 150,38 T300,28" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+                        <path d="M0,48 Q75,32 150,38 T300,28 L300,60 L0,60 Z" fill="url(#fertility)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 氮含量 */}
+                <div key="nitrogen">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-4xl font-bold text-foreground mb-2">
+                            {deviceData ? deviceData.earth_n : '--'}
+                            <span className="text-xl font-normal text-muted-foreground">mg/kg</span>
+                          </div>
+                          <Badge className="bg-purple-500/20 text-purple-600 border-purple-500/30">氮含量 (N)</Badge>
+                        </div>
+                        <div className="size-10 rounded-full bg-purple-400 flex items-center justify-center text-white font-bold text-xl">N</div>
+                      </div>
+                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
+                        {[55, 70, 60, 75, 65].map((height, i) => (
+                          <div key={i} className="flex-1 bg-gradient-to-t from-purple-400 to-purple-300 rounded-t-lg" style={{ height: `${height}%` }} />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 磷含量 */}
+                <div key="phosphorus">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-4xl font-bold text-foreground mb-2">
+                            {deviceData ? deviceData.earth_p : '--'}
+                            <span className="text-xl font-normal text-muted-foreground">mg/kg</span>
+                          </div>
+                          <Badge className="bg-pink-500/20 text-pink-600 border-pink-500/30">磷含量 (P)</Badge>
+                        </div>
+                        <div className="size-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold text-xl">P</div>
+                      </div>
+                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
+                        {[50, 65, 55, 70, 60].map((height, i) => (
+                          <div key={i} className="flex-1 bg-gradient-to-t from-pink-400 to-pink-300 rounded-t-lg" style={{ height: `${height}%` }} />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 钾含量 */}
+                <div key="potassium">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-4xl font-bold text-foreground mb-2">
+                            {deviceData ? deviceData.earth_k : '--'}
+                            <span className="text-xl font-normal text-muted-foreground">mg/kg</span>
+                          </div>
+                          <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">钾含量 (K)</Badge>
+                        </div>
+                        <div className="size-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-xl">K</div>
+                      </div>
+                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
+                        {[65, 75, 70, 80, 72].map((height, i) => (
+                          <div key={i} className="flex-1 bg-gradient-to-t from-amber-400 to-amber-300 rounded-t-lg" style={{ height: `${height}%` }} />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 病虫害率 */}
+                <div key="pest">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-5xl font-bold text-foreground mb-2">2.3<span className="text-2xl font-normal text-muted-foreground">%</span></div>
+                          <Badge className="bg-red-500/20 text-red-600 border-red-500/30">病虫害率</Badge>
+                        </div>
+                        <Bug className="size-10 text-red-500" />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="pest" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,55 Q75,52 150,54 T300,52" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+                        <path d="M0,55 Q75,52 150,54 T300,52 L300,60 L0,60 Z" fill="url(#pest)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 成熟率 */}
+                <div key="maturity">
+                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-5xl font-bold text-foreground mb-2">87.6<span className="text-2xl font-normal text-muted-foreground">%</span></div>
+                          <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">成熟率</Badge>
+                        </div>
+                        <Leaf className="size-10 text-emerald-500" />
+                      </div>
+                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
+                        <defs>
+                          <linearGradient id="maturity" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0.1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,50 Q75,28 150,32 T300,22" fill="none" stroke="#10b981" strokeWidth="2.5" />
+                        <path d="M0,50 Q75,28 150,32 T300,22 L300,60 L0,60 Z" fill="url(#maturity)" />
+                      </svg>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* 降雨量 */}
+                <div key="rainfall">
+                  {(() => {
+                    const todayPrecip = weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0
+                    const isRaining = todayPrecip > 0
+
+                    return (
+                      <Card className={`h-full rounded-3xl border overflow-hidden shadow-2xl transition-all cursor-move relative ${isRaining
+                        ? 'bg-gradient-to-br from-blue-600/20 via-cyan-600/15 to-blue-700/20 border-blue-400/30 hover:shadow-blue-500/20'
+                        : 'glass border-border hover:shadow-3xl'
+                        }`}>
+                        {/* 雨滴动画效果 */}
+                        {isRaining && (
+                          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            {Array.from({ length: 15 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className="absolute w-0.5 h-3 bg-blue-300/30 animate-rain-dashboard"
+                                style={{
+                                  left: `${Math.random() * 100}%`,
+                                  animationDelay: `${Math.random() * 2}s`,
+                                  animationDuration: `${0.8 + Math.random() * 0.4}s`
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <CardContent className="p-6 h-full flex flex-col justify-between relative z-10">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="text-5xl font-bold text-foreground mb-2 animate-fade-in-dashboard">
+                                {weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm?.toFixed(1) || '--'}
+                                <span className="text-2xl font-normal text-muted-foreground">mm</span>
+                              </div>
+                              <Badge className={`${isRaining ? 'bg-blue-400/30 text-blue-200 border-blue-400/40' : 'bg-blue-500/20 text-blue-600 border-blue-500/30'}`}>
+                                今日降雨量
+                              </Badge>
+                            </div>
+                            <Droplets className={`size-10 transition-all ${isRaining ? 'text-blue-300 animate-bounce' : 'text-blue-400'}`} />
+                          </div>
+                          <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
+                            {weatherData?.forecast?.forecastday?.slice(0, 7).map((day, i) => {
+                              const maxPrecip = Math.max(...(weatherData.forecast.forecastday.slice(0, 7).map(d => d.day.totalprecip_mm || 0)), 1)
+                              const height = ((day.day.totalprecip_mm || 0) / maxPrecip) * 100
+                              const hasRain = (day.day.totalprecip_mm || 0) > 0
+                              return (
+                                <div
+                                  key={i}
+                                  className={`flex-1 rounded-t-lg transition-all duration-500 ${hasRain
+                                    ? 'bg-gradient-to-t from-blue-400 to-blue-300 hover:from-blue-500 hover:to-blue-400 animate-grow-bar'
+                                    : 'bg-gradient-to-t from-blue-400/20 to-blue-300/20 hover:from-blue-400/30 hover:to-blue-300/30'
+                                    }`}
+                                  style={{
+                                    height: `${Math.max(height, 5)}%`,
+                                    animationDelay: `${i * 0.1}s`
+                                  }}
+                                  title={`${day.date}: ${day.day.totalprecip_mm?.toFixed(1) || 0}mm`}
+                                />
+                              )
+                            }) || [40, 60, 35, 70, 45, 55, 50].map((height, i) => (
+                              <div key={i} className="flex-1 bg-gradient-to-t from-blue-400/30 to-blue-300/30 rounded-t-lg" style={{ height: `${height}%` }} />
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })()}
+                </div>
+
+                {/* AI 助手聊天 */}
+                <div key="aiChat">
+                  <AssistantModal className="h-full glass border-border">
+                    {/* Header */}
+                    <AssistantModalHeader className="border-border">
+                      <div className="w-full flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <MessageAvatar className="bg-gradient-to-br from-blue-500 to-blue-600" src="/logo.svg" name="AI" />
+                            <div>
+                              <div className="text-foreground font-semibold text-sm">莓界 AI 助手</div>
+                              <div className="text-xs text-muted-foreground">{aiSettings?.apiKey ? "已配置 API" : "未配置 API"}</div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSettingsOpen(true)}
+                            className="text-muted-foreground hover:text-foreground hover:bg-accent"
+                          >
+                            <SettingsIcon className="size-4" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-muted-foreground">会话</span>
+                          <PromptInputModelSelect value={sessionId || ""} onValueChange={async (v) => {
+                            try {
+                              if (v === "__new__") {
+                                const title = `新会话 ${new Date().toLocaleString('zh-CN')}`
+                                const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                                if (r.ok) {
+                                  const s = await r.json()
+                                  const id = String(s?.id || '')
+                                  setSessionId(id)
+                                  localStorage.setItem('dashboard-session-id', id)
+                                  const resp = await fetch(`/api/sessions/${id}`)
+                                  const data = resp.ok ? await resp.json() : {}
+                                  const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+                                  setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
+                                }
+                                const lr = await fetch('/api/sessions')
+                                if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
+                                return
+                              }
+                              if (v === "__rename__") {
+                                if (!sessionId) return
+                                const t = window.prompt('重命名会话', (sessions.find(s => s.id === sessionId)?.title) || '')
+                                if (t === null) return
+                                const title = String(t)
+                                await fetch(`/api/sessions/${sessionId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                                const lr = await fetch('/api/sessions')
+                                if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
+                                return
+                              }
+                              if (v === "__delete__") {
+                                if (!sessionId) return
+                                const ok = window.confirm('删除当前会话？')
+                                if (!ok) return
+                                await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
+                                const lr = await fetch('/api/sessions')
+                                let nextId = ''
+                                if (lr.ok) {
+                                  const ld = await lr.json()
+                                  const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []
+                                  setSessions(ls)
+                                  nextId = ls[0]?.id || ''
+                                }
+                                if (!nextId) {
+                                  const title = `默认会话 ${new Date().toLocaleString('zh-CN')}`
+                                  const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                                  if (r.ok) { const s = await r.json(); nextId = String(s?.id || '') }
+                                }
+                                if (nextId) {
+                                  setSessionId(nextId)
+                                  localStorage.setItem('dashboard-session-id', nextId)
+                                  const resp = await fetch(`/api/sessions/${nextId}`)
+                                  const data = resp.ok ? await resp.json() : {}
+                                  const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+                                  setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
+                                }
+                                return
+                              }
+                              setSessionId(v)
+                              localStorage.setItem('dashboard-session-id', v)
+                              const resp = await fetch(`/api/sessions/${v}`)
+                              if (resp.ok) {
+                                const data = await resp.json()
+                                const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+                                setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
+                              }
+                            } catch { }
+                          }}>
+                            <PromptInputModelSelectTrigger>
+                              <span className="text-sm">{(sessions.find(s => s.id === (sessionId || ''))?.title) || '当前会话'}</span>
+                            </PromptInputModelSelectTrigger>
+                            <PromptInputModelSelectContent>
+                              {sessions.length === 0 ? (
+                                <PromptInputModelSelectItem value={sessionId || ''}>{sessionId || '当前会话'}</PromptInputModelSelectItem>
+                              ) : (
+                                sessions.map(s => (
+                                  <PromptInputModelSelectItem key={s.id} value={s.id}>
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>{s.title}</span>
+                                      <div className="flex items-center gap-2 opacity-70">
+                                        <Button type="button" variant="ghost" size="icon-sm" className="hover:bg-white/10" onClick={async (e) => {
+                                          e.preventDefault(); e.stopPropagation()
+                                          const t = window.prompt('重命名会话', s.title)
+                                          if (t === null) return
+                                          const title = String(t)
+                                          try {
+                                            await fetch(`/api/sessions/${s.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                                            const lr = await fetch('/api/sessions')
+                                            if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
+                                          } catch { }
+                                        }}><Edit className="size-4" /></Button>
+                                        <Button type="button" variant="ghost" size="icon-sm" className="hover:bg-white/10" onClick={async (e) => {
+                                          e.preventDefault(); e.stopPropagation()
+                                          const ok = window.confirm(`删除会话「${s.title}」？`)
+                                          if (!ok) return
+                                          try {
+                                            await fetch(`/api/sessions/${s.id}`, { method: 'DELETE' })
+                                            const lr = await fetch('/api/sessions')
+                                            let nextId = ''
+                                            if (lr.ok) {
+                                              const ld = await lr.json()
+                                              const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []
+                                              setSessions(ls)
+                                              nextId = (sessionId === s.id) ? (ls[0]?.id || '') : (sessionId || '')
+                                            }
+                                            if (!nextId) {
+                                              const title = `默认会话 ${new Date().toLocaleString('zh-CN')}`
+                                              const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                                              if (r.ok) { const res = await r.json(); nextId = String(res?.id || '') }
+                                            }
+                                            if (nextId) {
+                                              setSessionId(nextId)
+                                              localStorage.setItem('dashboard-session-id', nextId)
+                                              const resp = await fetch(`/api/sessions/${nextId}`)
+                                              const data = resp.ok ? await resp.json() : {}
+                                              const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+                                              setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
+                                            }
+                                          } catch { }
+                                        }}><Trash className="size-4" /></Button>
+                                      </div>
+                                    </div>
+                                  </PromptInputModelSelectItem>
+                                ))
+                              )}
+                              <PromptInputModelSelectItem value="__new__"><Plus className="size-4" /> 新建会话</PromptInputModelSelectItem>
+                              <PromptInputModelSelectItem value="__rename__"><Edit className="size-4" /> 重命名当前会话</PromptInputModelSelectItem>
+                              <PromptInputModelSelectItem value="__delete__"><Trash className="size-4" /> 删除当前会话</PromptInputModelSelectItem>
+                            </PromptInputModelSelectContent>
+                          </PromptInputModelSelect>
+                          <Button aria-label="新建会话" variant="ghost" size="icon-sm" className="text-white/70 hover:text-white hover:bg-white/10" onClick={async () => {
+                            try {
+                              const title = `新会话 ${new Date().toLocaleString('zh-CN')}`
+                              const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                              if (r.ok) {
+                                const s = await r.json()
+                                const id = String(s?.id || '')
+                                setSessionId(id)
+                                localStorage.setItem('dashboard-session-id', id)
+                                const resp = await fetch(`/api/sessions/${id}`)
+                                const data = resp.ok ? await resp.json() : {}
+                                const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+                                setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
+                                const lr = await fetch('/api/sessions')
+                                if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
+                              }
+                            } catch { }
+                          }}><Plus className="size-4" /></Button>
+                          <Button aria-label="重命名会话" variant="ghost" size="icon-sm" className="text-white/70 hover:text-white hover:bg-white/10" onClick={async () => {
+                            if (!sessionId) return
+                            const t = window.prompt('重命名会话', (sessions.find(s => s.id === sessionId)?.title) || '')
+                            if (t === null) return
+                            const title = String(t)
+                            try {
+                              await fetch(`/api/sessions/${sessionId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                              const lr = await fetch('/api/sessions')
+                              if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
+                            } catch { }
+                          }}><Edit className="size-4" /></Button>
+                          <Button aria-label="删除会话" variant="ghost" size="icon-sm" className="text-white/70 hover:text-white hover:bg-white/10" onClick={async () => {
+                            if (!sessionId) return
+                            const ok = window.confirm('删除当前会话？')
+                            if (!ok) return
+                            try {
+                              await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
+                              const lr = await fetch('/api/sessions')
+                              let nextId = ''
+                              if (lr.ok) {
+                                const ld = await lr.json()
+                                const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []
+                                setSessions(ls)
+                                nextId = ls[0]?.id || ''
+                              }
+                              if (!nextId) {
+                                const title = `默认会话 ${new Date().toLocaleString('zh-CN')}`
+                                const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
+                                if (r.ok) { const s = await r.json(); nextId = String(s?.id || '') }
+                              }
+                              if (nextId) {
+                                setSessionId(nextId)
+                                localStorage.setItem('dashboard-session-id', nextId)
+                                const resp = await fetch(`/api/sessions/${nextId}`)
+                                const data = resp.ok ? await resp.json() : {}
+                                const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
+                                setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
+                              }
+                            } catch { }
+                          }}><Trash className="size-4" /></Button>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSettingsOpen(true)}
-                        className="text-white/70 hover:text-white hover:bg-white/10"
-                      >
-                        <SettingsIcon className="size-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-white/60">会话</span>
-                      <PromptInputModelSelect value={sessionId || ""} onValueChange={async (v) => {
-                      try {
-                        if (v === "__new__") {
-                          const title = `新会话 ${new Date().toLocaleString('zh-CN')}`
-                          const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                          if (r.ok) {
-                            const s = await r.json()
-                            const id = String(s?.id || '')
-                            setSessionId(id)
-                            localStorage.setItem('dashboard-session-id', id)
-                            const resp = await fetch(`/api/sessions/${id}`)
-                            const data = resp.ok ? await resp.json() : {}
-                            const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
-                            setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
-                          }
-                          const lr = await fetch('/api/sessions')
-                          if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
-                          return
-                        }
-                        if (v === "__rename__") {
-                          if (!sessionId) return
-                          const t = window.prompt('重命名会话', (sessions.find(s => s.id === sessionId)?.title) || '')
-                          if (t === null) return
-                          const title = String(t)
-                          await fetch(`/api/sessions/${sessionId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                          const lr = await fetch('/api/sessions')
-                          if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
-                          return
-                        }
-                        if (v === "__delete__") {
-                          if (!sessionId) return
-                          const ok = window.confirm('删除当前会话？')
-                          if (!ok) return
-                          await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
-                          const lr = await fetch('/api/sessions')
-                          let nextId = ''
-                          if (lr.ok) {
-                            const ld = await lr.json()
-                            const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []
-                            setSessions(ls)
-                            nextId = ls[0]?.id || ''
-                          }
-                          if (!nextId) {
-                            const title = `默认会话 ${new Date().toLocaleString('zh-CN')}`
-                            const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                            if (r.ok) { const s = await r.json(); nextId = String(s?.id || '') }
-                          }
-                          if (nextId) {
-                            setSessionId(nextId)
-                            localStorage.setItem('dashboard-session-id', nextId)
-                            const resp = await fetch(`/api/sessions/${nextId}`)
-                            const data = resp.ok ? await resp.json() : {}
-                            const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
-                            setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
-                          }
-                          return
-                        }
-                        setSessionId(v)
-                        localStorage.setItem('dashboard-session-id', v)
-                        const resp = await fetch(`/api/sessions/${v}`)
-                        if (resp.ok) {
-                          const data = await resp.json()
-                          const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
-                          setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
-                        }
-                      } catch {}
-                      }}>
-                        <PromptInputModelSelectTrigger>
-                          <span className="text-sm">{(sessions.find(s => s.id === (sessionId || ''))?.title) || '当前会话'}</span>
-                        </PromptInputModelSelectTrigger>
-                        <PromptInputModelSelectContent>
-                          {sessions.length === 0 ? (
-                            <PromptInputModelSelectItem value={sessionId || ''}>{sessionId || '当前会话'}</PromptInputModelSelectItem>
-                          ) : (
-                            sessions.map(s => (
-                              <PromptInputModelSelectItem key={s.id} value={s.id}>
-                                <div className="flex items-center justify-between w-full">
-                                  <span>{s.title}</span>
-                                  <div className="flex items-center gap-2 opacity-70">
-                                    <Button type="button" variant="ghost" size="icon-sm" className="hover:bg-white/10" onClick={async (e) => {
-                                      e.preventDefault(); e.stopPropagation()
-                                      const t = window.prompt('重命名会话', s.title)
-                                      if (t === null) return
-                                      const title = String(t)
-                                      try {
-                                        await fetch(`/api/sessions/${s.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                                        const lr = await fetch('/api/sessions')
-                                        if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
-                                      } catch {}
-                                    }}><Edit className="size-4" /></Button>
-                                    <Button type="button" variant="ghost" size="icon-sm" className="hover:bg-white/10" onClick={async (e) => {
-                                      e.preventDefault(); e.stopPropagation()
-                                      const ok = window.confirm(`删除会话「${s.title}」？`)
-                                      if (!ok) return
-                                      try {
-                                        await fetch(`/api/sessions/${s.id}`, { method: 'DELETE' })
-                                        const lr = await fetch('/api/sessions')
-                                        let nextId = ''
-                                        if (lr.ok) {
-                                          const ld = await lr.json()
-                                          const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []
-                                          setSessions(ls)
-                                          nextId = (sessionId === s.id) ? (ls[0]?.id || '') : (sessionId || '')
-                                        }
-                                        if (!nextId) {
-                                          const title = `默认会话 ${new Date().toLocaleString('zh-CN')}`
-                                          const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                                          if (r.ok) { const res = await r.json(); nextId = String(res?.id || '') }
-                                        }
-                                        if (nextId) {
-                                          setSessionId(nextId)
-                                          localStorage.setItem('dashboard-session-id', nextId)
-                                          const resp = await fetch(`/api/sessions/${nextId}`)
-                                          const data = resp.ok ? await resp.json() : {}
-                                          const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
-                                          setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
-                                        }
-                                      } catch {}
-                                    }}><Trash className="size-4" /></Button>
-                                  </div>
-                                </div>
-                              </PromptInputModelSelectItem>
-                            ))
-                          )}
-                          <PromptInputModelSelectItem value="__new__"><Plus className="size-4" /> 新建会话</PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="__rename__"><Edit className="size-4" /> 重命名当前会话</PromptInputModelSelectItem>
-                          <PromptInputModelSelectItem value="__delete__"><Trash className="size-4" /> 删除当前会话</PromptInputModelSelectItem>
-                        </PromptInputModelSelectContent>
-                      </PromptInputModelSelect>
-                      <Button aria-label="新建会话" variant="ghost" size="icon-sm" className="text-white/70 hover:text-white hover:bg-white/10" onClick={async () => {
-                      try {
-                        const title = `新会话 ${new Date().toLocaleString('zh-CN')}`
-                        const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                        if (r.ok) {
-                          const s = await r.json()
-                          const id = String(s?.id || '')
-                          setSessionId(id)
-                          localStorage.setItem('dashboard-session-id', id)
-                          const resp = await fetch(`/api/sessions/${id}`)
-                          const data = resp.ok ? await resp.json() : {}
-                          const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
-                          setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
-                          const lr = await fetch('/api/sessions')
-                          if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
-                        }
-                      } catch {}
-                    }}><Plus className="size-4" /></Button>
-                    <Button aria-label="重命名会话" variant="ghost" size="icon-sm" className="text-white/70 hover:text-white hover:bg-white/10" onClick={async () => {
-                      if (!sessionId) return
-                      const t = window.prompt('重命名会话', (sessions.find(s => s.id === sessionId)?.title) || '')
-                      if (t === null) return
-                      const title = String(t)
-                      try {
-                        await fetch(`/api/sessions/${sessionId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                        const lr = await fetch('/api/sessions')
-                        if (lr.ok) { const ld = await lr.json(); const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []; setSessions(ls) }
-                      } catch {}
-                    }}><Edit className="size-4" /></Button>
-                    <Button aria-label="删除会话" variant="ghost" size="icon-sm" className="text-white/70 hover:text-white hover:bg-white/10" onClick={async () => {
-                      if (!sessionId) return
-                      const ok = window.confirm('删除当前会话？')
-                      if (!ok) return
-                      try {
-                        await fetch(`/api/sessions/${sessionId}`, { method: 'DELETE' })
-                        const lr = await fetch('/api/sessions')
-                        let nextId = ''
-                        if (lr.ok) {
-                          const ld = await lr.json()
-                          const ls = Array.isArray(ld?.sessions) ? (ld.sessions as SessionMeta[]) : []
-                          setSessions(ls)
-                          nextId = ls[0]?.id || ''
-                        }
-                        if (!nextId) {
-                          const title = `默认会话 ${new Date().toLocaleString('zh-CN')}`
-                          const r = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) })
-                          if (r.ok) { const s = await r.json(); nextId = String(s?.id || '') }
-                        }
-                        if (nextId) {
-                          setSessionId(nextId)
-                          localStorage.setItem('dashboard-session-id', nextId)
-                          const resp = await fetch(`/api/sessions/${nextId}`)
-                          const data = resp.ok ? await resp.json() : {}
-                          const arr = Array.isArray(data?.messages) ? (data.messages as Message[]) : []
-                          setMessages(arr.length > 0 ? arr : [{ role: 'assistant', content: '你好！我是莓界AI助手，有什么可以帮助你的吗？' }])
-                        }
-                      } catch {}
-                    }}><Trash className="size-4" /></Button>
-                    </div>
-                  </div>
-                </AssistantModalHeader>
+                    </AssistantModalHeader>
 
-                {/* Messages */}
-                <AssistantModalContent className="p-0 overflow-y-hidden">
-                  {messages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center p-8">
-                      <div className="text-xl font-semibold mb-4">今天我能帮你做什么？</div>
-                      <Suggestions>
-                        {starterPrompts.map((p) => (
-                          <Suggestion key={p} suggestion={p} onChoose={handleSuggestionClick} />
-                        ))}
-                      </Suggestions>
-                    </div>
-                  )}
-                  <Conversation className="h-full">
-                    <ConversationContent ref={scrollAreaRef} className="p-4">
-                      <div className="space-y-4">
-                      {messages.map((msg, i) => {
-                        const isBranchMember = branchIndices.includes(i)
-                        const isSelectedBranch = branchIndices[branchIndex] === i
-                        if (isBranchMember && !isSelectedBranch) return null
-                        return (
-                      <Message key={i} from={msg.role}>
-                        <MessageAvatar
-                          className={
-                            msg.role === 'user'
-                              ? "bg-gradient-to-br from-blue-500 to-blue-600"
-                              : "bg-white/10"
-                          }
-                          src={msg.role === 'assistant' ? "/logo.svg" : undefined}
-                          name={msg.role === 'assistant' ? "AI" : undefined}
-                          from={msg.role}
-                        />
-                        <MessageContent>
-                          <AssistantBubble 
-                            isUser={msg.role === 'user'}
-                            className={
-                              msg.role === 'user'
-                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
-                                : "bg-white/10 text-white"
-                            }
-                          >
-                            {renderMessageContent(msg)}
-                          </AssistantBubble>
-                          {msg.role === 'assistant' && msg.reasoning?.text ? (
-                            <Reasoning open={i === messages.length - 1 && isLoading} finalized={!isLoading} durationMs={msg.reasoning?.durationMs}>
-                              <ReasoningTrigger className="mt-2" />
-                              <ReasoningContent className="mt-1">{msg.reasoning?.text}</ReasoningContent>
-                            </Reasoning>
-                          ) : null}
-                          {msg.role === 'assistant' && (msg.citations?.length || 0) > 0 ? (
-                            <Sources>
-                              <SourcesTrigger count={msg.citations?.length || 0} className="mt-2" />
-                              <SourcesContent className="mt-1">
-                                {msg.citations?.map((c, idx) => (
-                                  <Source
-                                    key={idx}
-                                    href={c.url}
-                                    title={c.title || c.url}
-                                    description={c.description}
-                                    quote={c.quote}
-                                    number={c.number}
+                    {/* Messages */}
+                    <AssistantModalContent className="p-0 overflow-y-hidden">
+                      {messages.length === 0 && (
+                        <div className="flex flex-col items-center justify-center p-8">
+                          <div className="text-xl font-semibold mb-4">今天我能帮你做什么？</div>
+                          <Suggestions>
+                            {starterPrompts.map((p) => (
+                              <Suggestion key={p} suggestion={p} onChoose={handleSuggestionClick} />
+                            ))}
+                          </Suggestions>
+                        </div>
+                      )}
+                      <Conversation className="h-full">
+                        <ConversationContent ref={scrollAreaRef} className="p-4">
+                          <div className="space-y-4">
+                            {messages.map((msg, i) => {
+                              const isBranchMember = branchIndices.includes(i)
+                              const isSelectedBranch = branchIndices[branchIndex] === i
+                              if (isBranchMember && !isSelectedBranch) return null
+                              return (
+                                <Message key={i} from={msg.role}>
+                                  <MessageAvatar
+                                    className={
+                                      msg.role === 'user'
+                                        ? "bg-gradient-to-br from-blue-500 to-blue-600"
+                                        : "bg-accent"
+                                    }
+                                    src={msg.role === 'assistant' ? "/logo.svg" : undefined}
+                                    name={msg.role === 'assistant' ? "AI" : undefined}
+                                    from={msg.role}
                                   />
-                                ))}
-                              </SourcesContent>
-                            </Sources>
-                          ) : null}
-                          {msg.role === 'assistant' && (msg.tasks?.length || 0) > 0 ? (
-                            <div className="mt-2 space-y-2">
-                              {msg.tasks?.map((t, ti) => (
-                                <Task key={ti} open={i === messages.length - 1 && isLoading && t.status !== 'completed'}>
-                                  <TaskTrigger title={`${t.title} · ${t.status === 'completed' ? '已完成' : t.status === 'in_progress' ? '进行中' : '待处理'}`} status={t.status} />
-                                  <TaskContent>
-                                    {t.items?.map((it, ii) => (
-                                      <TaskItem key={ii}>
-                                        {it.type === 'file' && it.file ? (
-                                          <span>
-                                            {it.text} <TaskItemFile>{it.file.name}</TaskItemFile>
-                                          </span>
-                                        ) : (
-                                          it.text
-                                        )}
-                                      </TaskItem>
-                                    ))}
-                                  </TaskContent>
-                                </Task>
-                              ))}
-                            </div>
-                          ) : null}
-                        </MessageContent>
-                        {msg.role === 'assistant' && i === messages.length - 1 && (
-                          <Actions className="mt-2">
-                            <Action
-                              label="Retry"
-                              tooltip={isLoading ? "生成中..." : "重试生成"}
-                              onClick={() => retryAssistantAtIndex(i)}
-                              disabled={isLoading}
-                            >
-                              <RotateCcw className="size-4" />
-                            </Action>
-                            <Action
-                              label="Copy"
-                              tooltip="复制内容"
-                              onClick={() => copyText(msg.content)}
-                            >
-                              <Copy className="size-4" />
-                            </Action>
-                          </Actions>
-                        )}
-                        {msg.role === 'assistant' && isSelectedBranch && branchIndices.length > 1 && (
-                          <Branch defaultBranch={branchIndex} onBranchChange={(idx) => setBranchIndex(idx)} count={branchIndices.length}>
-                            <BranchSelector from="assistant" className="mt-1">
-                              <BranchPrevious />
-                              <BranchPage />
-                              <BranchNext />
-                            </BranchSelector>
-                          </Branch>
-                        )}
-                      </Message>
-                      )
-                    })}
-                    {isLoading && (
-                      <Message from="assistant">
-                        <MessageAvatar className="bg-white/10" src="/logo.svg" name="AI" />
-                        <MessageContent>
-                          <AssistantBubble className="bg-white/10 text-white">
-                            <Loader size={16} />
-                          </AssistantBubble>
-                        </MessageContent>
-                      </Message>
-                    )}
-                    <div ref={messagesEndRef} />
-                      </div>
-                    </ConversationContent>
-                    <ConversationScrollButton onClick={() => setAutoScroll(true)} />
-                  </Conversation>
-                </AssistantModalContent>
+                                  <MessageContent>
+                                    <AssistantBubble
+                                      isUser={msg.role === 'user'}
+                                      className={
+                                        msg.role === 'user'
+                                          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                                          : "bg-accent text-foreground"
+                                      }
+                                    >
+                                      {renderMessageContent(msg)}
+                                    </AssistantBubble>
+                                    {msg.role === 'assistant' && msg.reasoning?.text ? (
+                                      <Reasoning open={i === messages.length - 1 && isLoading} finalized={!isLoading} durationMs={msg.reasoning?.durationMs}>
+                                        <ReasoningTrigger className="mt-2" />
+                                        <ReasoningContent className="mt-1">{msg.reasoning?.text}</ReasoningContent>
+                                      </Reasoning>
+                                    ) : null}
+                                    {msg.role === 'assistant' && (msg.citations?.length || 0) > 0 ? (
+                                      <Sources>
+                                        <SourcesTrigger count={msg.citations?.length || 0} className="mt-2" />
+                                        <SourcesContent className="mt-1">
+                                          {msg.citations?.map((c, idx) => (
+                                            <Source
+                                              key={idx}
+                                              href={c.url}
+                                              title={c.title || c.url}
+                                              description={c.description}
+                                              quote={c.quote}
+                                              number={c.number}
+                                            />
+                                          ))}
+                                        </SourcesContent>
+                                      </Sources>
+                                    ) : null}
+                                    {msg.role === 'assistant' && (msg.tasks?.length || 0) > 0 ? (
+                                      <div className="mt-2 space-y-2">
+                                        {msg.tasks?.map((t, ti) => (
+                                          <Task key={ti} open={i === messages.length - 1 && isLoading && t.status !== 'completed'}>
+                                            <TaskTrigger title={`${t.title} · ${t.status === 'completed' ? '已完成' : t.status === 'in_progress' ? '进行中' : '待处理'}`} status={t.status} />
+                                            <TaskContent>
+                                              {t.items?.map((it, ii) => (
+                                                <TaskItem key={ii}>
+                                                  {it.type === 'file' && it.file ? (
+                                                    <span>
+                                                      {it.text} <TaskItemFile>{it.file.name}</TaskItemFile>
+                                                    </span>
+                                                  ) : (
+                                                    it.text
+                                                  )}
+                                                </TaskItem>
+                                              ))}
+                                            </TaskContent>
+                                          </Task>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                  </MessageContent>
+                                  {msg.role === 'assistant' && i === messages.length - 1 && (
+                                    <Actions className="mt-2">
+                                      <Action
+                                        label="Retry"
+                                        tooltip={isLoading ? "生成中..." : "重试生成"}
+                                        onClick={() => retryAssistantAtIndex(i)}
+                                        disabled={isLoading}
+                                      >
+                                        <RotateCcw className="size-4" />
+                                      </Action>
+                                      <Action
+                                        label="Copy"
+                                        tooltip="复制内容"
+                                        onClick={() => copyText(msg.content)}
+                                      >
+                                        <Copy className="size-4" />
+                                      </Action>
+                                    </Actions>
+                                  )}
+                                  {msg.role === 'assistant' && isSelectedBranch && branchIndices.length > 1 && (
+                                    <Branch defaultBranch={branchIndex} onBranchChange={(idx) => setBranchIndex(idx)} count={branchIndices.length}>
+                                      <BranchSelector from="assistant" className="mt-1">
+                                        <BranchPrevious />
+                                        <BranchPage />
+                                        <BranchNext />
+                                      </BranchSelector>
+                                    </Branch>
+                                  )}
+                                </Message>
+                              )
+                            })}
+                            {isLoading && (
+                              <Message from="assistant">
+                                <MessageAvatar className="bg-accent" src="/logo.svg" name="AI" />
+                                <MessageContent>
+                                  <AssistantBubble className="bg-accent text-foreground">
+                                    <Loader size={16} />
+                                  </AssistantBubble>
+                                </MessageContent>
+                              </Message>
+                            )}
+                            <div ref={messagesEndRef} />
+                          </div>
+                        </ConversationContent>
+                        <ConversationScrollButton onClick={() => setAutoScroll(true)} />
+                      </Conversation>
+                    </AssistantModalContent>
 
-                {/* Input */}
-                <AssistantModalFooter className="border-white/10">
-                  <PromptInput onSubmit={(e) => { e.preventDefault(); handleSend() }}>
-                    <PromptInputTextarea
-                      value={input}
-                      onChange={(e) => setInput(e.currentTarget.value)}
-                      placeholder="向 AI 助手提问..."
-                      disabled={isLoading}
-                      className="bg-white/5 border-white/20 text-white placeholder:text-white/40"
-                    />
-                    <PromptInputToolbar>
-                      <PromptInputTools>
-                        <PromptInputButton type="button" aria-label="附件">
-                          <PaperclipIcon size={16} />
-                        </PromptInputButton>
-                        <PromptInputButton type="button" aria-label="语音">
-                          <MicIcon size={16} />
-                        </PromptInputButton>
-                        <PromptInputButton
-                          type="button"
-                          aria-label={enableSearch ? "联网搜索：开" : "联网搜索：关"}
-                          onClick={() => { const nv = !enableSearch; setEnableSearch(nv); try { localStorage.setItem('ai-enable-search', String(nv)) } catch {} }}
-                          className={enableSearch ? "text-blue-300 bg-blue-500/20 border-blue-500/30" : "text-white/70 bg-white/5 border-white/10"}
-                        >
-                          <Globe size={16} />
-                        </PromptInputButton>
-                        <PromptInputModelSelect value={selectedModel || aiSettings?.model || "gpt-3.5-turbo"} onValueChange={setSelectedModel}>
-                          <PromptInputModelSelectTrigger>
-                            <PromptInputModelSelectValue />
-                          </PromptInputModelSelectTrigger>
-                          <PromptInputModelSelectContent>
-                            <PromptInputModelSelectItem value={aiSettings?.model || "gpt-3.5-turbo"}>{aiSettings?.model || "gpt-3.5-turbo"}</PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="gpt-4o">GPT-4o</PromptInputModelSelectItem>
-                            <PromptInputModelSelectItem value="gpt-4o-mini">GPT-4o mini</PromptInputModelSelectItem>
-                          </PromptInputModelSelectContent>
-                        </PromptInputModelSelect>
-                      </PromptInputTools>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/50">{messages.length} 条消息</span>
-                        <PromptInputSubmit disabled={!input.trim() || isLoading} status={isLoading ? 'loading' : 'idle'} />
-                      </div>
-                    </PromptInputToolbar>
-                  </PromptInput>
-                </AssistantModalFooter>
-              </AssistantModal>
+                    {/* Input */}
+                    <AssistantModalFooter className="border-border">
+                      <PromptInput onSubmit={(e) => { e.preventDefault(); handleSend() }}>
+                        <PromptInputTextarea
+                          value={input}
+                          onChange={(e) => setInput(e.currentTarget.value)}
+                          placeholder="向 AI 助手提问..."
+                          disabled={isLoading}
+                          className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                        <PromptInputToolbar>
+                          <PromptInputTools>
+                            <PromptInputButton type="button" aria-label="附件">
+                              <PaperclipIcon size={16} />
+                            </PromptInputButton>
+                            <PromptInputButton type="button" aria-label="语音">
+                              <MicIcon size={16} />
+                            </PromptInputButton>
+                            <PromptInputButton
+                              type="button"
+                              aria-label={enableSearch ? "联网搜索：开" : "联网搜索：关"}
+                              onClick={() => { const nv = !enableSearch; setEnableSearch(nv); try { localStorage.setItem('ai-enable-search', String(nv)) } catch { } }}
+                              className={enableSearch ? "text-blue-300 bg-blue-500/20 border-blue-500/30" : "text-muted-foreground bg-muted/50 border-border"}
+                            >
+                              <Globe size={16} />
+                            </PromptInputButton>
+                            <PromptInputModelSelect value={selectedModel || aiSettings?.model || "gpt-3.5-turbo"} onValueChange={setSelectedModel}>
+                              <PromptInputModelSelectTrigger>
+                                <PromptInputModelSelectValue />
+                              </PromptInputModelSelectTrigger>
+                              <PromptInputModelSelectContent>
+                                <PromptInputModelSelectItem value={aiSettings?.model || "gpt-3.5-turbo"}>{aiSettings?.model || "gpt-3.5-turbo"}</PromptInputModelSelectItem>
+                                <PromptInputModelSelectItem value="gpt-4o">GPT-4o</PromptInputModelSelectItem>
+                                <PromptInputModelSelectItem value="gpt-4o-mini">GPT-4o mini</PromptInputModelSelectItem>
+                              </PromptInputModelSelectContent>
+                            </PromptInputModelSelect>
+                          </PromptInputTools>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground/50">{messages.length} 条消息</span>
+                            <PromptInputSubmit disabled={!input.trim() || isLoading} status={isLoading ? 'loading' : 'idle'} />
+                          </div>
+                        </PromptInputToolbar>
+                      </PromptInput>
+                    </AssistantModalFooter>
+                  </AssistantModal>
+                </div>
+              </GridLayout>
             </div>
-            </GridLayout>
           </div>
         </div>
-      </div>
 
-      {/* AI Settings Dialog */}
-      <AISettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onSave={handleSettingsSave}
-      />
-      
-      {/* Image Preview Modal */}
-      {previewImage && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-          onClick={() => setPreviewImage(null)}
-        >
-          <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
-            <img 
-              src={previewImage} 
-              alt="Preview" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
+        {/* AI Settings Dialog */}
+        <AISettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          onSave={handleSettingsSave}
+        />
+
+        {/* Image Preview Modal */}
+        {
+          previewImage && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
               onClick={() => setPreviewImage(null)}
-              className="absolute top-4 right-4 size-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-all"
             >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+              <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
+                <img
+                  src={previewImage}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="absolute top-4 right-4 size-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center transition-all"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )
+        }
+      </div>
     </>
   )
 }

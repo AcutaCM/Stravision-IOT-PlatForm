@@ -1,15 +1,22 @@
-import { cookies } from "next/headers"
-import jwt from "jsonwebtoken"
-import { getJwtSecret } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function GET() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get("auth")?.value
-  if (!token) return Response.json({ authenticated: false })
   try {
-    const payload = jwt.verify(token, getJwtSecret()) as { email: string }
-    return Response.json({ authenticated: true, user: { email: payload.email } })
-  } catch {
-    return Response.json({ authenticated: false }, { status: 401 })
+    // 使用 getCurrentUser() 获取当前用户
+    const user = await getCurrentUser()
+
+    if (!user) {
+      // 未认证或令牌无效
+      return Response.json({ authenticated: false })
+    }
+
+    // 返回包含完整用户资料的响应
+    return Response.json({
+      authenticated: true,
+      user: user,
+    })
+  } catch (error) {
+    console.error("获取用户信息失败:", error)
+    return Response.json({ authenticated: false }, { status: 500 })
   }
 }

@@ -270,7 +270,7 @@ export const ConversationContent = React.forwardRef<HTMLDivElement, React.HTMLAt
       ctx.setAtBottom(atBottomNow)
     }
 
-  return (
+    return (
       <div
         ref={(node) => {
           localRef.current = node as HTMLDivElement | null
@@ -768,11 +768,11 @@ export const ReasoningContent = React.forwardRef<HTMLDivElement, React.HTMLAttri
         )}
         {...props}
       >
-        <div className="rounded-2xl bg-white/5 text-white/80 text-xs p-3 border border-white/10">
+        <div className="rounded-2xl bg-muted/50 text-foreground/80 text-xs p-3 border border-border">
           <div className="flex items-center gap-2 mb-2">
             {ctx?.finalized ? null : <Loader size={12} />}
             <span className="text-xs">{ctx?.finalized ? "思考完成" : "思考中..."}</span>
-            {typeof ctx?.durationMs === "number" ? <span className="text-xs text-white/50">{(ctx.durationMs / 1000).toFixed(1)}s</span> : null}
+            {typeof ctx?.durationMs === "number" ? <span className="text-xs text-muted-foreground/70">{(ctx.durationMs / 1000).toFixed(1)}s</span> : null}
           </div>
           <div className="whitespace-pre-wrap leading-relaxed">{children}</div>
         </div>
@@ -880,7 +880,7 @@ export const SourcesContent = React.forwardRef<HTMLDivElement, React.HTMLAttribu
         )}
         {...props}
       >
-        <div className="rounded-2xl bg-white/5 text-white/80 text-xs p-3 border border-white/10">
+        <div className="rounded-2xl bg-muted/50 text-foreground/80 text-xs p-3 border border-border">
           <div className="flex flex-col gap-2">
             {children}
           </div>
@@ -901,7 +901,7 @@ export interface SourceProps extends React.AnchorHTMLAttributes<HTMLAnchorElemen
 
 export const Source = React.forwardRef<HTMLAnchorElement, SourceProps>(({ className, href, title, description, quote, number, children, ...props }, ref) => {
   let host = ""
-  try { host = new URL(href).hostname } catch {}
+  try { host = new URL(href).hostname } catch { }
   const label = `${number ? `[${number}] ` : ""}${title ?? href}`
   return (
     <a
@@ -909,28 +909,28 @@ export const Source = React.forwardRef<HTMLAnchorElement, SourceProps>(({ classN
       href={href}
       target="_blank"
       rel="noreferrer noopener"
-      className={cn("group block rounded-md p-2 sm:p-2.5 -mx-1 min-h-[44px] hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/20", className)}
+      className={cn("group block rounded-md p-2 sm:p-2.5 -mx-1 min-h-[44px] hover:bg-accent active:bg-accent/80 focus:outline-none focus:ring-2 focus:ring-ring", className)}
       aria-label={label}
       {...props}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {number ? <span className="text-xs text-white/50">[{number}]</span> : null}
-            <span className="text-sm font-medium text-white truncate">{title ?? href}</span>
+            {number ? <span className="text-xs text-muted-foreground/70">[{number}]</span> : null}
+            <span className="text-sm font-medium text-foreground truncate">{title ?? href}</span>
           </div>
-          {host ? <div className="text-xs text-white/50 truncate">{host}</div> : null}
-          {description ? <div className="mt-1 text-xs text-white/70 break-words">{description}</div> : null}
+          {host ? <div className="text-xs text-muted-foreground/70 truncate">{host}</div> : null}
+          {description ? <div className="mt-1 text-xs text-foreground/90 break-words">{description}</div> : null}
           {quote ? (
-            <div className="mt-1 rounded-md border border-white/10 bg-white/5 p-2">
+            <div className="mt-1 rounded-md border border-border bg-muted/50 p-2">
               <div className="flex items-start gap-1.5">
-                <Quote className="size-3 shrink-0 text-white/50" />
-                <span className="text-xs text-white/80 break-words">{quote}</span>
+                <Quote className="size-3 shrink-0 text-muted-foreground/70" />
+                <span className="text-xs text-foreground/80 break-words">{quote}</span>
               </div>
             </div>
           ) : null}
         </div>
-        <ExternalLink className="size-3 shrink-0 text-white/60 group-hover:text-white" />
+        <ExternalLink className="size-3 shrink-0 text-muted-foreground group-hover:text-foreground" />
       </div>
     </a>
   )
@@ -1028,7 +1028,7 @@ export const Suggestion = React.forwardRef<HTMLButtonElement, SuggestionProps>(
       ref={ref}
       variant="ghost"
       size="sm"
-      className={cn("rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/5 hover:bg-white/10 border border-white/10 text-white", className)}
+      className={cn("rounded-full px-3 py-1.5 text-xs sm:text-sm bg-muted/50 hover:bg-muted border border-border text-foreground", className)}
       onClick={() => onChoose?.(suggestion)}
       {...props}
     >
@@ -1105,7 +1105,7 @@ export const TaskContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes
         )}
         {...props}
       >
-        <div className="rounded-2xl bg-white/5 text-white/80 text-xs p-3 border border-white/10 max-h-[280px] overflow-y-auto">
+        <div className="rounded-2xl bg-muted/50 text-foreground/80 text-xs p-3 border border-border max-h-[280px] overflow-y-auto">
           <div className="flex flex-col gap-2">
             {children}
           </div>
@@ -1118,16 +1118,16 @@ TaskContent.displayName = "TaskContent"
 
 export const TaskItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("text-xs text-white/80", className)} {...props} />
+    <div ref={ref} className={cn("text-xs text-foreground/80", className)} {...props} />
   )
 )
 TaskItem.displayName = "TaskItem"
 
 export const TaskItemFile = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
   ({ className, children, ...props }, ref) => (
-    <span ref={ref} className={cn("inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5", className)} {...props}>
+    <span ref={ref} className={cn("inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5", className)} {...props}>
       <FileText className="size-3" />
-      <span className="text-white/90">{children}</span>
+      <span className="text-foreground/90">{children}</span>
     </span>
   )
 )
