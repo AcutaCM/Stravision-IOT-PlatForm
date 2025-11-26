@@ -134,7 +134,8 @@ export default function DeviceControlPage() {
     const savedLayout = localStorage.getItem('device-control-layout')
     if (savedLayout) {
       try {
-        setLayout(JSON.parse(savedLayout))
+        const parsed = JSON.parse(savedLayout)
+        setTimeout(() => setLayout(parsed), 0)
       } catch (e) {
         console.error('Failed to load layout:', e)
       }

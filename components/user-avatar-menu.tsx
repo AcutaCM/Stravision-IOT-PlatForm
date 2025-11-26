@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { UserPublic } from "@/lib/db/user-service"
-import { User, LogOut } from "lucide-react"
+import { User, LogOut, Settings } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -89,9 +89,16 @@ export function UserAvatarMenu({ user }: UserAvatarMenuProps) {
         <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem
           className="cursor-pointer focus:bg-accent focus:text-accent-foreground"
-          onClick={() => router.push("/settings")}
+          onClick={() => router.push("/profile")}
         >
           <User className="mr-2 size-4" />
+          <span>个人中心</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="cursor-pointer focus:bg-accent focus:text-accent-foreground"
+          onClick={() => router.push("/settings")}
+        >
+          <Settings className="mr-2 size-4" />
           <span>个人设置</span>
         </DropdownMenuItem>
         <DropdownMenuItem

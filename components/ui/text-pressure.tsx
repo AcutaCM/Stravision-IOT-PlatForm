@@ -104,7 +104,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
       {Array.from(text).map((ch, i) => (
         <span
           key={i}
-          ref={(el) => el && (spansRef.current[i] = el)}
+          ref={(el) => { if (el) spansRef.current[i] = el; }}
           style={{ display: "inline-block" }}
         >
           {ch}

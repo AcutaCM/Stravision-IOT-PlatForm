@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react";
 type SplitType = "chars" | "words" | "lines" | "words, chars";
 
 export interface SplitTextProps {
-  tag?: keyof JSX.IntrinsicElements;
+  tag?: React.ElementType;
   text?: string;
   className?: string;
   delay?: number; // ms between letters

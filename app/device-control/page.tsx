@@ -54,7 +54,7 @@ function Toggle({
       )}
     >
       <motion.span
-        className="absolute top-1 size-7 rounded-full bg-white shadow-md"
+        className="absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white shadow-md"
         animate={{
           left: checked ? "calc(100% - 32px)" : "4px",
         }}

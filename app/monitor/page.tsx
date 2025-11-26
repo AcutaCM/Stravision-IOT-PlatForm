@@ -269,7 +269,7 @@ export default function MonitorPage() {
                       {[
                         { icon: Wind, label: "CO₂", value: deviceData ? deviceData.co2 : '--', unit: "ppm", color: "text-cyan-500", bg: "bg-cyan-500/10" },
                         { icon: Droplets, label: "湿度", value: deviceData ? (deviceData.humidity / 10).toFixed(1) : '--', unit: "%", color: "text-blue-500", bg: "bg-blue-500/10" },
-                        { icon: Droplets, label: "土湿", value: deviceData ? deviceData.earth_water : '--', unit: "%", color: "text-purple-500", bg: "bg-purple-500/10" },
+                        { icon: Droplets, label: "土湿", value: deviceData ? (deviceData.earth_water / 10) : '--', unit: "%", color: "text-purple-500", bg: "bg-purple-500/10" },
                       ].map((item, i) => (
                         <div key={i} className={`rounded-xl p-3 ${item.bg} hover:scale-105 transition-transform duration-300 cursor-default`}>
                           <div className="flex items-center gap-2 mb-2">

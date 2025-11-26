@@ -50,7 +50,7 @@ export const AssistantAvatar = React.forwardRef<HTMLDivElement, AssistantAvatarP
       <div
         ref={ref}
         className={cn(
-          "flex size-8 shrink-0 select-none items-center justify-center rounded-full",
+          "flex size-8 shrink-0 select-none items-center justify-center rounded-full overflow-hidden",
           className
         )}
         {...props}
@@ -602,7 +602,7 @@ export interface MessageAvatarProps extends React.HTMLAttributes<HTMLDivElement>
 export const MessageAvatar = React.forwardRef<HTMLDivElement, MessageAvatarProps>(({ className, src, name, from = "assistant", ...props }, ref) => (
   <AssistantAvatar ref={ref} className={className} {...props}>
     {src ? (
-      <Image src={src} alt={name ?? "Avatar"} width={24} height={24} />
+      <Image src={src} alt={name ?? "Avatar"} width={32} height={32} className="rounded-full object-cover" />
     ) : name ? (
       <span className="text-[10px] font-medium uppercase leading-none">{name.slice(0, 2)}</span>
     ) : from === "user" ? (

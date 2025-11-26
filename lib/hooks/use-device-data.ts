@@ -48,6 +48,8 @@ export function useDeviceData() {
   const reconnectAttemptsRef = useRef(0)
   const maxReconnectAttempts = 5
 
+  const connectRef = useRef<(() => void) | undefined>(undefined)
+
   const connect = useCallback(() => {
     // Clean up existing connection
     if (eventSourceRef.current) {
@@ -121,7 +123,7 @@ export function useDeviceData() {
           console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
           
           reconnectTimeoutRef.current = setTimeout(() => {
-            connect()
+            connectRef.current?.()
           }, delay)
         } else {
           console.error('[SSE] Max reconnection attempts reached')
@@ -140,6 +142,10 @@ export function useDeviceData() {
       })
     }
   }, [])
+
+  useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
 
   const disconnect = useCallback(() => {
     console.log('[SSE] Disconnecting...')
@@ -163,9 +169,12 @@ export function useDeviceData() {
 
   // Auto-connect on mount, disconnect on unmount
   useEffect(() => {
-    connect()
+    const timer = setTimeout(() => {
+      connect()
+    }, 0)
     
     return () => {
+      clearTimeout(timer)
       disconnect()
     }
   }, [connect, disconnect])
