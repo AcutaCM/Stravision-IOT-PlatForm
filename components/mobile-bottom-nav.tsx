@@ -1,88 +1,72 @@
 "use client"
 
-import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
-import { SunIcon, Cog6ToothIcon, SparklesIcon, UserIcon } from "@heroicons/react/24/outline"
-import Image from "next/image"
+import {
+  HomeIcon,
+  Cog6ToothIcon,
+  Squares2X2Icon,
+  UserIcon,
+  SparklesIcon
+} from "@heroicons/react/24/outline"
+import {
+  HomeIcon as HomeIconSolid,
+  Cog6ToothIcon as Cog6ToothIconSolid,
+  Squares2X2Icon as Squares2X2IconSolid,
+  UserIcon as UserIconSolid,
+  SparklesIcon as SparklesIconSolid
+} from "@heroicons/react/24/solid"
 
-type MobileBottomNavProps = {
-  position?: "sticky" | "fixed"
+interface NavItem {
+  href: string
+  label: string
+  icon: any
+  iconSolid: any
 }
 
-export function MobileBottomNav({ position = "sticky" }: MobileBottomNavProps) {
+const navItems: NavItem[] = [
+  { href: "/monitor-ios", label: "监测", icon: HomeIcon, iconSolid: HomeIconSolid },
+  { href: "/device-control-ios", label: "设备", icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid },
+  { href: "/dashboard-ios", label: "看板", icon: Squares2X2Icon, iconSolid: Squares2X2IconSolid },
+  { href: "/ai-assistant", label: "AI助手", icon: SparklesIcon, iconSolid: SparklesIconSolid },
+  { href: "/profile", label: "我的", icon: UserIcon, iconSolid: UserIconSolid },
+]
+
+export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "sticky" }) {
   const pathname = usePathname()
 
-  const navItems = [
-    { href: "/monitor-ios", label: "监测", kind: "sun" as const },
-    { href: "/device-control-ios", label: "设备", kind: "settings" as const },
-    { href: "/dashboard-ios", label: "看板", kind: "sparkles" as const },
-    { href: "/ai-assistant", label: "AI助手", kind: "logo" as const },
-    { href: "/profile", label: "个人", kind: "user" as const },
-  ]
-
-  const navIndexByPath: Record<string, number> = Object.fromEntries(navItems.map((n, i) => [n.href, i]))
-  const activeIndex = navIndexByPath[pathname] ?? 0
-  const [prevIndex] = useState<number>(() => { try { const s = localStorage.getItem("mobile-nav-last-index"); return s ? Number(s) : activeIndex } catch { return activeIndex } })
-  useEffect(() => { try { localStorage.setItem("mobile-nav-last-index", String(activeIndex)) } catch {} }, [activeIndex])
-
-  const configByPath: Record<string, { stiffness: number; damping: number }> = {
-    "/monitor-ios": { stiffness: 420, damping: 28 },
-    "/device-control-ios": { stiffness: 380, damping: 26 },
-    "/dashboard-ios": { stiffness: 360, damping: 30 },
-    "/ai-assistant": { stiffness: 320, damping: 24 },
-    "/profile": { stiffness: 360, damping: 26 },
-  }
-  const { stiffness, damping } = configByPath[pathname] ?? { stiffness: 360, damping: 28 }
-
-  const containerClass = position === "fixed"
-    ? "fixed bottom-0 left-0 right-0 z-20 border-t border-white/5 bg-white/10 dark:bg-black/10 backdrop-blur-xl pb-safe shadow-[0_-8px_32px_0_rgba(31,38,135,0.05)]"
-    : "sticky bottom-0 z-20 border-t border-white/5 bg-white/10 dark:bg-black/10 backdrop-blur-xl pb-safe shadow-[0_-8px_32px_0_rgba(31,38,135,0.05)]"
-
   return (
-    <div className={containerClass}>
-      <div className="relative">
-        <motion.div
-          initial={{ left: `${prevIndex * 20}%`, boxShadow: "0 8px 20px rgba(59,130,246,0.25)" }}
-          animate={{ left: `${activeIndex * 20}%`, boxShadow: "0 14px 28px rgba(59,130,246,0.35)" }}
-          transition={{ type: "spring", stiffness, damping }}
-          transitionEnd={{ boxShadow: "0 8px 20px rgba(59,130,246,0.25)" }}
-          className="absolute top-1 left-0 h-[calc(100%-0.5rem)] w-1/5 rounded-full bg-blue-500/20 border border-blue-500/30 pointer-events-none"
-        />
-        <div className="grid grid-cols-5 relative z-10">
+    <div className={`${position === "fixed" ? "fixed" : "sticky"} bottom-0 left-0 right-0 z-50 flex justify-center px-6 pb-4`}>
+      <nav className="bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl rounded-full px-6 py-3 shadow-lg border border-white/20 dark:border-white/10">
+        <div className="flex items-center gap-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href
-            const common = { animate: { scale: isActive ? 1.06 : 1, opacity: isActive ? 1 : 0.85 }, transition: { type: "spring", stiffness: 520, damping: 30 } }
+            const Icon = isActive ? item.iconSolid : item.icon
+
             return (
-              <Link key={item.href} href={item.href} className={`flex flex-col items-center justify-center py-3 text-xs ${isActive ? 'text-primary' : ''}`}>
-                {item.kind === "logo" ? (
-                  <motion.div {...common} className="relative size-5">
-                    <Image src="/logo.svg" alt="AI" fill className="object-contain" />
-                  </motion.div>
-                ) : item.kind === "sun" ? (
-                  <motion.span {...common}>
-                    <SunIcon className="size-4" />
-                  </motion.span>
-                ) : item.kind === "settings" ? (
-                  <motion.span {...common}>
-                    <Cog6ToothIcon className="size-4" />
-                  </motion.span>
-                ) : item.kind === "sparkles" ? (
-                  <motion.span {...common}>
-                    <SparklesIcon className="size-4" />
-                  </motion.span>
-                ) : (
-                  <motion.span {...common}>
-                    <UserIcon className="size-4" />
-                  </motion.span>
-                )}
-                <motion.span className="mt-1" animate={{ opacity: isActive ? 1 : 0.85 }} transition={{ duration: 0.2 }}>{item.label}</motion.span>
+              <Link key={item.href} href={item.href} className="relative">
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  className="relative"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-blue-600 rounded-full"
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                  <div className={`relative px-4 py-2 rounded-full transition-colors duration-200 ${isActive ? "text-white" : "text-slate-600 dark:text-slate-400"
+                    }`}>
+                    <Icon className="size-6" />
+                  </div>
+                </motion.div>
               </Link>
             )
           })}
         </div>
-      </div>
+      </nav>
     </div>
   )
 }

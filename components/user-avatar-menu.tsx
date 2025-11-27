@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { UserPublic } from "@/lib/db/user-service"
-import { User, LogOut, Settings } from "lucide-react"
+import { UserIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "@heroicons/react/24/outline"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -91,14 +91,14 @@ export function UserAvatarMenu({ user }: UserAvatarMenuProps) {
           className="cursor-pointer focus:bg-accent focus:text-accent-foreground"
           onClick={() => router.push("/profile")}
         >
-          <User className="mr-2 size-4" />
+          <UserIcon className="mr-2 size-4" />
           <span>个人中心</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer focus:bg-accent focus:text-accent-foreground"
           onClick={() => router.push("/settings")}
         >
-          <Settings className="mr-2 size-4" />
+          <Cog6ToothIcon className="mr-2 size-4" />
           <span>个人设置</span>
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -106,7 +106,7 @@ export function UserAvatarMenu({ user }: UserAvatarMenuProps) {
           onClick={handleLogout}
           disabled={isLoggingOut}
         >
-          <LogOut className="mr-2 size-4" />
+          <ArrowRightOnRectangleIcon className="mr-2 size-4" />
           <span>{isLoggingOut ? "登出中..." : "登出"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

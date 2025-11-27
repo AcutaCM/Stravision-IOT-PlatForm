@@ -1,16 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
 import { MobileBackground } from "@/components/mobile-background"
-import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import type { UserPublic } from "@/lib/db/user-service"
-import { PaperclipIcon, MicIcon, Globe, RotateCcw, Copy, Trash, Edit } from "lucide-react"
+import { PaperclipIcon, MicIcon, Globe, RotateCcw, Copy, Trash, Edit, Settings } from "lucide-react"
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
-import { motion } from "framer-motion"
+ 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Button } from "@/components/ui/button"
@@ -88,7 +84,7 @@ interface AISettings {
 interface SessionMeta { id: string; title: string; createdAt: number; updatedAt: number }
 
 export default function AIAssistantPage() {
-  const pathname = usePathname()
+  
   const [user, setUser] = useState<UserPublic | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
   
@@ -109,7 +105,7 @@ export default function AIAssistantPage() {
   const draftSaveTimer = useRef<number | null>(null)
   const [expandedCitations, setExpandedCitations] = useState<Record<number, boolean>>({})
   const [autoScroll, setAutoScroll] = useState(true)
-  const { deviceData } = useDeviceData()
+  const { deviceData, connectionStatus } = useDeviceData()
   const { weatherData } = useWeatherContext()
 
   // Fetch User
@@ -551,13 +547,16 @@ export default function AIAssistantPage() {
       try {
         if (sessionId) {
           const payload = {
-            messages: [...messages, { role: "assistant", content: resultMsg }].map(m => ({
-              role: m.role,
-              content: m.content,
-              citations: m.citations,
-              reasoning: m.reasoning ? { text: m.reasoning.text, durationMs: m.reasoning.durationMs } : undefined,
-              tasks: m.tasks,
-            }))
+            messages: (() => {
+              const appended: Message = { role: "assistant", content: resultMsg }
+              return [...messages, appended].map(m => ({
+                role: m.role,
+                content: m.content,
+                citations: m.citations,
+                reasoning: m.reasoning ? { text: m.reasoning.text, durationMs: m.reasoning.durationMs } : undefined,
+                tasks: m.tasks,
+              }))
+            })()
           }
           await fetch(`/api/sessions/${sessionId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
         }
@@ -568,13 +567,16 @@ export default function AIAssistantPage() {
       try {
         if (sessionId) {
           const payload = {
-            messages: [...messages, { role: "assistant", content: errMsg }].map(m => ({
-              role: m.role,
-              content: m.content,
-              citations: m.citations,
-              reasoning: m.reasoning ? { text: m.reasoning.text, durationMs: m.reasoning.durationMs } : undefined,
-              tasks: m.tasks,
-            }))
+            messages: (() => {
+              const appended: Message = { role: "assistant", content: errMsg }
+              return [...messages, appended].map(m => ({
+                role: m.role,
+                content: m.content,
+                citations: m.citations,
+                reasoning: m.reasoning ? { text: m.reasoning.text, durationMs: m.reasoning.durationMs } : undefined,
+                tasks: m.tasks,
+              }))
+            })()
           }
           await fetch(`/api/sessions/${sessionId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
         }
@@ -641,36 +643,17 @@ export default function AIAssistantPage() {
   ]
 
   return (
-    <div className="min-h-screen w-screen bg-background text-foreground overflow-hidden flex flex-col">
+    <div className="min-h-screen w-screen bg-slate-50 dark:bg-[#0B1121] text-foreground overflow-hidden flex flex-col font-sans transition-colors duration-500">
       <MobileBackground />
       
       {/* Content Wrapper */}
-      <motion.div 
+      <div 
         className="flex-1 flex flex-col relative z-10"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
       >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 h-[56px] border-b border-white/5 bg-white/10 dark:bg-black/10 backdrop-blur-xl shadow-sm sticky top-0 z-10 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="relative size-8 animate-[breathe_4s_ease-in-out_infinite]">
-            <Image src="/logo.svg" alt="logo" fill className="object-contain" />
-          </div>
-          <div className="leading-tight">
-            <div className="text-sm font-bold tracking-wide">STRAVISION</div>
-            <div className="text-[10px] text-muted-foreground">AI 种植助手</div>
-          </div>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Badge 
-            variant="outline" 
-            className="cursor-pointer bg-primary/10 hover:bg-primary/20 transition-colors border-primary/20 backdrop-blur-sm"
-            onClick={() => setSettingsOpen(true)}
-          >
-            {aiSettings?.model || "未设置模型"}
-          </Badge>
-          {!loadingUser && user ? <UserAvatarMenu user={user} /> : <Link href="/login" className="text-sm text-muted-foreground">登录</Link>}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex justify-center items-center">
+          <div className="text-sm font-semibold text-muted-foreground">AI 种植助手</div>
         </div>
       </div>
 
@@ -693,7 +676,7 @@ export default function AIAssistantPage() {
                  </div>
                  <Suggestions>
                    {starterPrompts.map((p) => (
-                     <Suggestion key={p} suggestion={p} onChoose={(t) => { setInput(t); handleSend() }} className="bg-white/30 dark:bg-black/30 backdrop-blur-md border-white/10 hover:bg-white/40 transition-all shadow-sm" />
+                    <Suggestion key={p} suggestion={p} onChoose={(t) => { setInput(t); handleSend() }} className="bg-white/60 dark:bg-white/5 backdrop-blur-md border-white/20 hover:bg-white/80 transition-all shadow-sm" />
                    ))}
                  </Suggestions>
                </div>
@@ -711,7 +694,7 @@ export default function AIAssistantPage() {
                   <MessageContent>
                     <AssistantBubble
                       isUser={msg.role === 'user'}
-                      className={msg.role === 'user' ? "bg-blue-500 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]" : "bg-white/40 dark:bg-black/40 backdrop-blur-xl shadow-[0_4px_16px_0_rgba(31,38,135,0.05)] border border-white/20 dark:border-white/10"}
+                      className={msg.role === 'user' ? "bg-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)]" : "bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl shadow-[0_4px_16px_0_rgba(31,38,135,0.05)] border border-white/20 dark:border-white/5"}
                     >
                       {renderMessageContent(msg)}
                     </AssistantBubble>
@@ -769,7 +752,7 @@ export default function AIAssistantPage() {
                 <Message from="assistant">
                   <MessageAvatar className="bg-primary shadow-md" src="/logo.svg" name="AI" />
                   <MessageContent>
-                    <AssistantBubble className="bg-white/40 dark:bg-black/40 backdrop-blur-xl shadow-[0_4px_16px_0_rgba(31,38,135,0.05)] border border-white/20 dark:border-white/10">
+                    <AssistantBubble className="bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl shadow-[0_4px_16px_0_rgba(31,38,135,0.05)] border border-white/20 dark:border-white/5">
                       <Loader size={16} />
                     </AssistantBubble>
                   </MessageContent>
@@ -782,7 +765,7 @@ export default function AIAssistantPage() {
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 bg-white/10 dark:bg-black/10 backdrop-blur-xl border-t border-white/5 p-4 pb-24 z-10 shadow-[0_-8px_32px_0_rgba(31,38,135,0.05)]">
+      <div className="shrink-0 bg-white/10 dark:bg-black/10 backdrop-blur-xl border-t border-white/5 p-3 pb-6 z-10 shadow-[0_-8px_32px_0_rgba(31,38,135,0.05)]">
         <PromptInput onSubmit={(e) => { e.preventDefault(); handleSend() }}>
           <PromptInputTextarea
             value={input}
@@ -801,7 +784,7 @@ export default function AIAssistantPage() {
           <PromptInputToolbar className="mt-2">
             <PromptInputTools>
               <PromptInputModelSelect value={selectedModel} onValueChange={setSelectedModel}>
-                <PromptInputModelSelectTrigger className="bg-white/20 dark:bg-black/20 backdrop-blur-sm border border-white/10">
+                <PromptInputModelSelectTrigger className="bg-white/40 dark:bg-white/10 backdrop-blur-sm border border-white/20">
                   <PromptInputModelSelectValue />
                 </PromptInputModelSelectTrigger>
                 <PromptInputModelSelectContent>
@@ -810,13 +793,16 @@ export default function AIAssistantPage() {
                   <PromptInputModelSelectItem value="gpt-3.5-turbo">GPT-3.5</PromptInputModelSelectItem>
                 </PromptInputModelSelectContent>
               </PromptInputModelSelect>
-              <PromptInputButton onClick={() => setEnableSearch(!enableSearch)} className={`transition-colors ${enableSearch ? "text-blue-500 bg-blue-500/10" : "hover:bg-white/10"}`}>
+              <PromptInputButton onClick={() => setEnableSearch(!enableSearch)} className={`transition-colors ${enableSearch ? "text-blue-600 bg-blue-600/10" : "hover:bg-white/20"}`}>
                 <Globe size={18} />
               </PromptInputButton>
-              <PromptInputButton onClick={createNewSession} className="hover:bg-white/10">
+              <PromptInputButton onClick={() => setSettingsOpen(true)} className="hover:bg-white/20">
+                <Settings size={18} />
+              </PromptInputButton>
+              <PromptInputButton onClick={createNewSession} className="hover:bg-white/20">
                 <PlusIcon size={18} />
               </PromptInputButton>
-              <PromptInputButton onClick={deleteSession} className="hover:bg-white/10">
+              <PromptInputButton onClick={deleteSession} className="hover:bg-white/20">
                 <Trash size={18} />
               </PromptInputButton>
             </PromptInputTools>
@@ -824,9 +810,9 @@ export default function AIAssistantPage() {
           </PromptInputToolbar>
         </PromptInput>
       </div>
-      </motion.div>
+      </div>
 
-      <MobileBottomNav position="fixed" />
+      <MobileBottomNav position="sticky" />
 
       <MobileAISettingsModal
         open={settingsOpen}

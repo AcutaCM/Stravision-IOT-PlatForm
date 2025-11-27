@@ -1,6 +1,6 @@
 "use client"
 
-import { CloudSun, Settings, Activity } from "lucide-react"
+import { CloudIcon, Cog6ToothIcon, ChartBarIcon } from "@heroicons/react/24/outline"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -11,9 +11,9 @@ export function PageNavigation() {
   const router = useRouter()
 
   const navItems = [
-    { href: "/monitor", icon: CloudSun, label: "农作物监测" },
-    { href: "/device-control", icon: Settings, label: "硬件设备控制" },
-    { href: "/dashboard", icon: Activity, label: "数据看板" },
+    { href: "/monitor", icon: CloudIcon, label: "农作物监测" },
+    { href: "/device-control", icon: Cog6ToothIcon, label: "硬件设备控制" },
+    { href: "/dashboard", icon: ChartBarIcon, label: "数据看板" },
   ]
 
   const activeIndex = navItems.findIndex((item) => pathname === item.href)
@@ -58,7 +58,7 @@ export function PageNavigation() {
               }}
               transition={{ duration: 0.2 }}
             >
-              <Icon size={18} />
+              <Icon className="size-[18px]" />
               <span className="text-sm font-medium">{item.label}</span>
             </motion.div>
           </Link>
