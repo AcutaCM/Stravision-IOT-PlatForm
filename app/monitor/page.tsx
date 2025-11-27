@@ -14,6 +14,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LiveStreamPlayer } from "@/components/live-stream-player"
 
 export default function MonitorPage() {
   const router = useRouter()
@@ -123,15 +124,20 @@ export default function MonitorPage() {
           <div className="relative px-4 md:px-8 pb-8 pt-6 overflow-y-auto md:overflow-hidden h-full">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-8 h-auto lg:h-[calc(100vh-72px-56px)]">
 
-              {/* Left Panel - 3D View */}
-              <div className="relative rounded-3xl glass overflow-hidden group">
-                {/* 3D Placeholder */}
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-secondary/50 to-background/50">
-                  <div className="text-muted-foreground/40 text-center transition-transform duration-700 group-hover:scale-105">
-                    <CloudIcon className="size-32 mx-auto mb-4 animate-[float_6s_ease-in-out_infinite]" strokeWidth={0.5} />
-                    <p className="text-lg font-light tracking-widest">3D 农作物监测视图</p>
-                  </div>
-                </div>
+            {/* Left Panel - Live Stream */}
+            <div className="relative rounded-3xl glass overflow-hidden group">
+              <LiveStreamPlayer
+                sources={[
+                  { src: "webrtc://yidiudiu1.top/live/stravision" },
+                  { src: "http://yidiudiu1.top/live/stravision.m3u8" },
+                  { src: "http://yidiudiu1.top/live/stravision.flv" }
+                ]}
+                autoplay
+                muted
+                controls
+                className="absolute inset-0 w-full h-full object-cover"
+                poster="/logo.svg"
+              />
 
                 {/* Weather Card */}
                 {(() => {
