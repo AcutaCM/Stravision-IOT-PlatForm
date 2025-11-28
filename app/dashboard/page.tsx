@@ -121,8 +121,6 @@ export default function DashboardPage() {
     { i: "nitrogen", x: 6, y: 2, w: 3, h: 2 },
     { i: "phosphorus", x: 9, y: 2, w: 3, h: 2 },
     { i: "potassium", x: 0, y: 4, w: 3, h: 2 },
-    { i: "pest", x: 3, y: 4, w: 3, h: 2 },
-    { i: "maturity", x: 6, y: 4, w: 3, h: 2 },
     { i: "rainfall", x: 9, y: 4, w: 3, h: 2 },
     { i: "aiChat", x: 0, y: 6, w: 6, h: 4 },
   ]
@@ -1350,55 +1348,7 @@ export default function DashboardPage() {
                   </Card>
                 </div>
 
-                {/* 病虫害率 */}
-                <div key="pest">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">2.3<span className="text-2xl font-normal text-muted-foreground">%</span></div>
-                          <Badge className="bg-red-500/20 text-red-600 border-red-500/30">病虫害率</Badge>
-                        </div>
-                        <Bug className="size-10 text-red-500" />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="pest" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,55 Q75,52 150,54 T300,52" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-                        <path d="M0,55 Q75,52 150,54 T300,52 L300,60 L0,60 Z" fill="url(#pest)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
-                </div>
 
-                {/* 成熟率 */}
-                <div key="maturity">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">87.6<span className="text-2xl font-normal text-muted-foreground">%</span></div>
-                          <Badge className="bg-emerald-500/20 text-emerald-600 border-emerald-500/30">成熟率</Badge>
-                        </div>
-                        <Leaf className="size-10 text-emerald-500" />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="maturity" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#10b981" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,50 Q75,28 150,32 T300,22" fill="none" stroke="#10b981" strokeWidth="2.5" />
-                        <path d="M0,50 Q75,28 150,32 T300,22 L300,60 L0,60 Z" fill="url(#maturity)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
-                </div>
 
                 {/* 降雨量 */}
                 <div key="rainfall">
