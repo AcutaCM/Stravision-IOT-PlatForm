@@ -50,7 +50,7 @@ const weatherIcons = {
 }
 
 export function WeatherCard({ deviceData }: WeatherCardProps) {
-  const { weatherData, loading, error } = useWeatherContext()
+  const { weatherData, loading, error, locationSource, requestLocation } = useWeatherContext()
 
   // Map weather condition codes to our icon types
   const getWeatherIcon = (code: number): "sun" | "cloud" | "rain" | "snow" => {
@@ -180,9 +180,27 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
               </div>
               {/* 定位信息 */}
               {weatherData?.location && (
-                <div className="text-right">
-                  <div className="text-xl font-medium text-blue-950 dark:text-white">
-                    {weatherData.location.name === 'Ningbo' ? '宁波' : weatherData.location.name}
+                <div
+                  className="text-right cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={requestLocation}
+                  title="点击重新定位"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span className="text-xl font-medium text-blue-950 dark:text-white">
+                      {weatherData.location.name === 'Ningbo' ? '宁波' : weatherData.location.name}
+                    </span>
+                    {locationSource && (
+                      <span
+                        className="text-base"
+                        title={
+                          locationSource === 'gps' ? 'GPS定位' :
+                            locationSource === 'ip' ? 'IP定位' :
+                              '默认位置'
+                        }
+                      >
+                        {locationSource === 'gps' ? '🎯' : locationSource === 'ip' ? '🌐' : '📍'}
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm text-blue-800/60 dark:text-white/60">
                     {weatherData.location.region === 'Zhejiang' ? '浙江' : weatherData.location.region}
@@ -300,28 +318,66 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
 
       {/* 详细环境数据 */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "室外温度", value: "25.3°C", icon: Sun },
-          { label: "西风向", value: "中等", icon: Wind },
-          { label: "UV", value: "紫外线", icon: Sun },
-          { label: "室外湿度", value: "25.3%", icon: Droplets },
-          { label: "室外风力", value: "1级", icon: Wind },
-          { label: "室外气压", value: "581hPa", icon: Gauge },
-        ].map((item, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 + i * 0.05 }}
-            className="p-3 rounded-lg bg-secondary/50 dark:bg-white/5 border border-border dark:border-white/10"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <item.icon className="size-4 text-muted-foreground dark:text-white/70" />
-              <div className="text-xs text-muted-foreground dark:text-white/60">{item.label}</div>
-            </div>
-            <div className="text-lg font-bold text-foreground dark:text-white">{item.value}</div>
-          </motion.div>
-        ))}
+        {(() => {
+          const outdoorData = weatherData?.current ? [
+            {
+              label: "室外温度",
+              value: `${Math.round(weatherData.current.temp_c)}°C`,
+              icon: Sun
+            },
+            {
+              label: weatherData.current.wind_dir ? `${weatherData.current.wind_dir}风向` : "风向",
+              value: weatherData.current.wind_kph < 12 ? "微风" :
+                weatherData.current.wind_kph < 30 ? "中等" :
+                  weatherData.current.wind_kph < 50 ? "强风" : "大风",
+              icon: Wind
+            },
+            {
+              label: "UV",
+              value: weatherData.current.uv >= 6 ? "强" :
+                weatherData.current.uv >= 3 ? "中等" : "弱",
+              icon: Sun
+            },
+            {
+              label: "室外湿度",
+              value: `${weatherData.current.humidity}%`,
+              icon: Droplets
+            },
+            {
+              label: "室外风力",
+              value: `${Math.round(weatherData.current.wind_kph)}km/h`,
+              icon: Wind
+            },
+            {
+              label: "室外气压",
+              value: `${Math.round(weatherData.current.pressure_mb)}hPa`,
+              icon: Gauge
+            },
+          ] : [
+            { label: "室外温度", value: "--", icon: Sun },
+            { label: "风向", value: "--", icon: Wind },
+            { label: "UV", value: "--", icon: Sun },
+            { label: "室外湿度", value: "--", icon: Droplets },
+            { label: "室外风力", value: "--", icon: Wind },
+            { label: "室外气压", value: "--", icon: Gauge },
+          ];
+
+          return outdoorData.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + i * 0.05 }}
+              className="p-3 rounded-lg bg-secondary/50 dark:bg-white/5 border border-border dark:border-white/10"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <item.icon className="size-4 text-muted-foreground dark:text-white/70" />
+                <div className="text-xs text-muted-foreground dark:text-white/60">{item.label}</div>
+              </div>
+              <div className="text-lg font-bold text-foreground dark:text-white">{item.value}</div>
+            </motion.div>
+          ));
+        })()}
       </div>
 
       {/* 生长阶段 */}

@@ -41,7 +41,11 @@ export interface WeatherData {
       code: number
     }
     wind_kph: number
+    wind_dir: string
+    pressure_mb: number
     humidity: number
+    uv: number
+    vis_km: number
   }
   forecast: {
     forecastday: WeatherDay[]
@@ -78,25 +82,25 @@ export function useWeather() {
       try {
         setLoading(true)
         setError(null)
-        
+
         // Build URL with location if available
         let url = '/api/weather'
         if (location) {
           url += `?lat=${location.lat}&lon=${location.lon}`
         }
-        
+
         const response = await fetch(url)
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch weather data')
         }
-        
+
         const data = await response.json()
-        
+
         if (data.error) {
           throw new Error(data.error)
         }
-        
+
         setWeatherData(data)
       } catch (err) {
         console.error('[useWeather] Error:', err)
@@ -107,10 +111,10 @@ export function useWeather() {
     }
 
     fetchWeather()
-    
+
     // Refresh weather data every 30 minutes
     const interval = setInterval(fetchWeather, 30 * 60 * 1000)
-    
+
     return () => clearInterval(interval)
   }, [location])
 
