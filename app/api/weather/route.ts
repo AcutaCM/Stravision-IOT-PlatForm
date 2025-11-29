@@ -30,9 +30,22 @@ export async function GET(request: NextRequest) {
     if (lat && lon) {
       location = `${lat},${lon}`
       locationSource = 'gps'
-    } else if (useIP) {
-      location = 'auto:ip' // WeatherAPI auto-detects location from IP
-      locationSource = 'ip'
+    } else {
+      // Try to get client IP from headers
+      const forwardedFor = request.headers.get('x-forwarded-for')
+      const realIp = request.headers.get('x-real-ip')
+
+      // Get the first IP from x-forwarded-for (client IP)
+      const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : realIp
+
+      if (clientIp && clientIp !== '::1' && clientIp !== '127.0.0.1') {
+        location = clientIp
+        locationSource = 'client-ip'
+      } else if (useIP) {
+        // Fallback to WeatherAPI's auto-IP (server IP) if no client IP found but useIP requested
+        location = 'auto:ip'
+        locationSource = 'server-ip'
+      }
     }
 
     // Build API URL for forecast (7 days)

@@ -87,6 +87,9 @@ export function useWeather() {
         let url = '/api/weather'
         if (location) {
           url += `?lat=${location.lat}&lon=${location.lon}`
+        } else {
+          // If no location (GPS denied/unavailable), ask API to try IP-based detection
+          url += '?useIP=true'
         }
 
         const response = await fetch(url)
