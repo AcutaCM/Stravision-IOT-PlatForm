@@ -106,12 +106,12 @@ function DeviceCard({
   )
 }
 
-function SliderRow({ label, value, onChange, color }: { label: string; value: number; onChange: (v: number) => void; color: string }) {
+function SliderRow({ label, value, onChange, color, displayValue }: { label: string; value: number; onChange: (v: number) => void; color: string; displayValue?: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground font-medium">{label}</span>
-        <span className="text-sm font-bold text-foreground">{value}</span>
+        <span className="text-sm font-bold text-foreground">{displayValue || value}</span>
       </div>
       <input type="range" min={0} max={255} value={value} onChange={(e) => onChange(parseInt(e.target.value))} className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow" style={{ background: `linear-gradient(to right, ${color} 0%, ${color} ${(value / 255) * 100}%, var(--muted) ${(value / 255) * 100}%, var(--muted) 100%)` }} />
     </div>
@@ -128,6 +128,7 @@ export default function DeviceControlIOSPage() {
   const [localR, setLocalR] = useState<number | null>(null)
   const [localG, setLocalG] = useState<number | null>(null)
   const [localB, setLocalB] = useState<number | null>(null)
+  const [localW, setLocalW] = useState<number | null>(null)
 
   useEffect(() => {
     ; (async () => {
@@ -142,6 +143,7 @@ export default function DeviceControlIOSPage() {
   const r = (localR ?? deviceData?.led1 ?? 0)
   const g = (localG ?? deviceData?.led2 ?? 0)
   const b = (localB ?? deviceData?.led3 ?? 0)
+  const w = (localW ?? deviceData?.led4 ?? 0)
 
   const handleRelayToggle = async (relayNum: number) => {
     if (!deviceData) return
@@ -150,7 +152,7 @@ export default function DeviceControlIOSPage() {
   }
 
   const handleLEDUpdate = async () => {
-    await setLEDs(r, g, b, 0)
+    await setLEDs(r, g, b, w)
   }
 
   return (
@@ -281,6 +283,7 @@ export default function DeviceControlIOSPage() {
                 <SliderRow label="红色" value={r} onChange={setLocalR} color="#ef4444" />
                 <SliderRow label="绿色" value={g} onChange={setLocalG} color="#22c55e" />
                 <SliderRow label="蓝色" value={b} onChange={setLocalB} color="#3b82f6" />
+                <SliderRow label="亮度 (占空比)" value={w} onChange={setLocalW} color="#f59e0b" displayValue={`${Math.round((w / 255) * 100)}%`} />
               </div>
 
               <div className="flex justify-end mt-4">

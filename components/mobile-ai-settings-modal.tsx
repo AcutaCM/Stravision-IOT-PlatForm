@@ -5,7 +5,18 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
- 
+import { 
+  Settings, 
+  Key, 
+  Link as LinkIcon, 
+  Box, 
+  MessageSquareText, 
+  X,
+  CheckCircle2,
+  Bot,
+  Sparkles
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface AISettings {
   apiKey: string
@@ -102,21 +113,35 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        <DialogOverlay />
+        <DialogOverlay className="bg-black/20 backdrop-blur-sm" />
         <DialogPrimitive.Content
-          className="fixed inset-x-0 bottom-0 z-50 w-full max-w-none rounded-t-3xl bg-background shadow-lg border border-border overflow-hidden h-[88vh] sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:h-auto sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg"
+          className="fixed inset-x-0 bottom-0 z-50 w-full max-w-none rounded-t-[2rem] bg-white dark:bg-zinc-900 shadow-2xl border-t border-black/5 dark:border-white/10 overflow-hidden h-[85vh] sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:h-auto sm:max-w-md sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border animate-in slide-in-from-bottom-full sm:zoom-in-95 sm:slide-in-from-bottom-0 duration-300"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/10 dark:bg-black/10 backdrop-blur-xl">
-            <div className="text-sm font-semibold">AI 助手设置</div>
-            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="rounded-full">关闭</Button>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <Settings size={18} strokeWidth={2.5} />
+              </div>
+              <div>
+                <div className="text-base font-bold text-gray-900 dark:text-gray-100">模型配置</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">配置您的专属 AI 助手</div>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)} className="rounded-full hover:bg-gray-100 dark:hover:bg-white/10 h-8 w-8 text-gray-500">
+              <X size={18} />
+            </Button>
           </div>
-          <div className="p-4 space-y-4 overflow-y-auto h-[calc(88vh-56px-64px)] sm:h-auto">
-            <div className="grid gap-2.5">
-              <Label className="text-sm font-medium">API 类型</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
+
+          {/* Content */}
+          <div className="p-6 space-y-6 overflow-y-auto h-[calc(85vh-70px-80px)] sm:h-auto max-h-[70vh]">
+            
+            {/* API Type Selector */}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">服务提供商</Label>
+              <div className="grid grid-cols-2 gap-1 p-1.5 bg-gray-100/80 dark:bg-zinc-800/50 rounded-xl border border-gray-200/50 dark:border-white/5">
+                <button
                   type="button"
-                  variant={apiType === "dashscope" ? "default" : "outline"}
                   onClick={() => {
                     setApiType("dashscope")
                     setSettings({
@@ -124,13 +149,18 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                       apiUrl: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
                     })
                   }}
-                  className={apiType === "dashscope" ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white" : "border-border bg-muted/50 hover:bg-muted text-foreground"}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 rounded-[10px] text-sm font-medium transition-all duration-200",
+                    apiType === "dashscope" 
+                      ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5"
+                  )}
                 >
-                  阿里云 DashScope
-                </Button>
-                <Button
+                  <Sparkles size={16} />
+                  <span>阿里云百炼</span>
+                </button>
+                <button
                   type="button"
-                  variant={apiType === "openai" ? "default" : "outline"}
                   onClick={() => {
                     setApiType("openai")
                     setSettings({
@@ -138,43 +168,101 @@ export function MobileAISettingsModal({ open, onOpenChange, onSave }: MobileAISe
                       apiUrl: "https://api.openai.com/v1/chat/completions",
                     })
                   }}
-                  className={apiType === "openai" ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white" : "border-border bg-muted/50 hover:bg-muted text-foreground"}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 rounded-[10px] text-sm font-medium transition-all duration-200",
+                    apiType === "openai" 
+                      ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-white/5"
+                  )}
                 >
-                  OpenAI
-                </Button>
+                  <Bot size={16} />
+                  <span>OpenAI</span>
+                </button>
               </div>
-              <span className="text-xs text-muted-foreground/70">
-                {apiType === "dashscope" ? "使用通义千问模型" : "使用 OpenAI 兼容模型"}
-              </span>
+              <p className="text-[10px] text-gray-400 px-1">
+                {apiType === "dashscope" 
+                  ? "推荐国内用户使用，支持通义千问 Qwen 系列模型，速度快且稳定。" 
+                  : "支持 GPT-3.5, GPT-4 等标准 OpenAI 接口模型。"}
+              </p>
             </div>
 
-            <div className="grid gap-2.5">
-              <Label htmlFor="model" className="text-sm font-medium">模型</Label>
-              <Input id="model" placeholder="例如: qwen-plus" value={settings.model} onChange={(e) => setSettings({ ...settings, model: e.target.value })} className="bg-white/10 dark:bg-black/10 border-white/10" />
-            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="model" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">模型名称</Label>
+                <div className="relative group">
+                  <Box className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input 
+                    id="model" 
+                    placeholder={apiType === "dashscope" ? "例如: qwen-plus" : "例如: gpt-3.5-turbo"} 
+                    value={settings.model} 
+                    onChange={(e) => setSettings({ ...settings, model: e.target.value })} 
+                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all" 
+                  />
+                </div>
+              </div>
 
-            <div className="grid gap-2.5">
-              <Label htmlFor="apiKey" className="text-sm font-medium">API Key</Label>
-              <Input id="apiKey" type="password" placeholder="sk-..." value={settings.apiKey} onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })} className="bg-white/10 dark:bg-black/10 border-white/10" />
-              <span className="text-xs text-muted-foreground/70">仅保存在本地浏览器</span>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="apiKey" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">API Key</Label>
+                <div className="relative group">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input 
+                    id="apiKey" 
+                    type="password" 
+                    placeholder="sk-..." 
+                    value={settings.apiKey} 
+                    onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })} 
+                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all font-mono text-sm" 
+                  />
+                </div>
+              </div>
 
-            <div className="grid gap-2.5">
-              <Label htmlFor="apiUrl" className="text-sm font-medium">API URL</Label>
-              <Input id="apiUrl" placeholder={apiType === "dashscope" ? "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation" : "https://api.openai.com/v1/chat/completions"} value={settings.apiUrl} onChange={(e) => setSettings({ ...settings, apiUrl: e.target.value })} className="bg-white/10 dark:bg-black/10 border-white/10" />
-              <span className="text-xs text-muted-foreground/70">端点地址</span>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="apiUrl" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">API 接入点</Label>
+                <div className="relative group">
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input 
+                    id="apiUrl" 
+                    placeholder="https://..." 
+                    value={settings.apiUrl} 
+                    onChange={(e) => setSettings({ ...settings, apiUrl: e.target.value })} 
+                    className="pl-10 h-11 bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all font-mono text-xs" 
+                  />
+                </div>
+              </div>
 
-            <div className="grid gap-2.5">
-              <Label htmlFor="systemPrompt" className="text-sm font-medium">系统提示词</Label>
-              <Textarea id="systemPrompt" placeholder="输入系统提示词..." value={settings.systemPrompt} onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })} className="min-h-[120px] bg-white/10 dark:bg-black/10 border-white/10" />
+              <div className="space-y-2">
+                <Label htmlFor="systemPrompt" className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">系统提示词</Label>
+                <div className="relative group">
+                  <MessageSquareText className="absolute left-3 top-4 size-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Textarea 
+                    id="systemPrompt" 
+                    placeholder="定义 AI 助手的角色和行为..." 
+                    value={settings.systemPrompt} 
+                    onChange={(e) => setSettings({ ...settings, systemPrompt: e.target.value })} 
+                    className="pl-10 min-h-[100px] bg-gray-50 dark:bg-zinc-800/50 border-gray-200 dark:border-white/10 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all resize-none leading-relaxed" 
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="p-4 border-t border-white/10 bg-white/10 dark:bg-black/10 backdrop-blur-xl">
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border bg-muted/50 hover:bg-muted text-foreground">取消</Button>
-              <Button onClick={handleSave} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">保存设置</Button>
+          {/* Footer */}
+          <div className="p-6 border-t border-gray-100 dark:border-white/5 bg-white dark:bg-zinc-900 sticky bottom-0 z-10">
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => onOpenChange(false)} 
+                className="flex-1 h-12 rounded-xl border-gray-200 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5 text-gray-600"
+              >
+                取消
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                className="flex-[2] h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 font-medium text-base"
+              >
+                <CheckCircle2 size={18} className="mr-2" />
+                保存配置
+              </Button>
             </div>
           </div>
         </DialogPrimitive.Content>

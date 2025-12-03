@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { WeatherProvider } from "@/lib/contexts/weather-context";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SchedulerInit } from "@/components/scheduler-init";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "stravision莓界 · 登录",
@@ -22,8 +24,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SchedulerInit />
           <WeatherProvider>
             {children}
+            <Toaster />
           </WeatherProvider>
         </ThemeProvider>
       </body>

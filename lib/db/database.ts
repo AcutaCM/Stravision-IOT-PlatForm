@@ -1,3 +1,7 @@
+if (typeof process !== 'undefined' && process.env.NEXT_RUNTIME === 'edge') {
+  throw new Error('Database module cannot run in Edge runtime')
+}
+
 import Database from "better-sqlite3"
 import path from "path"
 import { promises as fs } from "fs"
@@ -31,10 +35,22 @@ export async function initDB(): Promise<void> {
   }
 
   // 创建数据库连接
-  db = new Database(dbPath)
+  try {
+    db = new Database(dbPath)
 
-  // 启用外键约束
-  db.pragma("foreign_keys = ON")
+    // 启用外键约束
+    db.pragma("foreign_keys = ON")
+
+    // 优化 WAL 模式
+    db.pragma('journal_mode = WAL')
+
+    // 增加 busy timeout，减少 SQLITE_BUSY 错误
+    db.pragma('busy_timeout = 5000')
+
+  } catch (error) {
+    console.error("Failed to open database:", error)
+    throw error
+  }
 
   // 创建 users 表（新库会包含微信字段，旧库需要后续迁移）
   db.exec(`
@@ -46,6 +62,22 @@ export async function initDB(): Promise<void> {
       avatar_url TEXT,
       wechat_openid TEXT UNIQUE,
       wechat_unionid TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `)
+
+  // 创建 scheduled_tasks 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS scheduled_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      cron_expression TEXT,
+      execute_at INTEGER,
+      action_type TEXT NOT NULL,
+      device_id INTEGER,
+      params TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )

@@ -29,7 +29,7 @@ const navItems: NavItem[] = [
   { href: "/monitor-ios", label: "监测", icon: HomeIcon, iconSolid: HomeIconSolid },
   { href: "/device-control-ios", label: "设备", icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid },
   { href: "/dashboard-ios", label: "看板", icon: Squares2X2Icon, iconSolid: Squares2X2IconSolid },
-  { href: "/ai-assistant", label: "AI助手", icon: SparklesIcon, iconSolid: SparklesIconSolid },
+  { href: "/ai-assistant-ios", label: "AI助手", icon: SparklesIcon, iconSolid: SparklesIconSolid },
   { href: "/profile", label: "我的", icon: UserIcon, iconSolid: UserIconSolid },
 ]
 

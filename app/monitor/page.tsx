@@ -10,11 +10,17 @@ import { CloudIcon, SunIcon, SparklesIcon, ChartBarIcon, HandRaisedIcon, Magnify
 import { WifiIcon as WifiOffIcon } from "@heroicons/react/24/solid" // Using solid for off state or just style it differently
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { usePlantGrowth } from "@/lib/hooks/use-plant-growth"
+import { HEALTH_STATUS_COLORS } from "@/lib/types/plant-growth-types"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
+import { USBCameraPlayer } from "@/components/usb-camera-player"
+import { VideoCameraIcon, SignalIcon } from "@heroicons/react/24/solid"
+import { ArrowPathIcon } from "@heroicons/react/24/outline"
+import { analyzePlantFromVideo } from "@/lib/utils/plant-analysis-helper"
 
 export default function MonitorPage() {
   const router = useRouter()
@@ -25,8 +31,58 @@ export default function MonitorPage() {
   // Use shared weather data from context
   const { weatherData, loading: weatherLoading } = useWeatherContext()
 
+  // Use plant growth data
+  const { plantData, lastAnalyzed, loading: plantLoading } = usePlantGrowth()
+
   // Track EC value history for chart (last 20 data points)
   const [ecHistory, setEcHistory] = useState<number[]>([])
+
+  // Camera source state
+  const [videoSource, setVideoSource] = useState<'live' | 'usb'>('live')
+  const [analyzing, setAnalyzing] = useState(false)
+
+  const handleAnalyze = async () => {
+    if (analyzing) return
+
+    const videoEl = document.getElementById('monitor-player') as HTMLVideoElement
+    if (!videoEl) {
+      alert("未找到视频源")
+      return
+    }
+
+    setAnalyzing(true)
+
+    try {
+      // Get API key from settings or use a default/temporary one if needed
+      // For now we'll try to get it from localStorage or let the helper handle it
+      const settingsStr = localStorage.getItem('ai-settings')
+      const settings = settingsStr ? JSON.parse(settingsStr) : null
+      const apiKey = settings?.apiKey
+
+      if (!apiKey) {
+        alert("请先在设置中配置AI API密钥")
+        setAnalyzing(false)
+        return
+      }
+
+      const result = await analyzePlantFromVideo(videoEl, {
+        apiKey,
+        model: 'qwen3-vl-plus'
+      })
+
+      if (result.success) {
+        // alert("分析完成！植株状态已更新")
+        // The hook will auto-update the UI via polling
+      } else {
+        alert(`分析失败: ${result.error}`)
+      }
+    } catch (error) {
+      console.error(error)
+      alert("分析过程出错")
+    } finally {
+      setAnalyzing(false)
+    }
+  }
 
   // User authentication state
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
@@ -124,20 +180,53 @@ export default function MonitorPage() {
           <div className="relative px-4 md:px-8 pb-8 pt-6 overflow-y-auto md:overflow-hidden h-full">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-8 h-auto lg:h-[calc(100vh-72px-56px)]">
 
-            {/* Left Panel - Live Stream */}
-            <div className="relative rounded-3xl glass overflow-hidden group">
-              <LiveStreamPlayer
-                sources={[
-                  { src: "webrtc://yidiudiu1.top/live/stravision" },
-                  { src: "http://yidiudiu1.top/live/stravision.m3u8" },
-                  { src: "http://yidiudiu1.top/live/stravision.flv" }
-                ]}
-                autoplay
-                muted
-                controls
-                className="absolute inset-0 w-full h-full object-cover"
-                poster="/logo.svg"
-              />
+              {/* Left Panel - Live Stream */}
+              <div className="relative rounded-3xl glass overflow-hidden group">
+                {/* Camera Toggle */}
+                <div className="absolute top-6 right-6 z-20 flex bg-black/40 rounded-xl p-1 backdrop-blur-md border border-white/10">
+                  <button
+                    onClick={() => setVideoSource('live')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${videoSource === 'live'
+                      ? 'bg-white text-black shadow-lg'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      }`}
+                  >
+                    <SignalIcon className="size-3.5" />
+                    直播流
+                  </button>
+                  <button
+                    onClick={() => setVideoSource('usb')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${videoSource === 'usb'
+                      ? 'bg-white text-black shadow-lg'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      }`}
+                  >
+                    <VideoCameraIcon className="size-3.5" />
+                    本地USB
+                  </button>
+                </div>
+
+                {videoSource === 'live' ? (
+                  <LiveStreamPlayer
+                    id="monitor-player"
+                    sources={[
+                      { src: "webrtc://yidiudiu1.top/live/stravision" },
+                      { src: "http://yidiudiu1.top/live/stravision.m3u8" },
+                      { src: "http://yidiudiu1.top/live/stravision.flv" }
+                    ]}
+                    autoplay
+                    muted
+                    controls
+                    className="absolute inset-0 w-full h-full object-cover"
+                    poster="/logo.svg"
+                  />
+                ) : (
+                  <USBCameraPlayer
+                    id="monitor-player"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    mirror
+                  />
+                )}
 
                 {/* Weather Card */}
                 {(() => {
@@ -373,45 +462,100 @@ export default function MonitorPage() {
                         <SparklesIcon className="size-4 text-green-600" />
                         <span className="font-semibold text-sm">植株生长状态</span>
                       </div>
-                      <Badge variant="secondary" className="text-xs">第4阶段</Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] text-muted-foreground hover:text-primary"
+                          onClick={handleAnalyze}
+                          disabled={analyzing}
+                        >
+                          {analyzing ? (
+                            <span className="flex items-center gap-1">
+                              <span className="size-2 rounded-full bg-primary animate-pulse" />
+                              分析中...
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1">
+                              <ArrowPathIcon className="size-3" />
+                              立即分析
+                            </span>
+                          )}
+                        </Button>
+                        <Badge variant="secondary" className="text-xs">
+                          {plantData ? `第${plantData.stage}阶段` : '等待数据'}
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-6 gap-2">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="aspect-square rounded-lg bg-background/50 border border-border/50 grid place-content-center hover:border-green-500/50 hover:text-green-500 transition-all group cursor-pointer"
-                        >
-                          <SparklesIcon className="size-5 text-muted-foreground group-hover:scale-110 transition-transform" />
-                        </div>
-                      ))}
+                      {Array.from({ length: 6 }).map((_, i) => {
+                        const isCurrentStage = plantData && i + 1 === plantData.stage
+                        const isPastStage = plantData && i + 1 < plantData.stage
+                        return (
+                          <div
+                            key={i}
+                            className={`aspect-square rounded-lg border grid place-content-center transition-all group cursor-pointer ${isCurrentStage
+                              ? 'bg-green-500/20 border-green-500/50 text-green-600'
+                              : isPastStage
+                                ? 'bg-green-500/10 border-green-500/30 text-green-500/70'
+                                : 'bg-background/50 border-border/50 text-muted-foreground hover:border-green-500/50 hover:text-green-500'
+                              }`}
+                          >
+                            <SparklesIcon className="size-5 group-hover:scale-110 transition-transform" />
+                          </div>
+                        )
+                      })}
                     </div>
+
+                    {plantData && plantData.healthScore && (
+                      <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-background/50">
+                        <span className="text-xs text-muted-foreground">整体健康度</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-foreground">{plantData.healthScore}</span>
+                          <div className="size-3 rounded-full" style={{ backgroundColor: HEALTH_STATUS_COLORS[plantData.healthStatus] }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {lastAnalyzed && (
+                      <div className="text-[10px] text-muted-foreground/70 text-center">
+                        上次分析: {new Date(lastAnalyzed).toLocaleString('zh-CN')}
+                      </div>
+                    )}
 
                     <Separator className="bg-border/50" />
 
                     <div>
                       <div className="text-muted-foreground text-xs mb-3">健康度热力图</div>
                       <div className="grid grid-cols-6 gap-2">
-                        {[
-                          { color: "#9EE09E", label: "优秀" },
-                          { color: "#A5F28F", label: "良好" },
-                          { color: "#C8FF8F", label: "正常" },
-                          { color: "#FFB3C1", label: "注意" },
-                          { color: "#FF8FA3", label: "警告" },
-                          { color: "#FF6F91", label: "异常" }
-                        ].map((item, i) => (
-                          <div
-                            key={i}
-                            className="aspect-square rounded-lg hover:scale-110 transition-all cursor-pointer relative group shadow-sm"
-                            style={{ backgroundColor: item.color }}
-                          >
-                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-foreground bg-background/90 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-sm">
-                              {item.label}
+                        {(plantData?.heatmap || [75, 75, 75, 75, 75, 75]).map((score, i) => {
+                          const status = score >= 90 ? 'excellent' : score >= 75 ? 'good' : score >= 60 ? 'normal' : score >= 45 ? 'attention' : score >= 30 ? 'warning' : 'critical'
+                          const color = HEALTH_STATUS_COLORS[status]
+                          const labels = ['优秀', '良好', '正常', '注意', '警告', '异常']
+                          const label = labels[['excellent', 'good', 'normal', 'attention', 'warning', 'critical'].indexOf(status)]
+
+                          return (
+                            <div
+                              key={i}
+                              className="aspect-square rounded-lg hover:scale-110 transition-all cursor-pointer relative group shadow-sm"
+                              style={{ backgroundColor: color }}
+                              title={`区域${i + 1}: ${score}分`}
+                            >
+                              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-foreground bg-background/90 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-sm">
+                                {label} ({score})
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
+
+                    {plantLoading && (
+                      <div className="text-xs text-muted-foreground text-center py-2">
+                        加载中...
+                      </div>
+                    )}
                   </Card>
                 </CardContent>
               </Card>

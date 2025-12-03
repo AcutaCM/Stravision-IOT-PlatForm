@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
+import { usePlantGrowth } from "@/lib/hooks/use-plant-growth"
 
 interface DeviceData {
   temperature: number
@@ -51,6 +52,7 @@ const weatherIcons = {
 
 export function WeatherCard({ deviceData }: WeatherCardProps) {
   const { weatherData, loading, error, locationSource, requestLocation } = useWeatherContext()
+  const { plantData } = usePlantGrowth()
 
   // Map weather condition codes to our icon types
   const getWeatherIcon = (code: number): "sun" | "cloud" | "rain" | "snow" => {
@@ -389,19 +391,42 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
       >
         <div className="text-sm text-green-800/70 dark:text-green-200/70 mb-3">草莓生长阶段</div>
         <div className="flex items-center justify-between">
-          {["🌱", "🌿", "🌸", "🍓", "🍓"].map((emoji, i) => (
-            <div
-              key={i}
-              className={`text-3xl transition-all ${i <= 3 ? "opacity-100 scale-110" : "opacity-40"
-                }`}
-            >
-              {emoji}
-            </div>
-          ))}
+          {["🌱", "🌿", "🌸", "🍓", "🍓"].map((emoji, i) => {
+            const stage = i + 1
+            const isActive = plantData && stage <= plantData.stage
+            const isCurrent = plantData && stage === plantData.stage
+            return (
+              <div
+                key={i}
+                className={`text-3xl transition-all ${isActive
+                    ? isCurrent
+                      ? "opacity-100 scale-125 drop-shadow-lg"
+                      : "opacity-100 scale-110"
+                    : "opacity-40 scale-100"
+                  }`}
+              >
+                {emoji}
+              </div>
+            )
+          })}
         </div>
         <div className="mt-3 text-xs text-green-800/70 dark:text-green-200/70">
-          当前阶段：开花结果期
+          当前阶段：{plantData ? (
+            ['幼苗期', '生长期', '花芽分化期', '开花结果期', '果实成熟期', '采收后期'][plantData.stage - 1] || `第${plantData.stage}阶段`
+          ) : '等待数据...'}
         </div>
+        {plantData?.healthScore && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className="text-xs text-green-800/70 dark:text-green-200/70">健康度：</div>
+            <div className="flex-1 h-2 bg-green-900/20 dark:bg-green-100/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-green-600 to-emerald-500 transition-all duration-500"
+                style={{ width: `${plantData.healthScore}%` }}
+              />
+            </div>
+            <div className="text-xs font-bold text-green-800 dark:text-green-200">{plantData.healthScore}</div>
+          </div>
+        )}
       </motion.div>
     </div>
   )

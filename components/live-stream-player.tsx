@@ -89,6 +89,7 @@ export function LiveStreamPlayer({
   const autoId = useId()
   const containerId = useMemo(() => id ?? `tc-player-${autoId}`, [id, autoId])
   const connectTimerRef = useRef<number | null>(null)
+  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null)
   const webrtcRef = useRef<TXLivePlayer | null>(null)
   const hlsRef = useRef<HlsInstance | null>(null)
   const flvRef = useRef<FlvPlayerInstance | null>(null)
@@ -177,6 +178,30 @@ export function LiveStreamPlayer({
         }
       }
 
+      // Watchdog for Live Stream
+      let lastTime = 0
+      let freezeCount = 0
+      if (watchdogTimerRef.current) clearInterval(watchdogTimerRef.current)
+      watchdogTimerRef.current = setInterval(() => {
+        if (videoEl && !videoEl.paused && !videoEl.ended && videoEl.readyState > 2) {
+           const currentTime = videoEl.currentTime
+           if (currentTime === lastTime) {
+             freezeCount++
+             // Faster refresh: check every 0.5s, reconnect after 1.5s (3 checks)
+             if (freezeCount > 3) { 
+                console.log("[LivePlayer] Stream frozen detected, reconnecting...")
+                freezeCount = 0
+                const hasNext = nextIndex + 1 < sequence.length
+                nextIndex = hasNext ? nextIndex + 1 : 0
+                void playCurrent()
+             }
+           } else {
+             freezeCount = 0
+             lastTime = currentTime
+           }
+        }
+      }, 500) // Check every 500ms instead of 1000ms
+
       if (connectTimerRef.current) { window.clearTimeout(connectTimerRef.current) }
       connectTimerRef.current = window.setTimeout(() => { void playCurrent() }, 0)
 
@@ -189,6 +214,8 @@ export function LiveStreamPlayer({
     run()
     return () => {
       if (connectTimerRef.current) { window.clearTimeout(connectTimerRef.current); connectTimerRef.current = null }
+      if (watchdogTimerRef.current) { clearInterval(watchdogTimerRef.current); watchdogTimerRef.current = null }
+      
       try { webrtcRef.current?.stopPlay() } catch {}
       webrtcRef.current = null
       hlsRef.current?.destroy(); hlsRef.current = null

@@ -7,6 +7,7 @@
 
 import mqtt from 'mqtt'
 import { MQTTConfig, getValidatedMQTTConfig } from './mqtt-config'
+import { sendWeComNotification } from './notification-service'
 
 /**
  * Device Data Interface
@@ -65,6 +66,8 @@ export class MQTTService {
   private config: MQTTConfig
   private latestData: DeviceData | null = null
   private dataListeners: Set<DataListener> = new Set()
+  private lastNotificationTime: Map<string, number> = new Map()
+  private readonly NOTIFICATION_COOLDOWN = 30 * 60 * 1000 // 30 minutes
 
   /**
    * Private constructor to enforce singleton pattern
@@ -379,6 +382,9 @@ export class MQTTService {
       // Update latest data cache
       this.latestData = deviceData
 
+      // Check for critical anomalies and send notifications
+      this.checkThresholds(deviceData)
+
       // Log data summary (not full data to avoid log bloat)
       this.log('INFO', `Device data received - Temp: ${(deviceData.temperature / 10).toFixed(1)}°C, Humidity: ${(deviceData.humidity / 10).toFixed(1)}%`)
 
@@ -397,6 +403,87 @@ export class MQTTService {
         payload: payload.toString(),
         error 
       })
+    }
+  }
+
+  /**
+   * Check data against critical thresholds and send notifications
+   * 
+   * @param {DeviceData} data - The device data to check
+   */
+  private async checkThresholds(data: DeviceData): Promise<void> {
+    const now = Date.now()
+    const alerts: string[] = []
+
+    // Temperature (High > 40°C, Low < 0°C)
+    const temp = data.temperature / 10
+    if (temp > 40) {
+      alerts.push(`🌡️ **温度过高**: ${temp.toFixed(1)}°C (阈值 > 40°C)`)
+    } else if (temp < 0) {
+      alerts.push(`❄️ **温度过低**: ${temp.toFixed(1)}°C (阈值 < 0°C)`)
+    }
+
+    // Humidity (Low < 20%)
+    const humidity = data.humidity / 10
+    if (humidity < 20) {
+      alerts.push(`💧 **湿度过低**: ${humidity.toFixed(1)}% (阈值 < 20%)`)
+    }
+
+    // CO2 (High > 3000 ppm)
+    if (data.co2 > 3000) {
+      alerts.push(`💨 **CO₂浓度过高**: ${data.co2} ppm (阈值 > 3000 ppm)`)
+    }
+
+    // Light (Low < 3000 lux during daytime 8:00-17:00)
+    const hour = new Date(now).getHours()
+    if (hour >= 8 && hour < 17) {
+      if (data.light < 3000) {
+        alerts.push(`☀️ **光照不足**: ${data.light} lux (日间阈值 < 1000 lux)`)
+      }
+    }
+
+    // Soil Moisture (Low < 10%)
+    const soilMoisture = data.earth_water
+    if (soilMoisture < 10) {
+      alerts.push(`🌱 **土壤缺水**: ${soilMoisture.toFixed(1)}% (阈值 < 10%)`)
+    }
+
+    // Sensor Fault Detection (Value is 0)
+    // Checks for sensors where 0 is physically impossible or highly indicative of connection failure
+    const zeroMetrics: string[] = []
+    if (data.humidity === 0) zeroMetrics.push('湿度')
+    if (data.co2 === 0) zeroMetrics.push('CO₂')
+    if (data.earth_water === 0) zeroMetrics.push('土壤水分')
+    if (data.earth_ec === 0) zeroMetrics.push('土壤EC')
+    if (data.earth_n === 0) zeroMetrics.push('土壤氮')
+    if (data.earth_p === 0) zeroMetrics.push('土壤磷')
+    if (data.earth_k === 0) zeroMetrics.push('土壤钾')
+    // Note: Temperature and Light are excluded as 0 is a valid value for them (0°C, 0 lux)
+
+    if (zeroMetrics.length > 0) {
+      alerts.push(`⚠️ **传感器故障/数据异常**: 检测到0值 - ${zeroMetrics.join(', ')}`)
+    }
+
+    // Send notifications if there are alerts and cooldown has passed
+    if (alerts.length > 0) {
+      // Create a unique key for the set of alerts to track cooldowns individually or grouped
+      // For simplicity, we'll track by alert content type or just global cooldown for any alert?
+      // Let's track per specific alert type to avoid silencing new different alerts.
+      
+      for (const alert of alerts) {
+        const alertKey = alert.split(':')[0] // Use the first part (e.g., "🌡️ **温度过高**") as key
+        const lastSent = this.lastNotificationTime.get(alertKey) || 0
+
+        if (now - lastSent > this.NOTIFICATION_COOLDOWN) {
+          try {
+            await sendWeComNotification(alert, 'markdown')
+            this.lastNotificationTime.set(alertKey, now)
+            this.log('INFO', `Sent WeCom notification: ${alert}`)
+          } catch (error) {
+            this.log('ERROR', `Failed to send notification: ${error}`)
+          }
+        }
+      }
     }
   }
 

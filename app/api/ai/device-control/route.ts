@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { action, device, value, r, g, b } = body
+    let { action, device, value, r, g, b } = body
     
     console.log('[AI Device Control] Received command:', JSON.stringify(body, null, 2))
     
@@ -24,6 +24,15 @@ export async function POST(request: NextRequest) {
     
     // 根据不同的 action 执行不同的控制
     if (action === 'toggle_relay') {
+      // 规范化 value 值，兼容 boolean 和 string
+      if (typeof value === 'boolean') {
+        value = value ? 1 : 0
+      } else if (typeof value === 'string') {
+        const v = value.toLowerCase()
+        if (v === '1' || v === 'true' || v === 'on') value = 1
+        else if (v === '0' || v === 'false' || v === 'off') value = 0
+      }
+
       if (device === undefined || device === null || (value !== 0 && value !== 1)) {
         return NextResponse.json(
           { success: false, error: `Invalid device (${device}) or value (${value}) for toggle_relay. Device must be 5-8, value must be 0 or 1.` },

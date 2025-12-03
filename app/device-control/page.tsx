@@ -126,17 +126,19 @@ function SliderRow({
   value,
   onChange,
   color,
+  displayValue,
 }: {
   label: string
   value: number
   onChange: (value: number) => void
   color: string
+  displayValue?: string
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        <span className="text-sm font-bold text-foreground">{value}</span>
+        <span className="text-sm font-bold text-foreground">{displayValue || value}</span>
       </div>
       <div className="flex items-center gap-3">
         <input
@@ -160,6 +162,7 @@ export default function DeviceControlPage() {
   const [r, setR] = useState(0)
   const [g, setG] = useState(0)
   const [b, setB] = useState(0)
+  const [w, setW] = useState(0)
 
   // User authentication state
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
@@ -196,12 +199,13 @@ export default function DeviceControlPage() {
 
   // Sync LED sliders with device data on first load
   useEffect(() => {
-    if (deviceData && r === 0 && g === 0 && b === 0) {
+    if (deviceData && r === 0 && g === 0 && b === 0 && w === 0) {
       setR(deviceData.led1 || 0)
       setG(deviceData.led2 || 0)
       setB(deviceData.led3 || 0)
+      setW(deviceData.led4 || 0)
     }
-  }, [deviceData, r, g, b])
+  }, [deviceData, r, g, b, w])
 
   // Handle relay toggle
   const handleRelayToggle = async (relayNum: number) => {
@@ -387,6 +391,13 @@ export default function DeviceControlPage() {
                             value={b}
                             onChange={setB}
                             color="#3b82f6"
+                          />
+                          <SliderRow
+                            label="亮度 (占空比)"
+                            value={w}
+                            onChange={setW}
+                            color="#f59e0b"
+                            displayValue={`${Math.round((w / 255) * 100)}%`}
                           />
                         </div>
                       </div>
