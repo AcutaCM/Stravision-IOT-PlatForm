@@ -32,6 +32,18 @@ export interface DeviceData {
   led2: number            // LED 2 brightness (0-255)
   led3: number            // LED 3 brightness (0-255)
   led4: number            // LED 4 brightness (0-255)
+  // Spectral Data
+  channel1?: number       // 415 nm Violet
+  channel2?: number       // 445 nm Blue
+  channel3?: number       // 480 nm Cyan
+  channel4?: number       // 515 nm Green
+  channel5?: number       // 555 nm Yellow-Green
+  channel6?: number       // 590 nm Yellow
+  channel7?: number       // 630 nm Orange
+  channel8?: number       // 680 nm Red
+  channel9?: number       // NIR
+  channel10?: number      // Clear
+  channel11?: number      // Flicker
   timestamp?: number      // Timestamp when data was received
 }
 
@@ -124,12 +136,18 @@ export class MQTTService {
         this.client.on('connect', () => {
           this.log('INFO', 'MQTT connection established successfully')
           
-          // Subscribe to device data topic
-          this.client!.subscribe(this.config.subscribeTopic, { qos: 1 }, (err) => {
+          const topics = [
+            this.config.subscribeTopic,
+            'meimefarm/spectral/all',
+            'meimefarm/sensor/node0701'
+          ]
+
+          // Subscribe to device data topics
+          this.client!.subscribe(topics, { qos: 1 }, (err) => {
             if (err) {
-              this.log('ERROR', `Failed to subscribe to topic: ${this.config.subscribeTopic}`, err)
+              this.log('ERROR', `Failed to subscribe to topics: ${topics.join(', ')}`, err)
             } else {
-              this.log('INFO', `Subscribed to topic: ${this.config.subscribeTopic}`)
+              this.log('INFO', `Subscribed to topics: ${topics.join(', ')}`)
             }
           })
           
@@ -356,53 +374,79 @@ export class MQTTService {
       // Parse JSON data
       const rawData = JSON.parse(message)
       
-      // Transform and validate device data
-      const deviceData: DeviceData = {
-        temperature: this.parseNumber(rawData.temperature, 0),
-        humidity: this.parseNumber(rawData.humidity, 0),
-        light: this.parseNumber(rawData.light, 0),
-        co2: this.parseNumber(rawData.co2, 0),
-        earth_temp: this.parseNumber(rawData.earth_temp, 0),
-        earth_water: this.parseNumber(rawData.earth_water, 0),
-        earth_ec: this.parseNumber(rawData.earth_ec, 0),
-        earth_n: this.parseNumber(rawData.earth_n, 0),
-        earth_p: this.parseNumber(rawData.earth_p, 0),
-        earth_k: this.parseNumber(rawData.earth_k, 0),
-        relay5: this.parseNumber(rawData.relay5, 0),
-        relay6: this.parseNumber(rawData.relay6, 0),
-        relay7: this.parseNumber(rawData.relay7, 0),
-        relay8: this.parseNumber(rawData.relay8, 0),
-        led1: this.parseNumber(rawData.led1, 0),
-        led2: this.parseNumber(rawData.led2, 0),
-        led3: this.parseNumber(rawData.led3, 0),
-        led4: this.parseNumber(rawData.led4, 0),
-        timestamp: Date.now()
+      // Initialize latestData if null
+      if (!this.latestData) {
+        this.latestData = {
+          temperature: 0, humidity: 0, light: 0, co2: 0,
+          earth_temp: 0, earth_water: 0, earth_ec: 0,
+          earth_n: 0, earth_p: 0, earth_k: 0,
+          relay5: 0, relay6: 0, relay7: 0, relay8: 0,
+          led1: 0, led2: 0, led3: 0, led4: 0
+        }
       }
 
-      // Update latest data cache
-      this.latestData = deviceData
+      // Update data based on topic or content
+      if (topic === 'meimefarm/spectral/all' || topic === 'meimefarm/sensor/node0701') {
+        // Check if spectral_data is nested in the payload
+        const spectralData = rawData.spectral_data || rawData
+
+        // Spectral or specific node data
+        this.latestData = {
+          ...this.latestData,
+          channel1: this.parseNumber(spectralData.channel1, this.latestData.channel1 || 0),
+          channel2: this.parseNumber(spectralData.channel2, this.latestData.channel2 || 0),
+          channel3: this.parseNumber(spectralData.channel3, this.latestData.channel3 || 0),
+          channel4: this.parseNumber(spectralData.channel4, this.latestData.channel4 || 0),
+          channel5: this.parseNumber(spectralData.channel5, this.latestData.channel5 || 0),
+          channel6: this.parseNumber(spectralData.channel6, this.latestData.channel6 || 0),
+          channel7: this.parseNumber(spectralData.channel7, this.latestData.channel7 || 0),
+          channel8: this.parseNumber(spectralData.channel8, this.latestData.channel8 || 0),
+          channel9: this.parseNumber(spectralData.channel9, this.latestData.channel9 || 0),
+          channel10: this.parseNumber(spectralData.channel10, this.latestData.channel10 || 0),
+          channel11: this.parseNumber(spectralData.channel11, this.latestData.channel11 || 0),
+          timestamp: Date.now()
+        }
+      } else {
+        // Basic Env Data
+        this.latestData = {
+          ...this.latestData,
+          temperature: this.parseNumber(rawData.temperature, this.latestData.temperature),
+          humidity: this.parseNumber(rawData.humidity, this.latestData.humidity),
+          light: this.parseNumber(rawData.light, this.latestData.light),
+          co2: this.parseNumber(rawData.co2, this.latestData.co2),
+          earth_temp: this.parseNumber(rawData.earth_temp, this.latestData.earth_temp),
+          earth_water: this.parseNumber(rawData.earth_water, this.latestData.earth_water),
+          earth_ec: this.parseNumber(rawData.earth_ec, this.latestData.earth_ec),
+          earth_n: this.parseNumber(rawData.earth_n, this.latestData.earth_n),
+          earth_p: this.parseNumber(rawData.earth_p, this.latestData.earth_p),
+          earth_k: this.parseNumber(rawData.earth_k, this.latestData.earth_k),
+          relay5: this.parseNumber(rawData.relay5, this.latestData.relay5),
+          relay6: this.parseNumber(rawData.relay6, this.latestData.relay6),
+          relay7: this.parseNumber(rawData.relay7, this.latestData.relay7),
+          relay8: this.parseNumber(rawData.relay8, this.latestData.relay8),
+          led1: this.parseNumber(rawData.led1, this.latestData.led1),
+          led2: this.parseNumber(rawData.led2, this.latestData.led2),
+          led3: this.parseNumber(rawData.led3, this.latestData.led3),
+          led4: this.parseNumber(rawData.led4, this.latestData.led4),
+          timestamp: Date.now()
+        }
+      }
 
       // Check for critical anomalies and send notifications
-      this.checkThresholds(deviceData)
-
-      // Log data summary (not full data to avoid log bloat)
-      this.log('INFO', `Device data received - Temp: ${(deviceData.temperature / 10).toFixed(1)}°C, Humidity: ${(deviceData.humidity / 10).toFixed(1)}%`)
+      this.checkThresholds(this.latestData)
 
       // Notify all listeners
       this.dataListeners.forEach(listener => {
         try {
-          listener(deviceData)
+          listener(this.latestData!)
         } catch (error) {
           this.log('ERROR', `Error in data listener: ${error}`, error)
         }
       })
-
+      
+      this.log('INFO', `Processed message from ${topic}`)
     } catch (error) {
-      this.log('ERROR', `Failed to parse MQTT message: ${error}`, { 
-        topic, 
-        payload: payload.toString(),
-        error 
-      })
+      this.log('ERROR', `Failed to process MQTT message from ${topic}: ${error}`, error)
     }
   }
 
@@ -418,38 +462,37 @@ export class MQTTService {
     // Temperature (High > 40°C, Low < 0°C)
     const temp = data.temperature / 10
     if (temp > 40) {
-      alerts.push(`🌡️ **温度过高**: ${temp.toFixed(1)}°C (阈值 > 40°C)`)
+      alerts.push(`🌡️ **温度过高**: ${temp.toFixed(1)}°C\n> 阈值 > 40°C\n> 建议：检查通风设备，开启降温系统。`)
     } else if (temp < 0) {
-      alerts.push(`❄️ **温度过低**: ${temp.toFixed(1)}°C (阈值 < 0°C)`)
+      alerts.push(`❄️ **温度过低**: ${temp.toFixed(1)}°C\n> 阈值 < 0°C\n> 建议：检查加热设备，防止冻害。`)
     }
 
     // Humidity (Low < 20%)
     const humidity = data.humidity / 10
     if (humidity < 20) {
-      alerts.push(`💧 **湿度过低**: ${humidity.toFixed(1)}% (阈值 < 20%)`)
+      alerts.push(`💧 **湿度过低**: ${humidity.toFixed(1)}%\n> 阈值 < 20%\n> 建议：开启加湿设备或喷灌系统。`)
     }
 
     // CO2 (High > 3000 ppm)
     if (data.co2 > 3000) {
-      alerts.push(`💨 **CO₂浓度过高**: ${data.co2} ppm (阈值 > 3000 ppm)`)
+      alerts.push(`💨 **CO₂浓度过高**: ${data.co2} ppm\n> 阈值 > 3000 ppm\n> 建议：加强通风换气。`)
     }
 
-    // Light (Low < 3000 lux during daytime 8:00-17:00)
+    // Light (Low < 1200 lux during daytime 8:00-17:00)
     const hour = new Date(now).getHours()
     if (hour >= 8 && hour < 17) {
-      if (data.light < 3000) {
-        alerts.push(`☀️ **光照不足**: ${data.light} lux (日间阈值 < 1000 lux)`)
+      if (data.light < 1200) {
+        alerts.push(`☀️ **光照不足**: ${data.light} lux\n> 日间阈值 < 1200 lux\n> 建议：检查补光灯状态或清理遮挡物。`)
       }
     }
 
     // Soil Moisture (Low < 10%)
     const soilMoisture = data.earth_water
     if (soilMoisture < 10) {
-      alerts.push(`🌱 **土壤缺水**: ${soilMoisture.toFixed(1)}% (阈值 < 10%)`)
+      alerts.push(`🌱 **土壤缺水**: ${soilMoisture.toFixed(1)}%\n> 阈值 < 10%\n> 建议：立即启动灌溉系统。`)
     }
 
     // Sensor Fault Detection (Value is 0)
-    // Checks for sensors where 0 is physically impossible or highly indicative of connection failure
     const zeroMetrics: string[] = []
     if (data.humidity === 0) zeroMetrics.push('湿度')
     if (data.co2 === 0) zeroMetrics.push('CO₂')
@@ -458,30 +501,34 @@ export class MQTTService {
     if (data.earth_n === 0) zeroMetrics.push('土壤氮')
     if (data.earth_p === 0) zeroMetrics.push('土壤磷')
     if (data.earth_k === 0) zeroMetrics.push('土壤钾')
-    // Note: Temperature and Light are excluded as 0 is a valid value for them (0°C, 0 lux)
 
     if (zeroMetrics.length > 0) {
-      alerts.push(`⚠️ **传感器故障/数据异常**: 检测到0值 - ${zeroMetrics.join(', ')}`)
+      alerts.push(`⚠️ **传感器异常**: 检测到0值\n> 涉及指标: ${zeroMetrics.join(', ')}\n> 建议：检查传感器连接线或电源。`)
     }
 
-    // Send notifications if there are alerts and cooldown has passed
+    // Consolidate and debounce alerts
     if (alerts.length > 0) {
-      // Create a unique key for the set of alerts to track cooldowns individually or grouped
-      // For simplicity, we'll track by alert content type or just global cooldown for any alert?
-      // Let's track per specific alert type to avoid silencing new different alerts.
+      // Check global cooldown for ANY alert to prevent spamming
+      const globalCooldownKey = 'global_alert_cooldown'
+      const lastGlobalSent = this.lastNotificationTime.get(globalCooldownKey) || 0
       
-      for (const alert of alerts) {
-        const alertKey = alert.split(':')[0] // Use the first part (e.g., "🌡️ **温度过高**") as key
-        const lastSent = this.lastNotificationTime.get(alertKey) || 0
-
-        if (now - lastSent > this.NOTIFICATION_COOLDOWN) {
-          try {
-            await sendWeComNotification(alert, 'markdown')
-            this.lastNotificationTime.set(alertKey, now)
-            this.log('INFO', `Sent WeCom notification: ${alert}`)
-          } catch (error) {
-            this.log('ERROR', `Failed to send notification: ${error}`)
-          }
+      // If we sent ANY alert recently (e.g. within 5 mins), hold off unless it's been a while
+      // But we also want to make sure we don't miss critical distinct alerts forever.
+      // Strategy: Consolidate all current alerts into one message.
+      // Send this consolidated message only if cooldown passed.
+      
+      if (now - lastGlobalSent > this.NOTIFICATION_COOLDOWN) {
+        try {
+          const title = `🚨 **环境监控告警汇总** (${new Date().toLocaleTimeString()})`
+          const body = alerts.join('\n\n---\n\n')
+          const fullMessage = `${title}\n\n${body}`
+          
+          await sendWeComNotification(fullMessage, 'markdown')
+          
+          this.lastNotificationTime.set(globalCooldownKey, now)
+          this.log('INFO', `Sent consolidated WeCom notification with ${alerts.length} alerts`)
+        } catch (error) {
+          this.log('ERROR', `Failed to send notification: ${error}`)
         }
       }
     }

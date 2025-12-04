@@ -26,6 +26,17 @@ export interface DeviceData {
   led2: number
   led3: number
   led4: number
+  channel1?: number
+  channel2?: number
+  channel3?: number
+  channel4?: number
+  channel5?: number
+  channel6?: number
+  channel7?: number
+  channel8?: number
+  channel9?: number
+  channel10?: number
+  channel11?: number
   timestamp?: number
 }
 

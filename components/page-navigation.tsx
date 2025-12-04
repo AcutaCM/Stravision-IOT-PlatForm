@@ -1,23 +1,32 @@
 "use client"
 
-import { CloudIcon, Cog6ToothIcon, ChartBarIcon } from "@heroicons/react/24/outline"
+import { CloudIcon, Cog6ToothIcon, ChartBarIcon, SparklesIcon } from "@heroicons/react/24/outline"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export function PageNavigation() {
   const pathname = usePathname()
   const router = useRouter()
 
   const navItems = [
-    { href: "/monitor", icon: CloudIcon, label: "农作物监测" },
-    { href: "/device-control", icon: Cog6ToothIcon, label: "硬件设备控制" },
-    { href: "/dashboard", icon: ChartBarIcon, label: "数据看板" },
+    { href: "/monitor", icon: CloudIcon, label: "农作物监测", id: "nav-monitor" },
+    { href: "/device-control", icon: Cog6ToothIcon, label: "硬件设备控制", id: "nav-device-control" },
+    { href: "/dashboard", icon: ChartBarIcon, label: "数据看板", id: "nav-dashboard" },
+    { href: "/ai-assistant", icon: SparklesIcon, label: "AI 助手", id: "nav-ai-assistant" },
   ]
 
   const activeIndex = navItems.findIndex((item) => pathname === item.href)
   const [selectedIndex, setSelectedIndex] = useState(activeIndex === -1 ? 0 : activeIndex)
+
+  // Sync state with pathname changes (e.g. browser back button or external navigation)
+  useEffect(() => {
+    if (activeIndex !== -1) {
+      setSelectedIndex(activeIndex)
+    }
+  }, [pathname, activeIndex])
 
   return (
     <div className="relative rounded-full bg-[#162236]/80 backdrop-blur-md p-1.5 h-12 flex items-center gap-2 shadow-xl border border-white/5">
@@ -30,6 +39,7 @@ export function PageNavigation() {
           <Link
             key={item.href}
             href={item.href}
+            id={item.id}
             className="relative z-10 h-9 rounded-full px-5 flex items-center gap-2 transition-colors duration-200"
             onClick={(e) => {
               e.preventDefault()
@@ -58,7 +68,13 @@ export function PageNavigation() {
               }}
               transition={{ duration: 0.2 }}
             >
-              <Icon className="size-[18px]" />
+              {item.href === "/ai-assistant" ? (
+                <div className="size-[18px] rounded-full overflow-hidden">
+                  <Image src="/logo.gif" alt="AI" width={18} height={18} className="object-cover" unoptimized />
+                </div>
+              ) : (
+                <Icon className="size-[18px]" />
+              )}
               <span className="text-sm font-medium">{item.label}</span>
             </motion.div>
           </Link>

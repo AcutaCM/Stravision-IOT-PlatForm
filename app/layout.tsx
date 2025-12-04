@@ -4,6 +4,8 @@ import { WeatherProvider } from "@/lib/contexts/weather-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SchedulerInit } from "@/components/scheduler-init";
 import { Toaster } from "sonner";
+import { PageTransition } from "@/components/page-transition";
+import { OnboardingGuide } from "@/components/onboarding-guide";
 
 export const metadata: Metadata = {
   title: "stravision莓界 · 登录",
@@ -26,7 +28,10 @@ export default function RootLayout({
         >
           <SchedulerInit />
           <WeatherProvider>
-            {children}
+            <PageTransition>
+              {children}
+            </PageTransition>
+            <OnboardingGuide />
             <Toaster />
           </WeatherProvider>
         </ThemeProvider>

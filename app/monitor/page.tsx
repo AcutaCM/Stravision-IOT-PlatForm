@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
-import { USBCameraPlayer } from "@/components/usb-camera-player"
+import { SmartCameraSystem } from "@/components/smart-camera-system"
 import { VideoCameraIcon, SignalIcon } from "@heroicons/react/24/solid"
 import { ArrowPathIcon } from "@heroicons/react/24/outline"
 import { analyzePlantFromVideo } from "@/lib/utils/plant-analysis-helper"
@@ -181,7 +181,7 @@ export default function MonitorPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-8 h-auto lg:h-[calc(100vh-72px-56px)]">
 
               {/* Left Panel - Live Stream */}
-              <div className="relative rounded-3xl glass overflow-hidden group">
+              <div id="monitor-player" className="relative rounded-3xl glass overflow-hidden group">
                 {/* Camera Toggle */}
                 <div className="absolute top-6 right-6 z-20 flex bg-black/40 rounded-xl p-1 backdrop-blur-md border border-white/10">
                   <button
@@ -221,10 +221,8 @@ export default function MonitorPage() {
                     poster="/logo.svg"
                   />
                 ) : (
-                  <USBCameraPlayer
-                    id="monitor-player"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    mirror
+                  <SmartCameraSystem
+                    className="absolute inset-0 w-full h-full"
                   />
                 )}
 
@@ -336,7 +334,7 @@ export default function MonitorPage() {
                   <Separator className="bg-border/50" />
                 </CardHeader>
 
-                <CardContent className="space-y-5 px-6 pb-6 overflow-y-auto custom-scrollbar">
+                <CardContent id="monitor-data-grid" className="space-y-5 px-6 pb-6 overflow-y-auto custom-scrollbar">
                   {/* Environment Params */}
                   <Card className="rounded-2xl bg-secondary/30 border-none p-4 space-y-4">
                     <div className="flex items-center justify-between">

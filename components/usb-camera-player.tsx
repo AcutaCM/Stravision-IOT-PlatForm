@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { AlertCircle } from "lucide-react"
 
 interface USBCameraPlayerProps {
@@ -11,6 +11,13 @@ interface USBCameraPlayerProps {
     mirror?: boolean
 }
 
+type Detection = {
+  box: [number, number, number, number]
+  conf: number
+  class: number
+  label: string
+}
+
 export function USBCameraPlayer({
     className,
     id,
@@ -19,8 +26,52 @@ export function USBCameraPlayer({
     mirror = false
 }: USBCameraPlayerProps) {
     const videoRef = useRef<HTMLVideoElement>(null)
-    const [error, setError] = useState<string | null>(null)
+    const canvasRef = useRef<HTMLCanvasElement>(null)
     const streamRef = useRef<MediaStream | null>(null)
+    const wsRef = useRef<WebSocket | null>(null)
+    
+    const [error, setError] = useState<string | null>(null)
+    const [isConnected, setIsConnected] = useState(false)
+    const [isStreaming, setIsStreaming] = useState(false)
+
+    const drawDetections = useCallback((detections: Detection[]) => {
+        const canvas = canvasRef.current
+        const video = videoRef.current
+        if (!canvas || !video) return
+    
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+    
+        // Match canvas size to video size
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+        }
+    
+        // Clear previous drawings
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+    
+        // Draw detections
+        detections.forEach(det => {
+          const [x1, y1, x2, y2] = det.box
+          const label = `${det.label} ${(det.conf * 100).toFixed(1)}%`
+    
+          // Draw box
+          ctx.strokeStyle = '#00FF00'
+          ctx.lineWidth = 2
+          ctx.strokeRect(x1, y1, x2 - x1, y2 - y1)
+    
+          // Draw label background
+          ctx.fillStyle = '#00FF00'
+          const textWidth = ctx.measureText(label).width
+          ctx.fillRect(x1, y1 - 20, textWidth + 10, 20)
+    
+          // Draw label text
+          ctx.fillStyle = '#000000'
+          ctx.font = '14px Arial'
+          ctx.fillText(label, x1 + 5, y1 - 5)
+        })
+    }, [])
 
     useEffect(() => {
         let mounted = true
@@ -52,7 +103,7 @@ export function USBCameraPlayer({
                     video: {
                         width: { ideal: 1920 },
                         height: { ideal: 1080 },
-                        facingMode: "user"
+                        // facingMode: "user" // Not always applicable for USB webcams
                     },
                     audio: false
                 })
@@ -69,6 +120,7 @@ export function USBCameraPlayer({
                     videoRef.current.srcObject = mediaStream
                     try {
                         await videoRef.current.play()
+                        setIsStreaming(true)
                     } catch (e) {
                         console.error("[USBCamera] Play failed:", e)
                     }
@@ -77,6 +129,7 @@ export function USBCameraPlayer({
                 if (!mounted) return
                 console.error("Error accessing camera:", err)
                 setError(err.message || "无法访问摄像头，请检查权限设置")
+                setIsStreaming(false)
             }
         }
 
@@ -112,8 +165,74 @@ export function USBCameraPlayer({
             if (videoRef.current) {
                 videoRef.current.srcObject = null
             }
+            setIsStreaming(false)
         }
     }, [])
+
+    // AI Inference WebSocket Connection
+    useEffect(() => {
+        // Connect to WebSocket Server (FastAPI defaults to 8000 and endpoint /ws)
+        const ws = new WebSocket("ws://localhost:8000/ws")
+        
+        ws.onopen = () => {
+          console.log("Connected to inference server")
+          setIsConnected(true)
+        }
+    
+        ws.onclose = () => {
+          console.log("Disconnected from inference server")
+          setIsConnected(false)
+        }
+    
+        ws.onerror = () => {
+          // Don't show main error, just console log, as AI is optional enhancement
+          console.log("Inference server connection error (AI features disabled)")
+        }
+    
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data) as { detections?: Detection[] }
+            if (data.detections) {
+              drawDetections(data.detections)
+            }
+          } catch (e) {
+            console.error("Error parsing message:", e)
+          }
+        }
+    
+        wsRef.current = ws
+    
+        return () => {
+          ws.close()
+        }
+    }, [drawDetections])
+
+    // Frame sending loop
+    useEffect(() => {
+        if (!isStreaming || !isConnected) return
+    
+        const sendFrame = () => {
+          if (videoRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            const video = videoRef.current
+            const canvas = document.createElement('canvas')
+            canvas.width = video.videoWidth
+            canvas.height = video.videoHeight
+            const ctx = canvas.getContext('2d')
+            
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+              // Compress to JPEG 0.5 quality to reduce bandwidth
+              const base64Data = canvas.toDataURL('image/jpeg', 0.5)
+              wsRef.current.send(base64Data)
+            }
+          }
+        }
+    
+        // Send frames every 100ms (10 FPS)
+        const intervalId = setInterval(sendFrame, 100)
+    
+        return () => clearInterval(intervalId)
+    }, [isStreaming, isConnected])
 
     if (error) {
         return (
@@ -131,13 +250,25 @@ export function USBCameraPlayer({
     }
 
     return (
-        <video
-            ref={videoRef}
-            id={id}
-            className={`${className} ${mirror ? 'scale-x-[-1]' : ''}`}
-            autoPlay={autoPlay}
-            muted={muted}
-            playsInline
-        />
+        <div className={`relative overflow-hidden ${className}`}>
+            <video
+                ref={videoRef}
+                id={id}
+                className={`w-full h-full object-cover ${mirror ? 'scale-x-[-1]' : ''}`}
+                autoPlay={autoPlay}
+                muted={muted}
+                playsInline
+            />
+            <canvas 
+                ref={canvasRef}
+                className={`absolute inset-0 w-full h-full object-contain pointer-events-none ${mirror ? 'scale-x-[-1]' : ''}`}
+            />
+             {/* Status Overlay */}
+             <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+                <div className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-md transition-colors duration-300 ${isConnected ? 'bg-green-500/80 text-white' : 'bg-gray-500/50 text-gray-200'}`}>
+                  {isConnected ? "AI 智能识别中" : "AI 服务未连接"}
+                </div>
+            </div>
+        </div>
     )
 }

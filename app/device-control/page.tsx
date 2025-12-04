@@ -291,7 +291,7 @@ export default function DeviceControlPage() {
             {/* Left: Device Cards */}
             <div className="space-y-6">
               {/* Row 1: 3 cards - Relay 5, 6, 7 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div id="device-control-grid" className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <DeviceCard
                   title="水泵 (Relay 5)"
                   icon={

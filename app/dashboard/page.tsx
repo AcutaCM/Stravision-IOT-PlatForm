@@ -2,7 +2,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
-import dynamic from "next/dynamic"
 import { PageNavigation } from "@/components/page-navigation"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { Edit, Save, Wifi, WifiOff, Droplets, Sun, Wind, Leaf } from "lucide-react"
@@ -15,9 +14,8 @@ import { useState, useEffect } from "react"
 import GridLayout, { Layout } from "react-grid-layout"
 import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
-
-const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false })
-const VegaEmbed = dynamic(() => import("react-vega").then((mod) => mod.VegaEmbed), { ssr: false })
+import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard"
+import { SpectralCard } from "@/components/dashboard/spectral-card"
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -42,6 +40,7 @@ export default function DashboardPage() {
     { i: "nitrogen", x: 6, y: 2, w: 3, h: 2 },
     { i: "phosphorus", x: 9, y: 2, w: 3, h: 2 },
     { i: "potassium", x: 0, y: 4, w: 3, h: 2 },
+    { i: "spectral", x: 3, y: 4, w: 6, h: 2 },
     { i: "rainfall", x: 9, y: 4, w: 3, h: 2 },
   ]
 
@@ -188,8 +187,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Dashboard Content */}
-          <div className="relative px-8 pb-8 pt-6">
-            <div className="w-full">
+          <div className="relative px-8 pb-8 pt-6 overflow-y-auto">
+            <div id="dashboard-charts" className="w-full min-h-full">
               <GridLayout
                 className="layout"
                 layout={layout}
@@ -204,234 +203,127 @@ export default function DashboardPage() {
               >
                 {/* 湿度 */}
                 <div key="humidity">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">
-                            {deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
-                            <span className="text-2xl font-normal text-muted-foreground">%</span>
-                          </div>
-                          <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30">湿度</Badge>
-                        </div>
-                        <Droplets className="size-10 text-blue-400" />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="humidity" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,40 Q75,30 150,35 T300,30" fill="none" stroke="#60a5fa" strokeWidth="2.5" />
-                        <path d="M0,40 Q75,30 150,35 T300,30 L300,60 L0,60 Z" fill="url(#humidity)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="湿度"
+                    value={deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
+                    unit="%"
+                    icon={<Droplets className="size-10 text-blue-400" />}
+                    type="humidity"
+                    color="blue"
+                    gradientColor="#60a5fa"
+                  />
                 </div>
 
                 {/* 温度 */}
                 <div key="temperature">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">
-                            {deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
-                            <span className="text-2xl font-normal text-muted-foreground">°C</span>
-                          </div>
-                          <Badge className="bg-orange-500/20 text-orange-600 border-orange-500/30">温度</Badge>
-                        </div>
-                        <Sun className="size-10 text-orange-400" />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="temp" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#fb923c" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#fb923c" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,45 Q75,35 150,40 T300,35" fill="none" stroke="#fb923c" strokeWidth="2.5" />
-                        <path d="M0,45 Q75,35 150,40 T300,35 L300,60 L0,60 Z" fill="url(#temp)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="温度"
+                    value={deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
+                    unit="°C"
+                    icon={<Sun className="size-10 text-orange-400" />}
+                    type="temperature"
+                    color="orange"
+                    gradientColor="#fb923c"
+                  />
                 </div>
 
                 {/* 光照 */}
                 <div key="light">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">
-                            {deviceData ? deviceData.light : '--'}
-                            <span className="text-2xl font-normal text-muted-foreground">lux</span>
-                          </div>
-                          <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-500/30">光照强度</Badge>
-                        </div>
-                        <Sun className="size-10 text-yellow-400" strokeWidth={1.5} />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="light" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#facc15" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#facc15" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,50 Q75,25 150,30 T300,20" fill="none" stroke="#facc15" strokeWidth="2.5" />
-                        <path d="M0,50 Q75,25 150,30 T300,20 L300,60 L0,60 Z" fill="url(#light)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="光照强度"
+                    value={deviceData ? deviceData.light : '--'}
+                    unit="lux"
+                    icon={<Sun className="size-10 text-yellow-400" strokeWidth={1.5} />}
+                    type="light"
+                    color="yellow"
+                    gradientColor="#facc15"
+                  />
                 </div>
 
                 {/* CO2 */}
                 <div key="co2">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">
-                            {deviceData ? deviceData.co2 : '--'}
-                            <span className="text-2xl font-normal text-muted-foreground">ppm</span>
-                          </div>
-                          <Badge className="bg-gray-500/20 text-white/70 border-gray-500/30">CO₂浓度</Badge>
-                        </div>
-                        <Wind className="size-10 text-gray-500" />
-                      </div>
-                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                        {[60, 75, 50, 85, 65, 70, 55, 80].map((height, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-gray-400 to-gray-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="CO₂浓度"
+                    value={deviceData ? deviceData.co2 : '--'}
+                    unit="ppm"
+                    icon={<Wind className="size-10 text-gray-500" />}
+                    type="co2"
+                    color="gray"
+                    gradientColor="#9ca3af"
+                  />
                 </div>
 
                 {/* 土壤湿度 */}
                 <div key="soilMoisture">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">
-                            {deviceData ? (deviceData.earth_water / 10).toFixed(1) : '--'}
-                            <span className="text-2xl font-normal text-muted-foreground">%</span>
-                          </div>
-                          <Badge className="bg-cyan-500/20 text-cyan-600 border-cyan-500/30">土壤湿度</Badge>
-                        </div>
-                        <Droplets className="size-10 text-cyan-400" />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="soilMoisture" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,42 Q75,38 150,40 T300,38" fill="none" stroke="#22d3ee" strokeWidth="2.5" />
-                        <path d="M0,42 Q75,38 150,40 T300,38 L300,60 L0,60 Z" fill="url(#soilMoisture)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="土壤湿度"
+                    value={deviceData ? (deviceData.earth_water / 10).toFixed(1) : '--'}
+                    unit="%"
+                    icon={<Droplets className="size-10 text-cyan-400" />}
+                    type="soilMoisture"
+                    color="cyan"
+                    gradientColor="#22d3ee"
+                  />
                 </div>
 
                 {/* 土壤肥力 */}
                 <div key="fertility">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-5xl font-bold text-foreground mb-2">78.5<span className="text-2xl font-normal text-muted-foreground">%</span></div>
-                          <Badge className="bg-green-500/20 text-green-600 border-green-500/30">土壤肥力</Badge>
-                        </div>
-                        <Leaf className="size-10 text-green-500" />
-                      </div>
-                      <svg viewBox="0 0 300 60" className="w-full h-16 mt-4">
-                        <defs>
-                          <linearGradient id="fertility" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#4ade80" stopOpacity="0.4" />
-                            <stop offset="100%" stopColor="#4ade80" stopOpacity="0.1" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,48 Q75,32 150,38 T300,28" fill="none" stroke="#4ade80" strokeWidth="2.5" />
-                        <path d="M0,48 Q75,32 150,38 T300,28 L300,60 L0,60 Z" fill="url(#fertility)" />
-                      </svg>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="土壤肥力"
+                    value="78.5"
+                    unit="%"
+                    icon={<Leaf className="size-10 text-green-500" />}
+                    type="fertility"
+                    color="green"
+                    gradientColor="#4ade80"
+                  />
                 </div>
 
                 {/* 氮含量 */}
                 <div key="nitrogen">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-4xl font-bold text-foreground mb-2">
-                            {deviceData ? deviceData.earth_n : '--'}
-                            <span className="text-xl font-normal text-muted-foreground">mg/kg</span>
-                          </div>
-                          <Badge className="bg-purple-500/20 text-purple-600 border-purple-500/30">氮含量 (N)</Badge>
-                        </div>
-                        <div className="size-10 rounded-full bg-purple-400 flex items-center justify-center text-white font-bold text-xl">N</div>
-                      </div>
-                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                        {[55, 70, 60, 75, 65].map((height, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-purple-400 to-purple-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="氮含量 (N)"
+                    value={deviceData ? deviceData.earth_n : '--'}
+                    unit="mg/kg"
+                    icon={<div className="size-10 rounded-full bg-purple-400 flex items-center justify-center text-white font-bold text-xl">N</div>}
+                    type="nitrogen"
+                    color="purple"
+                    gradientColor="#c084fc"
+                  />
                 </div>
 
                 {/* 磷含量 */}
                 <div key="phosphorus">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-4xl font-bold text-foreground mb-2">
-                            {deviceData ? deviceData.earth_p : '--'}
-                            <span className="text-xl font-normal text-muted-foreground">mg/kg</span>
-                          </div>
-                          <Badge className="bg-pink-500/20 text-pink-600 border-pink-500/30">磷含量 (P)</Badge>
-                        </div>
-                        <div className="size-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold text-xl">P</div>
-                      </div>
-                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                        {[50, 65, 55, 70, 60].map((height, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-pink-400 to-pink-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="磷含量 (P)"
+                    value={deviceData ? deviceData.earth_p : '--'}
+                    unit="mg/kg"
+                    icon={<div className="size-10 rounded-full bg-pink-400 flex items-center justify-center text-white font-bold text-xl">P</div>}
+                    type="phosphorus"
+                    color="pink"
+                    gradientColor="#f472b6"
+                  />
                 </div>
 
                 {/* 钾含量 */}
                 <div key="potassium">
-                  <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move">
-                    <CardContent className="p-6 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="text-4xl font-bold text-foreground mb-2">
-                            {deviceData ? deviceData.earth_k : '--'}
-                            <span className="text-xl font-normal text-muted-foreground">mg/kg</span>
-                          </div>
-                          <Badge className="bg-amber-500/20 text-amber-600 border-amber-500/30">钾含量 (K)</Badge>
-                        </div>
-                        <div className="size-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-xl">K</div>
-                      </div>
-                      <div className="flex items-end justify-between h-16 gap-1.5 mt-4">
-                        {[65, 75, 70, 80, 72].map((height, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-amber-400 to-amber-300 rounded-t-lg" style={{ height: `${height}%` }} />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <DashboardChartCard
+                    title="钾含量 (K)"
+                    value={deviceData ? deviceData.earth_k : '--'}
+                    unit="mg/kg"
+                    icon={<div className="size-10 rounded-full bg-amber-400 flex items-center justify-center text-white font-bold text-xl">K</div>}
+                    type="potassium"
+                    color="amber"
+                    gradientColor="#fbbf24"
+                  />
                 </div>
 
-                {/* 降雨量 */}
+                {/* 光谱分析 */}
+                <div key="spectral">
+                  <SpectralCard data={deviceData} />
+                </div>
+
+                {/* 降雨量 - Keep original custom card */}
                 <div key="rainfall">
                   {(() => {
                     const todayPrecip = weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0

@@ -94,8 +94,9 @@ export default function RegisterPage() {
 
   return (
     <>
-      <div className="min-h-screen w-full flex items-center justify-center px-6 py-12">
-        <div className="grid w-full max-w-6xl grid-cols-1 gap-8 md:grid-cols-2">
+      <div className="h-screen w-full overflow-y-auto bg-background">
+        <div className="min-h-full w-full flex items-center justify-center px-6 py-12">
+          <div className="grid w-full max-w-6xl grid-cols-1 gap-8 md:grid-cols-2">
         <div className="flex items-center justify-center">
           <Card className="w-full max-w-md border border-[#CFDFE2] shadow-none bg-white relative z-20">
             <CardHeader className="space-y-3">
@@ -228,6 +229,7 @@ export default function RegisterPage() {
             </div>
             <Image src="/logo.svg" alt="logo" width={512} height={20} className="absolute bottom-2 right-0" />
           </div>
+        </div>
         </div>
         </div>
       </div>

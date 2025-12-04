@@ -67,7 +67,7 @@ export function UserAvatarMenu({ user }: UserAvatarMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
+        <button id="user-menu-trigger" className="flex items-center gap-2 hover:opacity-80 transition-opacity focus:outline-none">
           <Avatar className="size-9 border-2 border-white/20 cursor-pointer hover:border-white/40 transition-colors">
             <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
