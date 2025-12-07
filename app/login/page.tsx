@@ -45,8 +45,11 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.replace("/monitor");
-    } catch {
+      
+      // 登录成功后，手动刷新页面或跳转
+      window.location.href = "/monitor";
+    } catch (e) {
+      console.error("Login error:", e);
       setError("网络错误");
       setLoading(false);
     }
