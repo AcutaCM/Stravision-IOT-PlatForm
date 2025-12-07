@@ -6,7 +6,7 @@ services:
     # No ports exposed, only accessible within the network
     volumes:
       - ./data:/app/data
-      - ./public/uploads:/app/public/uploads
+      - ./public:/app/public
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/users.db
