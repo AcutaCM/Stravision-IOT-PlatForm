@@ -9,17 +9,7 @@ This project has been configured for Docker deployment with Nginx as a reverse p
 
 ## Deployment Steps
 
-1.  **Get the Code**:
-    On your cloud server, run the following command to download the project:
-    
-    ```bash
-    git clone https://github.com/AcutaCM/Stravision-IOT-PlatForm.git
-    cd Stravision-IOT-PlatForm
-    ```
-    
-    > **Note**: If you already have the folder, make sure to enter it first: `cd Stravision-IOT-PlatForm`. 
-    > If `git pull` fails with "not a git repository", it's best to delete the folder and clone again.
-
+1.  **Transfer Files**: Copy the entire project directory to your cloud server.
 2.  **Build and Run**:
     Run the following command in the project root:
 

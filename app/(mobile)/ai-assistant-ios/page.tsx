@@ -674,7 +674,10 @@ export default function AIAssistantIOSPage() {
       <div className="fixed top-0 left-0 right-0 z-40 h-16 bg-white/70 dark:bg-[#0B1121]/70 backdrop-blur-lg px-6 flex items-center justify-between">
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
-            <button className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+            <button 
+              className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              aria-label="打开菜单"
+            >
               <Menu size={24} className="text-gray-800 dark:text-gray-200" />
             </button>
           </SheetTrigger>
@@ -711,6 +714,7 @@ export default function AIAssistantIOSPage() {
                       <button 
                         onClick={(e) => deleteSession(s.id, e)}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                        aria-label="删除会话"
                       >
                         <Trash size={14} />
                       </button>
@@ -737,7 +741,7 @@ export default function AIAssistantIOSPage() {
                     <div className="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{user?.username || '用户'}</div>
                     <div className="text-xs text-gray-500 truncate">专业版</div>
                   </div>
-                  <button onClick={() => setSettingsOpen(true)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                  <button onClick={() => setSettingsOpen(true)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" aria-label="设置">
                     <Settings size={18} />
                   </button>
                 </div>
@@ -753,7 +757,7 @@ export default function AIAssistantIOSPage() {
            <span>你好, {user?.username || '朋友'}!</span>
         </div>
 
-        <button onClick={() => setSettingsOpen(true)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+        <button onClick={() => setSettingsOpen(true)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors" aria-label="设置">
            <Infinity size={24} className="text-gray-800 dark:text-gray-200" />
         </button>
       </div>
@@ -850,7 +854,7 @@ export default function AIAssistantIOSPage() {
                      {attachments.map((url, i) => (
                         <div key={i} className="relative size-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
                            <Image src={url} alt="preview" fill className="object-cover" />
-                           <button onClick={() => removeAttachment(i)} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5 text-white"><X size={10} /></button>
+                           <button onClick={() => removeAttachment(i)} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5 text-white" aria-label="删除附件"><X size={10} /></button>
                         </div>
                      ))}
                   </div>
@@ -867,7 +871,7 @@ export default function AIAssistantIOSPage() {
                   
                   <div className="flex items-center justify-between px-1">
                      <div className="flex items-center gap-2">
-                        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 transition-colors">
+                        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 transition-colors" aria-label="添加附件">
                            <Paperclip size={20} />
                         </button>
                         <PromptInputModelSelect value={selectedModel || aiSettings?.model || "qwen-vl-plus"} onValueChange={(val) => {
@@ -892,7 +896,7 @@ export default function AIAssistantIOSPage() {
                               <span className="text-sm font-medium max-w-[80px] truncate">{selectedModel || aiSettings?.model || "自动"}</span>
                               <ChevronDown size={14} />
                            </PromptInputModelSelectTrigger>
-                           <PromptInputModelSelectContent className="w-[200px] mb-2" align="start" side="top">
+                           <PromptInputModelSelectContent className="w-[200px] mb-2" style={{ alignItems: 'start', justifyContent: 'flex-start' }}>
                               <PromptInputModelSelectItem value="qwen3-vl-plus">Qwen3 VL Plus</PromptInputModelSelectItem>
                               <PromptInputModelSelectItem value="qwen3-vl-flash">Qwen3 VL Flash</PromptInputModelSelectItem>
                               <PromptInputModelSelectItem value="qwen3-max">Qwen3 Max</PromptInputModelSelectItem>
@@ -947,7 +951,7 @@ export default function AIAssistantIOSPage() {
                 <h3 className="font-medium text-sm">{notice.title}</h3>
                 {notice.description && <p className="text-xs text-muted-foreground mt-1">{notice.description}</p>}
              </div>
-             <button onClick={() => closeNotice(notice.id)} className="text-gray-400"><X size={16} /></button>
+             <button onClick={() => closeNotice(notice.id)} className="text-gray-400" aria-label="关闭通知"><X size={16} /></button>
           </div>
         ))}
       </div>
