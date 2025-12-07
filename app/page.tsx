@@ -17,27 +17,27 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-          <Link href="#about" className="hover:text-white transition-colors">About</Link>
-          <Link href="#technologies" className="hover:text-white transition-colors">Technologies</Link>
-          <Link href="#products" className="hover:text-white transition-colors">Products</Link>
-          <Link href="#discover" className="hover:text-white transition-colors">Discover</Link>
+          <Link href="#about" className="hover:text-white transition-colors">关于我们</Link>
+          <Link href="#technologies" className="hover:text-white transition-colors">核心技术</Link>
+          <Link href="#products" className="hover:text-white transition-colors">产品中心</Link>
+          <Link href="#discover" className="hover:text-white transition-colors">探索更多</Link>
         </div>
 
         <div className="flex items-center gap-2">
            <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-             Stravision
+             Stravision 莓界
            </span>
         </div>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-medium">
           <div className="flex items-center gap-6 text-gray-400">
-            <Link href="#team" className="hover:text-white transition-colors">Team</Link>
-            <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
-            <Link href="#buy" className="hover:text-white transition-colors">Buy Premium</Link>
+            <Link href="#team" className="hover:text-white transition-colors">团队</Link>
+            <Link href="#pricing" className="hover:text-white transition-colors">价格</Link>
+            <Link href="#buy" className="hover:text-white transition-colors">订阅服务</Link>
           </div>
           <Link href="/login">
             <Button className="bg-white text-black hover:bg-gray-200 rounded-full px-6 font-semibold">
-              Get Started
+              立即开始
             </Button>
           </Link>
         </div>
@@ -46,7 +46,7 @@ export default function LandingPage() {
         <div className="md:hidden">
           <Link href="/login">
             <Button size="sm" className="bg-white text-black hover:bg-gray-200 rounded-full">
-              Start
+              开始
             </Button>
           </Link>
         </div>
@@ -63,7 +63,7 @@ export default function LandingPage() {
           className="mb-8"
         >
           <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-blue-600/20 text-blue-400 border border-blue-500/20 backdrop-blur-sm">
-            AI Powered IoT Solution
+            AI 驱动的智慧农业解决方案
           </span>
         </motion.div>
 
@@ -74,10 +74,10 @@ export default function LandingPage() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] mb-8"
         >
-          <span className="block text-gray-300">Smart.</span>
-          <span className="block text-gray-200">Connected.</span>
+          <span className="block text-gray-300">智慧感知.</span>
+          <span className="block text-gray-200">万物互联.</span>
           <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400">
-            Future-Ready
+            面向未来
           </span>
         </motion.h1>
 
@@ -88,8 +88,8 @@ export default function LandingPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="max-w-2xl text-lg md:text-xl text-gray-400 mb-12 leading-relaxed"
         >
-          Stravision is your one-stop IoT platform for precision agriculture. 
-          Monitor, analyze, and control your greenhouse environment with the power of AI.
+          Stravision 是您的一站式精准农业物联网平台。
+          利用人工智能的力量，实时监测、分析并精准调控您的温室环境。
         </motion.p>
 
         {/* CTA Button */}
@@ -97,14 +97,24 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
+          className="flex flex-col sm:flex-row items-center gap-4"
         >
           <Link href="/dashboard">
+            <Button 
+              size="lg" 
+              className="group h-14 px-8 rounded-full bg-white text-black hover:bg-gray-200 transition-all text-base font-semibold"
+            >
+              进入控制台
+              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
+          <Link href="/monitor">
             <Button 
               size="lg" 
               variant="outline" 
               className="group h-14 px-8 rounded-full border-gray-700 bg-transparent text-white hover:bg-white/5 hover:border-gray-500 transition-all text-base"
             >
-              Get a demo
+              实时监控
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
