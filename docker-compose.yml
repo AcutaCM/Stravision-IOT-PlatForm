@@ -9,6 +9,9 @@ services:
       - ./public/uploads:/app/public/uploads
     environment:
       - NODE_ENV=production
+      - DATABASE_PATH=/app/data/users.db
+      - JWT_SECRET=${JWT_SECRET}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
     restart: always
     networks:
       - app-network
