@@ -55,9 +55,18 @@ export async function POST(req: Request) {
       await fs.mkdir(uploadDir, { recursive: true })
     }
     
-    // 生成唯一文件名
+    // 生成唯一文件名 (强制使用安全后缀，防止脚本注入)
     const timestamp = Date.now()
-    const ext = path.extname(file.name)
+    // const ext = path.extname(file.name) // 不使用用户提供的后缀
+    const mimeToExt: Record<string, string> = {
+      "image/jpeg": ".jpg",
+      "image/jpg": ".jpg",
+      "image/png": ".png",
+      "image/gif": ".gif",
+      "image/webp": ".webp",
+    }
+    const ext = mimeToExt[file.type] || ".png"
+    
     const filename = `avatar-${currentUser.id}-${timestamp}${ext}`
     const filepath = path.join(uploadDir, filename)
     

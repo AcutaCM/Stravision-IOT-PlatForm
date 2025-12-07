@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(req: NextRequest) {
-    const searchParams = req.nextUrl.searchParams
-    const type = searchParams.get('type')
-    const range = searchParams.get('range') || '1h'
-
-    if (!type) {
-        return NextResponse.json({ error: 'Missing type parameter' }, { status: 400 })
-    }
-
-    // Generate mock data based on range
+// Helper function to generate data for a specific type
+function generateDataForType(type: string, range: string) {
     const now = Date.now()
     const data = []
     let points = 20
@@ -38,7 +30,6 @@ export async function GET(req: NextRequest) {
             startTime = now - 60 * 60 * 1000
     }
 
-    // Base values for different types
     let baseValue = 0
     let variance = 0
 
@@ -98,14 +89,32 @@ export async function GET(req: NextRequest) {
         // Round to 1 decimal place
         value = Math.round(value * 10) / 10
 
-        data.push({
-            timestamp,
-            value
+        data.push({ timestamp, value })
+    }
+    return data
+}
+
+export async function GET(req: NextRequest) {
+    const searchParams = req.nextUrl.searchParams
+    const types = searchParams.get('types') // Check for comma-separated types
+    const type = searchParams.get('type') // Fallback for single type
+    const range = searchParams.get('range') || '1h'
+
+    if (types) {
+        const typeList = types.split(',')
+        const results: Record<string, any[]> = {}
+        
+        typeList.forEach(t => {
+            results[t] = generateDataForType(t.trim(), range)
         })
+        
+        return NextResponse.json({ success: true, data: results })
     }
 
-    return NextResponse.json({
-        success: true,
-        data
-    })
+    if (type) {
+        const data = generateDataForType(type, range)
+        return NextResponse.json({ success: true, data })
+    }
+
+    return NextResponse.json({ error: 'Missing type or types parameter' }, { status: 400 })
 }

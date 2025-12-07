@@ -35,7 +35,8 @@ import {
   Zap,
   ArrowUpRight,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  Wand2
 } from "lucide-react"
 import MermaidChart from "@/components/mermaid-chart"
 import ReactMarkdown from "react-markdown"
@@ -131,6 +132,7 @@ export default function AIAssistantPage() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
   const [enableReasoning, setEnableReasoning] = useState(false)
+  const [isOptimizing, setIsOptimizing] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [attachments, setAttachments] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -152,6 +154,41 @@ export default function AIAssistantPage() {
       setTimeout(() => {
         setNotices(prev => prev.filter(n => n.id !== id))
       }, 5000)
+    }
+  }
+
+  const handleOptimizePrompt = async () => {
+    if (!input.trim()) return
+    if (!aiSettings?.apiKey) { setSettingsOpen(true); return }
+    
+    setIsOptimizing(true)
+    showNotice("正在优化提示词...", "AI 正在思考如何改进您的输入...", "loading")
+    try {
+      const res = await fetch('/api/ai/optimize-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: input,
+          apiKey: aiSettings.apiKey,
+          apiUrl: aiSettings.apiUrl,
+          model: aiSettings.model
+        })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        if (data.optimizedPrompt) {
+          setInput(data.optimizedPrompt)
+          showNotice("提示词已优化", "已为您重写了更清晰的提示词", "success")
+        }
+      } else {
+        showNotice("优化失败", "请求出错", "error")
+      }
+    } catch (e) {
+      console.error("Optimize error", e)
+      showNotice("优化失败", "发生未知错误", "error")
+    } finally {
+      setIsOptimizing(false)
     }
   }
 
@@ -574,32 +611,32 @@ export default function AIAssistantPage() {
               return (
                 <div key={index} className="my-4 space-y-4">
                   {tasks.map((task, i) => (
-                    <div key={i} className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                      <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                        <h3 className="font-medium text-sm text-gray-900">{task.title}</h3>
+                    <div key={i} className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-zinc-800 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                        <h3 className="font-medium text-sm text-gray-900 dark:text-gray-100">{task.title}</h3>
                         <div className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide",
-                          task.status === 'completed' ? "bg-green-100 text-green-700" :
-                            task.status === 'in_progress' ? "bg-blue-100 text-blue-700" :
-                              "bg-gray-100 text-gray-600"
+                          task.status === 'completed' ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" :
+                            task.status === 'in_progress' ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" :
+                              "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400"
                         )}>
                           {task.status === 'completed' ? 'Completed' : task.status === 'in_progress' ? 'In Progress' : 'Pending'}
                         </div>
                       </div>
                       <div className="p-0">
                         {task.items.map((item, j) => (
-                          <div key={j} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                            <div className="mt-0.5 shrink-0 text-gray-400">
+                          <div key={j} className="flex items-start gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+                            <div className="mt-0.5 shrink-0 text-gray-400 dark:text-gray-500">
                               {item.type === 'file' ? <FileText size={16} /> : <CheckCircle2 size={16} className={cn(task.status === 'completed' ? "text-green-500" : "")} />}
                             </div>
-                            <div className="flex-1 text-sm text-gray-600">
+                            <div className="flex-1 text-sm text-gray-600 dark:text-gray-300">
                               {item.text}
                               {item.file && (
-                                <div className="mt-2 flex items-center gap-2 p-2 bg-gray-100 rounded-md border border-gray-200 w-fit">
-                                  <div className="size-8 bg-white rounded border border-gray-200 flex items-center justify-center text-xs font-bold text-gray-500 uppercase">
+                                <div className="mt-2 flex items-center gap-2 p-2 bg-gray-100 dark:bg-zinc-800 rounded-md border border-gray-200 dark:border-gray-700 w-fit">
+                                  <div className="size-8 bg-white dark:bg-zinc-900 rounded border border-gray-200 dark:border-gray-700 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
                                     {item.file.name.split('.').pop()}
                                   </div>
-                                  <div className="text-xs font-medium text-gray-700">{item.file.name}</div>
+                                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300">{item.file.name}</div>
                                 </div>
                               )}
                             </div>
@@ -669,7 +706,7 @@ export default function AIAssistantPage() {
                       remarkPlugins={[remarkGfm]}
                       components={{
                         code: ({ node, inline, className, children, ...props }: any) => (
-                          <code className={cn("bg-gray-100 rounded px-1 font-mono text-xs text-gray-800 font-semibold", className)} {...props}>{children}</code>
+                          <code className={cn("bg-gray-100 dark:bg-zinc-800 rounded px-1 font-mono text-xs text-gray-800 dark:text-gray-200 font-semibold", className)} {...props}>{children}</code>
                         )
                       }}
                     >
@@ -697,10 +734,10 @@ export default function AIAssistantPage() {
               return (
                 <div key={index} className="mt-4 mb-2">
                   <div className="flex flex-wrap gap-2">
-                    <div className="inline-flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full pl-1 pr-3 py-1 transition-colors cursor-pointer group">
+                    <div className="inline-flex items-center gap-2 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 border border-gray-200 dark:border-gray-700 rounded-full pl-1 pr-3 py-1 transition-colors cursor-pointer group">
                       <div className="flex -space-x-2 overflow-hidden py-0.5 pl-0.5">
                         {sources.slice(0, 3).map((s, i) => (
-                          <div key={i} className="size-5 rounded-full bg-white border border-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 shadow-sm shrink-0 relative z-10">
+                          <div key={i} className="size-5 rounded-full bg-white dark:bg-zinc-900 border border-gray-100 dark:border-gray-800 flex items-center justify-center text-[10px] font-bold text-gray-500 dark:text-gray-400 shadow-sm shrink-0 relative z-10">
                             {/* Try to use favicon if available, otherwise show number */}
                             <img
                               src={`https://www.google.com/s2/favicons?domain=${new URL(s.url).hostname}&sz=32`}
@@ -714,12 +751,12 @@ export default function AIAssistantPage() {
                           </div>
                         ))}
                         {sources.length > 3 && (
-                          <div className="size-5 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[9px] font-bold text-gray-500 z-0">
+                          <div className="size-5 rounded-full bg-gray-100 dark:bg-zinc-800 border border-white dark:border-zinc-900 flex items-center justify-center text-[9px] font-bold text-gray-500 dark:text-gray-400 z-0">
                             +{sources.length - 3}
                           </div>
                         )}
                       </div>
-                      <span className="text-sm text-gray-500 font-medium group-hover:text-gray-700">Source</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium group-hover:text-gray-700 dark:group-hover:text-gray-300">Source</span>
                     </div>
                   </div>
                 </div>
@@ -772,7 +809,7 @@ export default function AIAssistantPage() {
                           // Basic check for ECharts structure
                           if (data && (data.series || (data.xAxis && data.yAxis))) {
                             return (
-                              <div className="my-4 w-full min-w-[300px] md:min-w-[600px] h-[350px] rounded-lg overflow-hidden bg-white relative z-10 border border-gray-100 shadow-sm">
+                              <div className="my-4 w-full min-w-[300px] md:min-w-[600px] h-[350px] rounded-lg overflow-hidden bg-white dark:bg-zinc-900 relative z-10 border border-gray-100 dark:border-gray-800 shadow-sm">
                                 <ChartRenderer options={data} type="echarts" style={{ height: '100%', width: '100%' }} />
                               </div>
                             )
@@ -783,9 +820,9 @@ export default function AIAssistantPage() {
                       }
                     }
 
-                    return <code className={cn("bg-gray-100 rounded px-1 font-mono text-sm text-gray-800 font-semibold", className)} {...props}>{children}</code>
+                    return <code className={cn("bg-gray-100 dark:bg-zinc-800 rounded px-1 font-mono text-sm text-gray-800 dark:text-gray-200 font-semibold", className)} {...props}>{children}</code>
                   },
-                  pre: ({ node, children, ...props }: any) => <pre className="bg-gray-50 p-3 rounded-lg overflow-x-auto my-2 border border-gray-200" {...props}>{children}</pre>
+                  pre: ({ node, children, ...props }: any) => <pre className="bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg overflow-x-auto my-2 border border-gray-200 dark:border-gray-800" {...props}>{children}</pre>
                 }}
               >
                 {part}
@@ -833,33 +870,33 @@ export default function AIAssistantPage() {
   const groupOrder = ["Today", "Yesterday", "Previous 7 Days", "Earlier"]
 
   return (
-    <div className="flex h-screen w-full bg-white text-zinc-800 font-sans">
+    <div className="flex h-screen w-full bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 font-sans">
       {/* Sidebar */}
       <div className={cn(
-        "flex-shrink-0 bg-[#f9f9f9] flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 relative",
+        "flex-shrink-0 bg-[#f9f9f9] dark:bg-zinc-900 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800 relative",
         sidebarOpen ? "w-[260px]" : "w-0 overflow-hidden"
       )}>
         {/* Top Nav Items */}
         <div className="p-3 space-y-1">
           {/* Logo Section */}
           <div className="flex items-center gap-2 px-2 py-3 mb-1">
-            <div className="size-16 relative flex-shrink-0 rounded-full overflow-hidden bg-white border border-gray-100">
+            <div className="size-16 relative flex-shrink-0 rounded-full overflow-hidden bg-white dark:bg-zinc-800 border border-gray-100 dark:border-gray-700">
               <Image src="/logo.gif" alt="Logo" width={64} height={64} className="object-cover" unoptimized />
             </div>
             <div className="h-8 w-26 relative flex-shrink-0">
-              <Image src="/logo-chat.svg" alt="Logo Text" fill className="object-contain object-left" />
+              <Image src="/logo-chat.svg" alt="Logo Text" fill className="object-contain object-left dark:invert" />
             </div>
           </div>
 
           <div className="flex items-center justify-between px-2 py-2 mb-2">
             <button
               onClick={createNewSession}
-              className="flex items-center gap-2 hover:bg-gray-200 rounded-lg px-2 py-1 transition-colors text-sm font-medium w-full"
+              className="flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg px-2 py-1 transition-colors text-sm font-medium w-full text-gray-700 dark:text-gray-300"
             >
               <SquarePen size={18} />
               <span>New chat</span>
             </button>
-            <button onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-gray-800 md:hidden">
+            <button onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 md:hidden">
               <PanelLeftClose size={18} />
             </button>
           </div>
@@ -867,7 +904,7 @@ export default function AIAssistantPage() {
           {/* Mock Nav Items */}
           <div className="space-y-1">
             {/* Search */}
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-left">
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-colors text-left">
               <Search size={18} />
               <span>Search chats</span>
             </button>
@@ -875,7 +912,7 @@ export default function AIAssistantPage() {
             {/* Return Button */}
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors text-left"
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-colors text-left"
             >
               <ArrowLeft size={18} />
               <span>返回</span>
@@ -891,14 +928,14 @@ export default function AIAssistantPage() {
               if (!group || group.length === 0) return null
               return (
                 <div key={key}>
-                  <div className="text-xs font-medium text-gray-500 mb-2 px-3">{key === "Today" ? "Today" : key === "Yesterday" ? "Yesterday" : key === "Previous 7 Days" ? "Previous 7 Days" : "Earlier"}</div>
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-3">{key === "Today" ? "Today" : key === "Yesterday" ? "Yesterday" : key === "Previous 7 Days" ? "Previous 7 Days" : "Earlier"}</div>
                   <div className="flex flex-col gap-0.5">
                     {group.map(s => (
                       <div
                         key={s.id}
                         className={cn(
                           "group flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm overflow-hidden relative",
-                          sessionId === s.id ? "bg-gray-200 text-gray-900" : "hover:bg-gray-200 text-gray-700"
+                          sessionId === s.id ? "bg-gray-200 dark:bg-zinc-800 text-gray-900 dark:text-gray-100" : "hover:bg-gray-200 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-300"
                         )}
                         onClick={() => { setSessionId(s.id); if (window.innerWidth < 768) setSidebarOpen(false) }}
                       >
@@ -907,7 +944,7 @@ export default function AIAssistantPage() {
                         </div>
                         {sessionId === s.id && (
                           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-20">
-                            <button onClick={(e) => deleteSession(s.id, e)} className="text-gray-500 hover:text-red-500 p-1 rounded-md transition-colors"><Trash size={14} /></button>
+                            <button onClick={(e) => deleteSession(s.id, e)} className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 p-1 rounded-md transition-colors"><Trash size={14} /></button>
                           </div>
                         )}
                       </div>
@@ -920,12 +957,12 @@ export default function AIAssistantPage() {
         </ScrollArea>
 
         {/* Bottom User/Upgrade */}
-        <div className="p-3 border-t border-gray-200 mt-auto">
+        <div className="p-3 border-t border-gray-200 dark:border-gray-800 mt-auto">
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition-colors text-left">
-                <Avatar className="size-8 border border-gray-200">
+              <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-colors text-left">
+                <Avatar className="size-8 border border-gray-200 dark:border-gray-700">
                   <AvatarImage src={user?.avatar_url || undefined} />
                   <AvatarFallback className="bg-green-600 text-white text-xs">{user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
@@ -944,7 +981,7 @@ export default function AIAssistantPage() {
         </div>
         <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse gap-2 pointer-events-none">
           {notices.map(notice => (
-            <div key={notice.id} className="pointer-events-auto w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in slide-in-from-right-full fade-in duration-300">
+            <div key={notice.id} className="pointer-events-auto w-80 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in slide-in-from-right-full fade-in duration-300">
               {/* Header */}
               <div className="flex items-start gap-3 p-4 pb-3">
                 {/* Icon */}
@@ -961,9 +998,9 @@ export default function AIAssistantPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 text-[15px] leading-tight">{notice.title}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-[15px] leading-tight">{notice.title}</h3>
                   {notice.expanded && notice.description && (
-                    <p className="text-gray-500 text-sm mt-2 leading-relaxed break-words">{notice.description}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-2 leading-relaxed break-words">{notice.description}</p>
                   )}
                 </div>
 
@@ -972,14 +1009,14 @@ export default function AIAssistantPage() {
                   {notice.description && (
                     <button
                       onClick={() => toggleNoticeExpanded(notice.id)}
-                      className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                     >
                       <ChevronDown size={16} className={cn("transition-transform duration-200", notice.expanded ? "rotate-180" : "")} />
                     </button>
                   )}
                   <button
                     onClick={() => closeNotice(notice.id)}
-                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                   >
                     <X size={16} />
                   </button>
@@ -988,8 +1025,8 @@ export default function AIAssistantPage() {
 
               {/* Footer / Collapsed Description */}
               {!notice.expanded && notice.description && (
-                <div className="bg-gray-50/80 px-4 py-3 border-t border-gray-100/50">
-                  <p className="text-gray-600 text-sm leading-normal line-clamp-2">
+                <div className="bg-gray-50/80 dark:bg-zinc-800/80 px-4 py-3 border-t border-gray-100/50 dark:border-gray-800/50">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm leading-normal line-clamp-2">
                     {notice.description}
                   </p>
                 </div>
@@ -997,7 +1034,7 @@ export default function AIAssistantPage() {
 
               {/* Progress Bar for Auto-close */}
               {notice.variant !== 'loading' && (
-                <div className="h-1 w-full bg-gray-100/50">
+                <div className="h-1 w-full bg-gray-100/50 dark:bg-zinc-800/50">
                   <div className="h-full bg-green-500 origin-left animate-[shrink_5s_linear_forwards]" />
                 </div>
               )}
@@ -1007,17 +1044,17 @@ export default function AIAssistantPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative bg-white">
+      <div className="flex-1 flex flex-col h-full relative bg-white dark:bg-zinc-950">
         {/* Top Bar */}
-        <div className="h-14 flex items-center justify-between px-4 sticky top-0 z-10 bg-white">
+        <div className="h-14 flex items-center justify-between px-4 sticky top-0 z-10 bg-white dark:bg-zinc-950/80 backdrop-blur-md">
           <div className="flex items-center gap-2">
             {!sidebarOpen && (
-              <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100">
+              <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800">
                 <PanelLeftOpen size={20} />
               </button>
             )}
             {sidebarOpen && (
-              <button id="ai-sidebar-toggle" onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100 md:hidden">
+              <button id="ai-sidebar-toggle" onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 md:hidden">
                 <PanelLeftClose size={20} />
               </button>
             )}
@@ -1041,8 +1078,8 @@ export default function AIAssistantPage() {
                 localStorage.setItem("ai-settings", JSON.stringify(defaultSettings))
               }
             }}>
-              <PromptInputModelSelectTrigger className="bg-transparent border-0 hover:bg-gray-100 text-gray-700 gap-1 px-2 py-1.5 rounded-lg transition-colors shadow-none focus:ring-0 h-auto">
-                <span className="text-gray-600 font-semibold text-lg">{selectedModel || aiSettings?.model || "Qwen"}</span>
+              <PromptInputModelSelectTrigger className="bg-transparent border-0 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-300 gap-1 px-2 py-1.5 rounded-lg transition-colors shadow-none focus:ring-0 h-auto">
+                <span className="text-gray-600 dark:text-gray-400 font-semibold text-lg">{selectedModel || aiSettings?.model || "Qwen"}</span>
                 <ChevronDown size={16} className="text-gray-400 ml-1" />
               </PromptInputModelSelectTrigger>
               <PromptInputModelSelectContent className="w-[200px]">
@@ -1058,7 +1095,7 @@ export default function AIAssistantPage() {
           <div className="flex items-center gap-2">
             {/* Placeholder for 'Get Plus' if needed, sticking to minimal for now or user avatar if not in sidebar */}
             {/* In design, User Avatar is top right of Main Area. I'll put it here too as an alternative or primary access. */}
-            <Avatar className="size-8 border border-gray-200 cursor-pointer hover:opacity-80">
+            <Avatar className="size-8 border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80">
               <AvatarImage src={user?.avatar_url || undefined} />
               <AvatarFallback className="bg-green-600 text-white text-xs">{user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
@@ -1071,21 +1108,21 @@ export default function AIAssistantPage() {
             <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
               {/* Header */}
               <div className="text-center mb-10 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 tracking-tight">
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                   晚上好，{user?.username || '农场主'}
                 </h1>
-                <p className="text-xl text-gray-500 font-medium">
+                <p className="text-xl text-gray-500 dark:text-gray-400 font-medium">
                   今天想为您的农场做些什么？
                 </p>
               </div>
 
               {/* Input Bar in Center for Empty State */}
               <div className="w-full max-w-3xl relative mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
-                <div className="bg-white rounded-[24px] px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] transition-all duration-300 border border-gray-100 group">
+                <div className="bg-white dark:bg-zinc-900 rounded-[24px] px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] transition-all duration-300 border border-gray-100 dark:border-gray-800 group">
                   {attachments.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto py-2 mb-2">
                       {attachments.map((url, i) => (
-                        <div key={i} className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 group/img shrink-0">
+                        <div key={i} className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group/img shrink-0">
                           <Image src={url} alt="upload" fill className="object-cover" />
                           <button onClick={() => removeAttachment(i)} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white transition-opacity"><X size={16} /></button>
                         </div>
@@ -1098,7 +1135,7 @@ export default function AIAssistantPage() {
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="问点什么..."
-                      className="w-full bg-transparent border-0 focus:ring-0 resize-none text-gray-800 placeholder:text-gray-400 text-lg leading-relaxed py-2"
+                      className="w-full bg-transparent border-0 focus:ring-0 resize-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 text-lg leading-relaxed py-2"
                       rows={1}
                       style={{ minHeight: '44px', maxHeight: '200px' }}
                       onInput={(e) => {
@@ -1110,14 +1147,14 @@ export default function AIAssistantPage() {
                     {input.trim() && (
                       <button
                         onClick={handleSend}
-                        className="self-end mb-1 p-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-all active:scale-95 shadow-md"
+                        className="self-end mb-1 p-2 bg-black dark:bg-white text-white dark:text-black rounded-xl hover:bg-gray-800 dark:hover:bg-gray-200 transition-all active:scale-95 shadow-md"
                       >
                         <ArrowUp size={20} strokeWidth={2.5} />
                       </button>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-2">
                       <PromptInputModelSelect value={selectedModel || aiSettings?.model || "qwen-vl-plus"} onValueChange={(val) => {
                       setSelectedModel(val)
@@ -1136,7 +1173,7 @@ export default function AIAssistantPage() {
                         localStorage.setItem("ai-settings", JSON.stringify(defaultSettings))
                       }
                     }}>
-                        <PromptInputModelSelectTrigger id="ai-model-selector-empty" className="bg-gray-50 border-0 hover:bg-gray-100 text-gray-600 gap-1.5 px-3 py-1.5 rounded-lg transition-colors shadow-none focus:ring-0 h-auto text-xs font-semibold uppercase tracking-wide">
+                        <PromptInputModelSelectTrigger id="ai-model-selector-empty" className="bg-gray-50 dark:bg-zinc-800 border-0 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-300 gap-1.5 px-3 py-1.5 rounded-lg transition-colors shadow-none focus:ring-0 h-auto text-xs font-semibold uppercase tracking-wide">
                           <span>{selectedModel || aiSettings?.model || "模型"}</span>
                           <ChevronDown size={12} className="text-gray-400" />
                         </PromptInputModelSelectTrigger>
@@ -1151,21 +1188,21 @@ export default function AIAssistantPage() {
                     <div id="ai-tools-empty" className="flex items-center gap-3">
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-gray-400 hover:text-gray-700 transition-colors"
+                        className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                         title="上传文件"
                       >
                         <Paperclip size={20} />
                       </button>
                       <button
                         onClick={() => setEnableSearch(!enableSearch)}
-                        className={cn("transition-colors", enableSearch ? "text-blue-500" : "text-gray-400 hover:text-gray-700")}
+                        className={cn("transition-colors", enableSearch ? "text-blue-500" : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}
                         title="联网搜索"
                       >
                         <Globe size={20} />
                       </button>
                       <button
                         onClick={() => setEnableReasoning(!enableReasoning)}
-                        className={cn("transition-colors", enableReasoning ? "text-purple-500" : "text-gray-400 hover:text-gray-700")}
+                        className={cn("transition-colors", enableReasoning ? "text-purple-500" : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}
                         title="深度思考"
                       >
                         <Sparkles size={20} />
@@ -1188,7 +1225,7 @@ export default function AIAssistantPage() {
                   <button
                     key={i}
                     onClick={() => handleSend(item.action)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200/80 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-all shadow-sm hover:shadow-md"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200/80 dark:border-gray-800 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-700 transition-all shadow-sm hover:shadow-md"
                   >
                     <span className="text-gray-400">{item.icon}</span>
                     {item.text}
@@ -1199,7 +1236,7 @@ export default function AIAssistantPage() {
               {/* Widgets Grid */}
               <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
                 {/* Weather Widget */}
-                <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col justify-between h-48 relative overflow-hidden group hover:shadow-lg transition-all">
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 flex flex-col justify-between h-48 relative overflow-hidden group hover:shadow-lg transition-all">
                   <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Sun size={80} className="text-amber-500" />
                   </div>
@@ -1209,11 +1246,11 @@ export default function AIAssistantPage() {
                         <span>宁波</span>
                         <ChevronDown size={14} />
                       </div>
-                      <div className="text-5xl font-bold text-gray-800 tracking-tight mt-2">
+                      <div className="text-5xl font-bold text-gray-800 dark:text-gray-100 tracking-tight mt-2">
                         {weatherData?.current?.temp_c || "--"}°C
                       </div>
                     </div>
-                    <div className="bg-amber-100 p-2 rounded-full text-amber-600">
+                    <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-full text-amber-600 dark:text-amber-500">
                       <Sun size={24} />
                     </div>
                   </div>
@@ -1229,59 +1266,59 @@ export default function AIAssistantPage() {
                 </div>
 
                 {/* Context-Aware Promo */}
-                <div className="md:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-6 border border-blue-100 relative overflow-hidden group">
+                <div className="md:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-3xl p-6 border border-blue-100 dark:border-blue-900 relative overflow-hidden group">
                   <div className="absolute top-4 right-4">
-                    <span className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold text-blue-600 uppercase tracking-wider border border-blue-100">新功能</span>
+                    <span className="bg-white/80 dark:bg-white/10 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider border border-blue-100 dark:border-blue-800">新功能</span>
                   </div>
                   <div className="relative z-10 h-full flex flex-col justify-center items-start max-w-md">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">智能种植助手</h3>
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">智能种植助手</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
                       您的 AI 助手现在可以根据实时传感器数据，自动分析环境状况并提供精准的调控建议。不仅如此，它还能为您生成可视化的数据图表。
                     </p>
-                    <button onClick={() => handleSend("分析当前环境数据")} className="text-blue-600 font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all group-hover:underline">
+                    <button onClick={() => handleSend("分析当前环境数据")} className="text-blue-600 dark:text-blue-400 font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all group-hover:underline">
                       尝试分析环境 <ArrowUpRight size={16} />
                     </button>
                   </div>
                 </div>
 
                 {/* Recent Chats / Suggestions */}
-                <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-lg transition-all h-48 flex flex-col">
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all h-48 flex flex-col">
                   <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm font-medium">
                     <RotateCcw size={14} />
                     <span>最近活动</span>
                   </div>
                   <div className="flex-1 flex flex-col gap-3">
                     <div className="group cursor-pointer" onClick={() => handleSend("检查灌溉系统状态")}>
-                      <div className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors truncate">灌溉系统检查</div>
+                      <div className="font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">灌溉系统检查</div>
                       <div className="text-xs text-gray-400 mt-0.5">2小时前</div>
                     </div>
-                    <div className="w-full h-px bg-gray-50"></div>
+                    <div className="w-full h-px bg-gray-50 dark:bg-zinc-800"></div>
                     <div className="group cursor-pointer" onClick={() => handleSend("草莓开花期光照建议")}>
-                      <div className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors truncate">草莓开花期光照建议</div>
+                      <div className="font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">草莓开花期光照建议</div>
                       <div className="text-xs text-gray-400 mt-0.5">昨天</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-lg transition-all h-48 flex flex-col">
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all h-48 flex flex-col">
                   <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm font-medium">
                     <Library size={14} />
                     <span>知识库</span>
                   </div>
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
-                      <h4 className="font-medium text-gray-800 mb-1">病害识别指南</h4>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-1">病害识别指南</h4>
                       <p className="text-xs text-gray-500 line-clamp-2">
                         上传叶片照片，AI 可识别红蜘蛛、白粉病等常见病害并提供防治方案。
                       </p>
                     </div>
-                    <button className="self-start text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors">
+                    <button className="self-start text-xs font-semibold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                       查看指南
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-lg transition-all h-48 flex flex-col">
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 dark:border-gray-800 hover:shadow-lg transition-all h-48 flex flex-col">
                   <div className="flex items-center gap-2 mb-4 text-gray-400 text-sm font-medium">
                     <Sparkles size={14} />
                     <span>系统状态</span>
@@ -1289,14 +1326,14 @@ export default function AIAssistantPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="size-2 rounded-full bg-green-500 animate-pulse"></div>
-                      <span className="text-sm font-medium text-gray-700">所有服务运行正常</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">所有服务运行正常</span>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>API 延迟</span>
                         <span className="font-mono">45ms</span>
                       </div>
-                      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                         <div className="h-full w-[98%] bg-green-500 rounded-full"></div>
                       </div>
                     </div>
@@ -1315,7 +1352,7 @@ export default function AIAssistantPage() {
                         msg.role === "user" ? "justify-end" : "justify-start"
                       )}>
                         {msg.role === "assistant" && (
-                          <div className="size-10 flex items-center justify-center shrink-0 mt-1 rounded-full overflow-hidden bg-white border border-gray-100">
+                          <div className="size-10 flex items-center justify-center shrink-0 mt-1 rounded-full overflow-hidden bg-white dark:bg-zinc-800 border border-gray-100 dark:border-gray-700">
                             <Image src="/logo.gif" alt="AI" width={40} height={40} className="object-cover" unoptimized />
                           </div>
                         )}
@@ -1323,17 +1360,17 @@ export default function AIAssistantPage() {
                         <div className={cn(
                           "relative max-w-[85%] rounded-2xl px-5 py-3 text-[15px] leading-relaxed",
                           msg.role === "user"
-                            ? "bg-[#f4f4f4] text-gray-900 rounded-tr-sm"
-                            : "bg-transparent text-gray-900 px-0 py-0"
+                            ? "bg-[#f4f4f4] dark:bg-zinc-800 text-gray-900 dark:text-gray-100 rounded-tr-sm"
+                            : "bg-transparent text-gray-900 dark:text-gray-100 px-0 py-0"
                         )}>
-                          <div className="prose prose-neutral max-w-none break-words">
+                          <div className="prose prose-neutral dark:prose-invert max-w-none break-words">
                             {renderMessageContent(msg)}
                           </div>
 
                           {msg.role === "assistant" && (
                             <div className="flex items-center gap-2 mt-2">
-                              <button onClick={() => copyText(typeof msg.content === 'string' ? msg.content : "")} className="text-gray-400 hover:text-gray-600 p-1"><Copy size={14} /></button>
-                              <button className="text-gray-400 hover:text-gray-600 p-1"><RotateCcw size={14} /></button>
+                              <button onClick={() => copyText(typeof msg.content === 'string' ? msg.content : "")} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"><Copy size={14} /></button>
+                              <button className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"><RotateCcw size={14} /></button>
                             </div>
                           )}
                         </div>
@@ -1341,7 +1378,7 @@ export default function AIAssistantPage() {
                     ))}
                     {isLoading && (
                       <div className="flex gap-4 px-4 md:px-0 max-w-3xl mx-auto w-full">
-                        <div className="size-10 flex items-center justify-center shrink-0 mt-1 rounded-full overflow-hidden bg-white border border-gray-100">
+                        <div className="size-10 flex items-center justify-center shrink-0 mt-1 rounded-full overflow-hidden bg-white dark:bg-zinc-800 border border-gray-100 dark:border-gray-700">
                           <Image src="/logo.gif" alt="AI" width={40} height={40} className="object-cover" unoptimized />
                         </div>
                         <div className="flex items-center gap-1 mt-2">
@@ -1359,13 +1396,13 @@ export default function AIAssistantPage() {
               {/* Floating Input Bar for Chat State */}
               <div id="ai-input-area" className="absolute bottom-0 left-0 w-full bg-transparent pt-4 pb-6 px-4">
                 <div className="max-w-3xl mx-auto w-full relative">
-                  <div className="bg-white/80 backdrop-blur-xl rounded-[26px] px-4 py-3 flex flex-col gap-1 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#6366f1]/20 focus-within:border-[#6366f1]/30 transition-all duration-300 border border-gray-200/60 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.15)] hover:border-gray-300/80">
+                  <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-[26px] px-4 py-3 flex flex-col gap-1 focus-within:bg-white dark:focus-within:bg-zinc-900 focus-within:ring-2 focus-within:ring-[#6366f1]/20 focus-within:border-[#6366f1]/30 transition-all duration-300 border border-gray-200/60 dark:border-gray-800/60 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.15)] hover:border-gray-300/80 dark:hover:border-gray-700/80">
                     {/* Attachment Preview */}
                     {attachments.length > 0 && (
                       <div className="flex gap-3 overflow-x-auto py-2 mb-1 scrollbar-none">
                         {attachments.map((url, i) => (
                           <div key={i} className="relative group shrink-0">
-                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
                               <Image src={url} alt="preview" fill className="object-cover" />
                             </div>
                             <button
@@ -1385,7 +1422,7 @@ export default function AIAssistantPage() {
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
                       placeholder="Message AI Assistant..."
-                      className="w-full bg-transparent border-0 focus:ring-0 resize-none text-gray-800 placeholder:text-gray-400/80 text-[15px] leading-relaxed py-2 px-1 min-h-[40px] max-h-[200px] font-medium"
+                      className="w-full bg-transparent border-0 focus:ring-0 resize-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400/80 text-[15px] leading-relaxed py-2 px-1 min-h-[40px] max-h-[200px] font-medium"
                       rows={1}
                       style={{ height: 'auto' }}
                       onInput={(e) => {
@@ -1396,26 +1433,26 @@ export default function AIAssistantPage() {
                     />
 
                     {/* Bottom Tools Row */}
-                    <div id="ai-input-tools" className="flex items-center justify-between mt-1 pt-2 border-t border-gray-100/60">
+                    <div id="ai-input-tools" className="flex items-center justify-between mt-1 pt-2 border-t border-gray-100/60 dark:border-gray-800/60">
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-[#6366f1] group relative"
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors text-gray-400 hover:text-[#6366f1] group relative"
                           title="Upload file"
                         >
                           <Paperclip size={18} strokeWidth={2} />
                           <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Upload File</span>
                         </button>
 
-                        <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
 
                         <button
                           onClick={() => setEnableSearch(!enableSearch)}
                           className={cn(
                             "px-3 py-1.5 rounded-full transition-all flex items-center gap-2 text-xs font-medium border select-none",
                             enableSearch
-                              ? "bg-blue-50 text-blue-600 border-blue-200 shadow-sm"
-                              : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700"
+                              ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 shadow-sm"
+                              : "bg-white dark:bg-zinc-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-gray-200"
                           )}
                           title="Web search"
                         >
@@ -1425,20 +1462,39 @@ export default function AIAssistantPage() {
 
                         <button
                           onClick={() => setEnableReasoning(!enableReasoning)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full transition-all flex items-center gap-2 text-xs font-medium border select-none",
-                            enableReasoning
-                              ? "bg-purple-50 text-purple-600 border-purple-200 shadow-sm"
-                              : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700"
-                          )}
-                          title="Deep thinking"
-                        >
-                          <Sparkles size={14} strokeWidth={2.5} />
-                          <span>Reasoning</span>
-                        </button>
-                      </div>
+                        className={cn(
+                          "px-3 py-1.5 rounded-full transition-all flex items-center gap-2 text-xs font-medium border select-none",
+                          enableReasoning
+                            ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 shadow-sm"
+                            : "bg-white dark:bg-zinc-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-gray-200"
+                        )}
+                        title="Deep thinking"
+                      >
+                        <Sparkles size={14} strokeWidth={2.5} />
+                        <span>Reasoning</span>
+                      </button>
 
-                      <div className="flex items-center gap-3 pl-2">
+                      <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+
+                      <button
+                        onClick={handleOptimizePrompt}
+                        disabled={!input.trim() || isOptimizing}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full transition-all flex items-center gap-2 text-xs font-medium border select-none",
+                          isOptimizing
+                            ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 shadow-sm cursor-wait"
+                            : input.trim() 
+                              ? "bg-white dark:bg-zinc-800 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                              : "bg-white dark:bg-zinc-800 text-gray-300 dark:text-gray-600 border-gray-100 dark:border-gray-800 cursor-not-allowed"
+                        )}
+                        title="Optimize prompt"
+                      >
+                        {isOptimizing ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} strokeWidth={2.5} />}
+                        <span>Optimize</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 pl-2">
                         <button
                           onClick={handleSend}
                           disabled={!input.trim() && attachments.length === 0}
@@ -1446,7 +1502,7 @@ export default function AIAssistantPage() {
                             "size-8 rounded-lg flex items-center justify-center transition-all duration-200",
                             (input.trim() || attachments.length > 0)
                               ? "bg-[#6366f1] text-white hover:bg-[#4f46e5] shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm"
-                              : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                              : "bg-gray-100 dark:bg-zinc-800 text-gray-300 dark:text-gray-600 cursor-not-allowed"
                           )}
                         >
                           <ArrowUp size={18} strokeWidth={3} />
@@ -1464,7 +1520,7 @@ export default function AIAssistantPage() {
 
         {/* Help Button */}
         <div className="absolute bottom-4 right-4 z-20">
-          <button className="size-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 shadow-sm">
+          <button className="size-8 flex items-center justify-center rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800 shadow-sm">
             <CircleHelp size={16} />
           </button>
         </div>

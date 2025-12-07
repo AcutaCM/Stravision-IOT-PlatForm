@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, LayoutGroup } from "framer-motion"
 import {
   HomeIcon,
   Cog6ToothIcon,
@@ -40,31 +40,33 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
     <div className={`${position === "fixed" ? "fixed" : "sticky"} bottom-0 left-0 right-0 z-50 flex justify-center px-6 pb-4`}>
       <nav className="bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl rounded-full px-6 py-3 shadow-lg border border-white/20 dark:border-white/10">
         <div className="flex items-center gap-2">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href
-            const Icon = isActive ? item.iconSolid : item.icon
-
-            return (
-              <Link key={item.href} href={item.href} className="relative">
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  className="relative"
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute inset-0 bg-blue-600 rounded-full"
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                  <div className={`relative px-4 py-2 rounded-full transition-colors duration-200 ${isActive ? "text-white" : "text-slate-600 dark:text-slate-400"
-                    }`}>
-                    <Icon className="size-6" />
-                  </div>
-                </motion.div>
-              </Link>
-            )
-          })}
+          <LayoutGroup>
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              const Icon = isActive ? item.iconSolid : item.icon
+  
+              return (
+                <Link key={item.href} href={item.href} className="relative">
+                  <motion.div
+                    whileTap={{ scale: 0.95 }}
+                    className="relative"
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-blue-600 rounded-full"
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    )}
+                    <div className={`relative px-4 py-2 rounded-full transition-colors duration-200 ${isActive ? "text-white" : "text-slate-600 dark:text-slate-400"
+                      }`}>
+                      <Icon className="size-6" />
+                    </div>
+                  </motion.div>
+                </Link>
+              )
+            })}
+          </LayoutGroup>
         </div>
       </nav>
     </div>

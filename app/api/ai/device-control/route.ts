@@ -5,9 +5,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { MQTTService } from '@/lib/mqtt-service'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Authentication Check
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     let { action, device, value, r, g, b } = body
     
@@ -22,6 +33,17 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    const mqttService = MQTTService.getInstance()
+    
+    // Ensure MQTT connected
+    if (!mqttService.isConnected()) {
+      try {
+        await mqttService.connect()
+      } catch (e) {
+        return NextResponse.json({ success: false, error: 'MQTT Connection Failed' }, { status: 503 })
+      }
+    }
+
     // 根据不同的 action 执行不同的控制
     if (action === 'toggle_relay') {
       // 规范化 value 值，兼容 boolean 和 string
@@ -48,32 +70,21 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // 调用 MQTT 控制 API
+      // 直接调用 MQTT Service，不再通过 API
       const mqttPayload = {
-        type: 'relay',
+        type: 'relay' as const,
         relayNum: device,
-        newState: value  // MQTT API 使用 newState 而不是 value
+        newState: value
       }
-      console.log('[AI Device Control] Calling MQTT API with:', mqttPayload)
+      console.log('[AI Device Control] Calling MQTT Service with:', mqttPayload)
       
-      const response = await fetch(`${request.nextUrl.origin}/api/mqtt/control`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mqttPayload)
+      await mqttService.sendControlCommand(mqttPayload)
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Control command sent successfully',
+        timestamp: Date.now()
       })
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[AI Device Control] MQTT API error:', response.status, errorText)
-        return NextResponse.json({
-          success: false,
-          error: `MQTT API returned ${response.status}: ${errorText}`
-        }, { status: response.status })
-      }
-      
-      const result = await response.json()
-      console.log('[AI Device Control] MQTT API result:', result)
-      return NextResponse.json(result)
       
     } else if (action === 'set_led') {
       if (r === undefined || g === undefined || b === undefined) {
@@ -91,35 +102,23 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // 调用 MQTT 控制 API
-      // MQTT API 使用 led1, led2, led3, led4 而不是 r, g, b, w
+      // 直接调用 MQTT Service
       const mqttPayload = {
-        type: 'led',
+        type: 'led' as const,
         led1: r,  // 红色
         led2: g,  // 绿色
         led3: b,  // 蓝色
         led4: 0   // 白色（保留）
       }
-      console.log('[AI Device Control] Calling MQTT API with:', mqttPayload)
+      console.log('[AI Device Control] Calling MQTT Service with:', mqttPayload)
       
-      const response = await fetch(`${request.nextUrl.origin}/api/mqtt/control`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mqttPayload)
+      await mqttService.sendControlCommand(mqttPayload)
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Control command sent successfully',
+        timestamp: Date.now()
       })
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[AI Device Control] MQTT API error:', response.status, errorText)
-        return NextResponse.json({
-          success: false,
-          error: `MQTT API returned ${response.status}: ${errorText}`
-        }, { status: response.status })
-      }
-      
-      const result = await response.json()
-      console.log('[AI Device Control] MQTT API result:', result)
-      return NextResponse.json(result)
       
     } else {
       return NextResponse.json(

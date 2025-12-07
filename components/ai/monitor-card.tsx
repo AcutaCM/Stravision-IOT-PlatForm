@@ -60,26 +60,26 @@ export function MonitorCard() {
 
   return (
     <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-    <div className="w-full max-w-sm bg-white/80 backdrop-blur-xl rounded-[24px] p-4 border border-white/50 shadow-[0_8px_30px_rgba(0,0,0,0.04)] my-4">
+    <div className="w-full max-w-sm bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-xl rounded-[24px] p-4 border border-white/50 dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.04)] my-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-full bg-black flex items-center justify-center text-white">
+          <div className="size-10 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
             <Eye size={20} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-gray-900">实时监控</h3>
-            <p className="text-xs text-gray-500 font-medium">{date}</p>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">实时监控</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{date}</p>
           </div>
         </div>
         
         {/* Source Toggle */}
-        <div className="flex bg-gray-100 rounded-full p-1">
+        <div className="flex bg-gray-100 dark:bg-white/10 rounded-full p-1">
            <button 
              onClick={() => setVideoSource('live')}
              className={cn(
                "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-               videoSource === 'live' ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-gray-700"
+               videoSource === 'live' ? "bg-white dark:bg-white/20 text-black dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
              )}
            >
              直播
@@ -88,7 +88,7 @@ export function MonitorCard() {
              onClick={() => setVideoSource('usb')}
              className={cn(
                "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-               videoSource === 'usb' ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-gray-700"
+               videoSource === 'usb' ? "bg-white dark:bg-white/20 text-black dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
              )}
            >
              USB
@@ -128,26 +128,26 @@ export function MonitorCard() {
       </div>
 
       {/* Footer Info */}
-      <div className="bg-[#E8F5E9]/50 rounded-[18px] p-3 flex items-center justify-between border border-[#E8F5E9]">
+      <div className="bg-[#E8F5E9]/50 dark:bg-white/5 rounded-[18px] p-3 flex items-center justify-between border border-[#E8F5E9] dark:border-white/10">
         <div className="flex items-center gap-3">
-          <div className="size-8 rounded-full bg-black flex items-center justify-center text-white">
+          <div className="size-8 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black">
             <Video size={14} />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-gray-900">主摄像头</h4>
-            <p className="text-[10px] text-gray-500">高清 • 30fps</p>
+            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100">主摄像头</h4>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">高清 • 30fps</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-white rounded-full border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-white/10 rounded-full border border-gray-100 dark:border-white/10 shadow-sm">
             {connectionStatus.connected ? (
                 <>
                     <Wifi size={12} className="text-green-500" />
-                    <span className="text-[10px] font-bold text-gray-700">在线</span>
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">在线</span>
                 </>
             ) : (
                 <>
                     <WifiOff size={12} className="text-red-500" />
-                    <span className="text-[10px] font-bold text-gray-700">离线</span>
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">离线</span>
                 </>
             )}
         </div>

@@ -57,7 +57,10 @@ export function SmartCameraSystem({ className }: SmartCameraSystemProps) {
   // Fetch models
   const fetchModels = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8000/models")
+      const baseUrl = process.env.NODE_ENV === 'development' 
+        ? "http://localhost:8000" 
+        : "/inference"
+      const res = await fetch(`${baseUrl}/models`)
       if (res.ok) {
         const data = await res.json()
         setModels(data.available_models)
@@ -75,7 +78,10 @@ export function SmartCameraSystem({ className }: SmartCameraSystemProps) {
   // Change Model
   const handleModelChange = async (modelName: string) => {
     try {
-      const res = await fetch("http://localhost:8000/models/load", {
+      const baseUrl = process.env.NODE_ENV === 'development' 
+        ? "http://localhost:8000" 
+        : "/inference"
+      const res = await fetch(`${baseUrl}/models/load`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model_name: modelName })
@@ -102,7 +108,10 @@ export function SmartCameraSystem({ className }: SmartCameraSystemProps) {
 
     setIsUploading(true)
     try {
-      const res = await fetch("http://localhost:8000/models/upload", {
+      const baseUrl = process.env.NODE_ENV === 'development' 
+        ? "http://localhost:8000" 
+        : "/inference"
+      const res = await fetch(`${baseUrl}/models/upload`, {
         method: "POST",
         body: formData
       })
@@ -166,7 +175,17 @@ export function SmartCameraSystem({ className }: SmartCameraSystemProps) {
     let reconnectTimer: NodeJS.Timeout;
 
     const connectWs = () => {
-        ws = new WebSocket("ws://localhost:8000/ws")
+        let wsUrl: string
+        if (process.env.NODE_ENV === 'development') {
+          wsUrl = "ws://localhost:8000/ws"
+        } else {
+          // Use relative path /inference/ws handled by Nginx
+          // Construct absolute URL based on current location protocol
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          wsUrl = `${protocol}//${window.location.host}/inference/ws`
+        }
+        
+        ws = new WebSocket(wsUrl)
         
         ws.onopen = () => {
           setIsConnected(true)

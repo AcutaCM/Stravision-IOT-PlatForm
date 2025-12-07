@@ -15,6 +15,30 @@ function isMobileUA(ua: string | null, chMobile: string | null) {
 export function middleware(req: NextRequest) {
   const url = new URL(req.url)
   const pathname = url.pathname
+
+  // 1. Authentication Check (Security)
+  // 检查是否访问受保护的路由
+  const protectedPaths = [
+    "/dashboard", 
+    "/monitor", 
+    "/device-control", 
+    "/settings", 
+    "/profile",
+    "/ai-assistant"
+  ]
+  
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path))
+  
+  if (isProtected) {
+    const token = req.cookies.get("auth")?.value
+    if (!token) {
+      // 如果没有 auth cookie，重定向到登录页
+      const loginUrl = new URL("/login", req.url)
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
+  // 2. Mobile Redirection (UX)
   const ua = req.headers.get("user-agent")
   const chMobile = req.headers.get("sec-ch-ua-mobile")
   const mobile = isMobileUA(ua, chMobile)
@@ -23,6 +47,7 @@ export function middleware(req: NextRequest) {
     "/monitor": "/monitor-ios",
     "/device-control": "/device-control-ios",
     "/dashboard": "/dashboard-ios",
+    "/ai-assistant": "/ai-assistant-ios"
   }
 
   if (mobile && mapping[pathname]) {
@@ -36,6 +61,13 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/monitor", "/device-control", "/dashboard"],
+  // 匹配所有受保护的路由和需要移动端适配的路由
+  matcher: [
+    "/dashboard/:path*", 
+    "/monitor/:path*", 
+    "/device-control/:path*", 
+    "/settings/:path*",
+    "/profile/:path*",
+    "/ai-assistant/:path*"
+  ],
 }
-

@@ -30,6 +30,31 @@ export default function DashboardPage() {
   // Use shared weather data from context
   const { weatherData } = useWeatherContext()
 
+  // Batched history data fetching for optimization
+  const [historyDataMap, setHistoryDataMap] = useState<Record<string, any[]>>({})
+  
+  useEffect(() => {
+    const fetchAllHistory = async () => {
+        try {
+            // List of all types used in the dashboard
+            const types = [
+                'humidity', 'temperature', 'light', 'co2',
+                'soilMoisture', 'fertility', 'nitrogen', 
+                'phosphorus', 'potassium', 'rainfall'
+            ].join(',')
+            
+            const res = await fetch(`/api/device-history?types=${types}&range=1h`)
+            const data = await res.json()
+            if (data.success) {
+                setHistoryDataMap(data.data)
+            }
+        } catch (e) {
+            console.error("Failed to fetch dashboard history:", e)
+        }
+    }
+    fetchAllHistory()
+  }, [])
+
   const defaultLayout = [
     { i: "humidity", x: 0, y: 0, w: 3, h: 2 },
     { i: "temperature", x: 3, y: 0, w: 3, h: 2 },
@@ -211,6 +236,7 @@ export default function DashboardPage() {
                     type="humidity"
                     color="blue"
                     gradientColor="#60a5fa"
+                    initialHistoryData={historyDataMap['humidity']}
                   />
                 </div>
 
@@ -224,6 +250,7 @@ export default function DashboardPage() {
                     type="temperature"
                     color="orange"
                     gradientColor="#fb923c"
+                    initialHistoryData={historyDataMap['temperature']}
                   />
                 </div>
 
@@ -237,6 +264,7 @@ export default function DashboardPage() {
                     type="light"
                     color="yellow"
                     gradientColor="#facc15"
+                    initialHistoryData={historyDataMap['light']}
                   />
                 </div>
 
@@ -250,6 +278,7 @@ export default function DashboardPage() {
                     type="co2"
                     color="gray"
                     gradientColor="#9ca3af"
+                    initialHistoryData={historyDataMap['co2']}
                   />
                 </div>
 
@@ -263,6 +292,7 @@ export default function DashboardPage() {
                     type="soilMoisture"
                     color="cyan"
                     gradientColor="#22d3ee"
+                    initialHistoryData={historyDataMap['soilMoisture']}
                   />
                 </div>
 
@@ -276,6 +306,7 @@ export default function DashboardPage() {
                     type="fertility"
                     color="green"
                     gradientColor="#4ade80"
+                    initialHistoryData={historyDataMap['fertility']}
                   />
                 </div>
 
@@ -289,6 +320,7 @@ export default function DashboardPage() {
                     type="nitrogen"
                     color="purple"
                     gradientColor="#c084fc"
+                    initialHistoryData={historyDataMap['nitrogen']}
                   />
                 </div>
 
@@ -302,6 +334,7 @@ export default function DashboardPage() {
                     type="phosphorus"
                     color="pink"
                     gradientColor="#f472b6"
+                    initialHistoryData={historyDataMap['phosphorus']}
                   />
                 </div>
 
@@ -315,6 +348,7 @@ export default function DashboardPage() {
                     type="potassium"
                     color="amber"
                     gradientColor="#fbbf24"
+                    initialHistoryData={historyDataMap['potassium']}
                   />
                 </div>
 
@@ -323,7 +357,7 @@ export default function DashboardPage() {
                   <SpectralCard data={deviceData} />
                 </div>
 
-                {/* 降雨量 - Keep original custom card */}
+                {/* 降雨量 */}
                 <div key="rainfall">
                   {(() => {
                     const todayPrecip = weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0

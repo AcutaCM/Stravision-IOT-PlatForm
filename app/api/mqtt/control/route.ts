@@ -7,35 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { MQTTService } from '@/lib/mqtt-service'
-
-/**
- * Verify JWT token from request headers (optional)
- * 
- * @param {NextRequest} request - The incoming request
- * @returns {boolean} True if authentication is disabled or token is valid
- */
-function verifyAuthentication(request: NextRequest): boolean {
-  // Check if authentication is required
-  const requireAuth = process.env.MQTT_CONTROL_REQUIRE_AUTH === 'true'
-  
-  if (!requireAuth) {
-    return true // Authentication not required
-  }
-
-  // Get authorization header
-  const authHeader = request.headers.get('authorization')
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return false
-  }
-
-  // Extract token
-  const token = authHeader.substring(7)
-  
-  // TODO: Implement JWT verification using lib/auth.ts getJwtSecret()
-  // For now, just check if token exists
-  return token.length > 0
-}
+import { getCurrentUser } from '@/lib/auth'
 
 /**
  * Log structured message
@@ -97,48 +69,25 @@ function validateControlRequest(data: ControlRequest): string | null {
   if (!data.type || (data.type !== 'relay' && data.type !== 'led')) {
     return 'Invalid or missing type field. Must be "relay" or "led"'
   }
-
-  // Validate relay command
+  
   if (data.type === 'relay') {
-    if (data.relayNum === undefined) {
-      return 'Missing relayNum field for relay command'
-    }
-    if (data.newState === undefined) {
-      return 'Missing newState field for relay command'
+    if (data.relayNum === undefined || data.newState === undefined) {
+      return 'Relay command requires relayNum and newState'
     }
     if (data.relayNum < 5 || data.relayNum > 8) {
-      return 'relayNum must be between 5 and 8'
+      return 'Relay number must be between 5 and 8'
     }
     if (data.newState !== 0 && data.newState !== 1) {
-      return 'newState must be 0 or 1'
+      return 'Relay state must be 0 or 1'
     }
-  }
-
-  // Validate LED command
-  if (data.type === 'led') {
-    const validateLED = (value: number | undefined, name: string): string | null => {
-      if (value !== undefined && (value < 0 || value > 255)) {
-        return `${name} must be between 0 and 255`
+  } else if (data.type === 'led') {
+    // LED brightness validation is optional as they are optional fields
+    // But if provided, must be 0-255
+    const leds = [data.led1, data.led2, data.led3, data.led4]
+    for (const val of leds) {
+      if (val !== undefined && (val < 0 || val > 255)) {
+        return 'LED brightness must be between 0 and 255'
       }
-      return null
-    }
-
-    const led1Error = validateLED(data.led1, 'led1')
-    if (led1Error) return led1Error
-
-    const led2Error = validateLED(data.led2, 'led2')
-    if (led2Error) return led2Error
-
-    const led3Error = validateLED(data.led3, 'led3')
-    if (led3Error) return led3Error
-
-    const led4Error = validateLED(data.led4, 'led4')
-    if (led4Error) return led4Error
-
-    // At least one LED value should be provided
-    if (data.led1 === undefined && data.led2 === undefined && 
-        data.led3 === undefined && data.led4 === undefined) {
-      return 'At least one LED value (led1, led2, led3, or led4) must be provided'
     }
   }
 
@@ -155,8 +104,9 @@ function validateControlRequest(data: ControlRequest): string | null {
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    // Verify authentication (optional)
-    if (!verifyAuthentication(req)) {
+    // Verify authentication
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
       log('WARN', 'Unauthorized control command attempt')
       
       return NextResponse.json(

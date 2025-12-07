@@ -1,10 +1,11 @@
 import cron from "node-cron"
+import type { ScheduledTask as CronScheduledTask } from "node-cron"
 import { getActiveTasks, deleteTask, ScheduledTask } from "@/lib/db/scheduler-service"
 import { MQTTService } from "@/lib/mqtt-service"
 import { getValidatedMQTTConfig } from "@/lib/mqtt-config"
 
 // In-memory storage for running jobs
-const jobs: Map<number, cron.ScheduledTask | NodeJS.Timeout> = new Map()
+const jobs: Map<number, CronScheduledTask | NodeJS.Timeout> = new Map()
 
 export class SchedulerRunner {
   private static instance: SchedulerRunner

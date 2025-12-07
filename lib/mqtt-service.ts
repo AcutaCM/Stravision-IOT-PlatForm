@@ -430,10 +430,11 @@ export class MQTTService {
           led4: this.parseNumber(rawData.led4, this.latestData.led4),
           timestamp: Date.now()
         }
-      }
 
-      // Check for critical anomalies and send notifications
-      this.checkThresholds(this.latestData)
+        // Check for critical anomalies and send notifications
+        // Only check thresholds when env data is updated to avoid false alarms on initial 0s
+        this.checkThresholds(this.latestData)
+      }
 
       // Notify all listeners
       this.dataListeners.forEach(listener => {

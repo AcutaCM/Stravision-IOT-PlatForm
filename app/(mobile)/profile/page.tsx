@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { UserPublic } from "@/lib/db/user-service"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 
 export default function ProfilePage() {
@@ -240,8 +239,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
-
-        <MobileBottomNav position="sticky" />
       </div>
     </div>
   )

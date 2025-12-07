@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -18,6 +18,7 @@ interface DashboardChartCardProps {
     color: string // Tailwind color class prefix (e.g., 'blue', 'orange')
     gradientColor: string // Hex color for chart gradient
     deviceData?: any // Pass realtime data if needed for current value
+    initialHistoryData?: any[]
 }
 
 export function DashboardChartCard({
@@ -28,12 +29,24 @@ export function DashboardChartCard({
     type,
     color,
     gradientColor,
+    initialHistoryData,
 }: DashboardChartCardProps) {
     const [timeRange, setTimeRange] = useState("1h")
-    const [historyData, setHistoryData] = useState<any[]>([])
+    const [historyData, setHistoryData] = useState<any[]>(initialHistoryData || [])
     const [isLoading, setIsLoading] = useState(false)
+    
+    // Track if we have used the initial data to avoid refetching on mount
+    const isFirstRender = useRef(true)
 
     useEffect(() => {
+        // Skip fetch on first render if we have initial data
+        if (isFirstRender.current) {
+            isFirstRender.current = false
+            if (initialHistoryData) {
+                return
+            }
+        }
+
         const fetchHistory = async () => {
             setIsLoading(true)
             try {
@@ -51,6 +64,16 @@ export function DashboardChartCard({
 
         fetchHistory()
     }, [type, timeRange])
+
+    // Update historyData if initialHistoryData changes (e.g. parent refetches)
+    // Note: We need to be careful not to overwrite user-selected range data with default range data from parent
+    // But since parent only fetches on mount, this is mostly fine.
+    useEffect(() => {
+        if (initialHistoryData && timeRange === '1h') {
+             setHistoryData(initialHistoryData)
+        }
+    }, [initialHistoryData])
+
 
     const getOption = () => {
         return {
@@ -98,10 +121,11 @@ export function DashboardChartCard({
                             y: 0,
                             x2: 0,
                             y2: 1,
-                            colorStops: [
-                                { offset: 0, color: `${gradientColor}66` }, // 40% opacity
-                                { offset: 1, color: `${gradientColor}1A` }  // 10% opacity
-                            ]
+                            colorStops: [{
+                                offset: 0, color: `${gradientColor}33` // 20% opacity
+                            }, {
+                                offset: 1, color: `${gradientColor}00` // 0% opacity
+                            }],
                         }
                     }
                 }
@@ -109,51 +133,45 @@ export function DashboardChartCard({
         }
     }
 
-    // Map color prop to specific tailwind classes
-    const badgeBg = `bg-${color}-500/20`
-    const badgeText = `text-${color}-600`
-    const badgeBorder = `border-${color}-500/30`
-
     return (
-        <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move flex flex-col">
-            <CardContent className="p-6 flex-1 flex flex-col justify-between">
-                <div className="flex items-start justify-between mb-4">
-                    <div>
-                        <div className="text-5xl font-bold text-foreground mb-2">
-                            {value}
-                            <span className="text-2xl font-normal text-muted-foreground ml-1">{unit}</span>
+        <Card className="h-full shadow-lg border-l-4" style={{ borderLeftColor: gradientColor }}>
+            <CardContent className="p-4 h-full flex flex-col">
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400`}>
+                            {icon}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Badge className={`${badgeBg} ${badgeText} ${badgeBorder}`}>
-                                {title}
-                            </Badge>
-                            <Select value={timeRange} onValueChange={setTimeRange}>
-                                <SelectTrigger className="h-6 w-[80px] text-xs bg-transparent border-none focus:ring-0 p-0 text-muted-foreground hover:text-foreground">
-                                    <SelectValue placeholder="Range" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="1h">1 小时</SelectItem>
-                                    <SelectItem value="1d">1 天</SelectItem>
-                                    <SelectItem value="7d">7 天</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                            <div className="flex items-baseline gap-1">
+                                <h3 className="text-2xl font-bold">{value}</h3>
+                                <span className="text-sm text-muted-foreground">{unit}</span>
+                            </div>
                         </div>
                     </div>
-                    {icon}
+                    <Select value={timeRange} onValueChange={setTimeRange}>
+                        <SelectTrigger className="w-[70px] h-8 text-xs">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="1h">1h</SelectItem>
+                            <SelectItem value="1d">24h</SelectItem>
+                            <SelectItem value="7d">7d</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-
-                <div className="h-16 w-full relative">
-                    {isLoading ? (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                
+                <div className="flex-1 w-full min-h-0 relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                    ) : (
-                        <ReactECharts
-                            option={getOption()}
-                            style={{ height: '100%', width: '100%' }}
-                            opts={{ renderer: 'svg' }}
-                        />
                     )}
+                    <ReactECharts 
+                        option={getOption()} 
+                        style={{ height: '100%', width: '100%' }}
+                        opts={{ renderer: 'svg' }} // Use SVG renderer for better performance
+                    />
                 </div>
             </CardContent>
         </Card>

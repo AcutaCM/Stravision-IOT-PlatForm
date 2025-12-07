@@ -1,0 +1,40 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # No ports exposed, only accessible within the network
+    volumes:
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
+    environment:
+      - NODE_ENV=production
+    restart: always
+    networks:
+      - app-network
+
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference
+    # No ports exposed, only accessible within the network
+    restart: always
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - inference
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

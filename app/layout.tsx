@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { WeatherProvider } from "@/lib/contexts/weather-context";
+import { DeviceProvider } from "@/lib/contexts/device-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SchedulerInit } from "@/components/scheduler-init";
 import { Toaster } from "sonner";
@@ -28,11 +29,13 @@ export default function RootLayout({
         >
           <SchedulerInit />
           <WeatherProvider>
-            <PageTransition>
-              {children}
-            </PageTransition>
-            <OnboardingGuide />
-            <Toaster />
+            <DeviceProvider>
+              <PageTransition>
+                {children}
+              </PageTransition>
+              <OnboardingGuide />
+              <Toaster />
+            </DeviceProvider>
           </WeatherProvider>
         </ThemeProvider>
       </body>

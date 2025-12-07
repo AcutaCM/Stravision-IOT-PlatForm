@@ -26,13 +26,22 @@ import {
   Zap,
   ArrowUpRight,
   ArrowRight,
-  Plus
+  Plus,
+  Menu,
+  Infinity,
+  Mic,
+  Image as ImageIcon,
+  Camera,
+  Rocket,
+  Trash,
+  History
 } from "lucide-react"
 import MermaidChart from "@/components/mermaid-chart"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import ChartRenderer from "@/components/chart-renderer"
 import {
   PromptInputModelSelect,
@@ -43,7 +52,7 @@ import {
   ConversationContent,
 } from "@/components/ui/assistant-ui"
 
-import { AISettingsDialog } from "@/components/ai-settings-dialog"
+import { MobileAISettingsModal } from "@/components/mobile-ai-settings-modal"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { cn } from "@/lib/utils"
@@ -53,7 +62,6 @@ import { DeviceBentoGrid } from "@/components/ai/device-bento-grid"
 import { ControlBentoGrid } from "@/components/ai/control-bento-grid"
 import { ScheduleCard } from "@/components/ai/schedule-card"
 import { ScheduledTasksList } from "@/components/ai/scheduled-tasks-list"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 
 interface Citation {
   number: string
@@ -95,6 +103,7 @@ export default function AIAssistantIOSPage() {
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
   const [enableReasoning, setEnableReasoning] = useState(false)
   const [selectedModel, setSelectedModel] = useState<string>("")
@@ -417,6 +426,23 @@ export default function AIAssistantIOSPage() {
         setSessions(prev => [s, ...prev])
         setMessages([])
         setInput("")
+        setSheetOpen(false)
+      }
+    } catch {}
+  }
+
+  const deleteSession = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" })
+      if (res.ok) {
+        setSessions(prev => prev.filter(s => s.id !== id))
+        if (sessionId === id) {
+          setSessionId("")
+          setMessages([])
+          createNewSession()
+        }
+        showNotice("会话已删除", undefined, "success")
       }
     } catch {}
   }
@@ -491,7 +517,7 @@ export default function AIAssistantIOSPage() {
                       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                         <h3 className="font-medium text-sm text-gray-900">{task.title}</h3>
                         <div className={cn("px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide", task.status === 'completed' ? "bg-green-100 text-green-700" : task.status === 'in_progress' ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600")}>
-                          {task.status === 'completed' ? 'Completed' : task.status === 'in_progress' ? 'In Progress' : 'Pending'}
+                          {task.status === 'completed' ? '已完成' : task.status === 'in_progress' ? '进行中' : '待处理'}
                         </div>
                       </div>
                       <div className="p-0">
@@ -562,7 +588,7 @@ export default function AIAssistantIOSPage() {
                             </div>
                           ))}
                        </div>
-                       <span className="text-sm text-gray-500 font-medium group-hover:text-gray-700">Source</span>
+                       <span className="text-sm text-gray-500 font-medium group-hover:text-gray-700">来源</span>
                     </div>
                   </div>
                 </div>
@@ -625,7 +651,7 @@ export default function AIAssistantIOSPage() {
                          <Zap size={18} className="animate-pulse" />
                          <div className="flex flex-col items-start">
                            <span className="text-sm font-bold leading-none">立即执行指令</span>
-                           <span className="text-[10px] opacity-80 font-mono mt-0.5">Execute {commands.length} Command{commands.length > 1 ? 's' : ''}</span>
+                           <span className="text-[10px] opacity-80 font-mono mt-0.5">执行 {commands.length} 个指令</span>
                          </div>
                          <ArrowRight size={16} className="opacity-60 group-hover:translate-x-1 transition-transform" />
                       </button>
@@ -639,56 +665,141 @@ export default function AIAssistantIOSPage() {
   }
 
   return (
-    <div className="min-h-screen w-screen bg-slate-50 dark:bg-[#0B1121] text-foreground overflow-hidden font-sans transition-colors duration-500 flex flex-col">
+    <div className="h-[100dvh] w-full bg-slate-50 dark:bg-[#0B1121] text-foreground overflow-hidden font-sans transition-colors duration-500 flex flex-col fixed inset-0">
       {/* Background blobs */}
       <div className="fixed top-[-20%] right-[-20%] w-[80%] h-[60%] rounded-full bg-blue-200/20 dark:bg-blue-900/10 blur-[100px] pointer-events-none" />
       <div className="fixed top-[20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-200/20 dark:bg-indigo-900/10 blur-[100px] pointer-events-none" />
 
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 h-16 bg-white/70 dark:bg-[#0B1121]/70 backdrop-blur-lg border-b border-white/20 dark:border-white/5 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-           <div className="size-8 relative flex-shrink-0 rounded-full overflow-hidden bg-white border border-gray-100">
-              <Image src="/logo.gif" alt="Logo" width={32} height={32} className="object-cover" unoptimized />
+      <div className="fixed top-0 left-0 right-0 z-40 h-16 bg-white/70 dark:bg-[#0B1121]/70 backdrop-blur-lg px-6 flex items-center justify-between">
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetTrigger asChild>
+            <button className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+              <Menu size={24} className="text-gray-800 dark:text-gray-200" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[300px] p-0 border-r border-gray-200 dark:border-gray-800">
+            <div className="flex flex-col h-full bg-white dark:bg-[#0B1121]">
+              <div className="p-6 pb-4">
+                <button 
+                  onClick={() => createNewSession()}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-2xl transition-all shadow-lg shadow-blue-500/20"
+                >
+                  <Plus size={20} strokeWidth={2.5} />
+                  <span className="font-semibold tracking-wide">新建对话</span>
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto px-3 pb-6">
+                <div className="px-3 py-2 mb-2 flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  <History size={12} />
+                  <span>历史记录</span>
+                </div>
+                <div className="space-y-1">
+                  {sessions.map(s => (
+                    <div 
+                      key={s.id} 
+                      onClick={() => { setSessionId(s.id); setSheetOpen(false) }}
+                      className={cn(
+                        "group flex items-center justify-between px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-200",
+                        sessionId === s.id 
+                          ? "bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white font-medium" 
+                          : "hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400"
+                      )}
+                    >
+                      <span className="text-sm truncate flex-1 pr-4 leading-none">{s.title}</span>
+                      <button 
+                        onClick={(e) => deleteSession(s.id, e)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {sessions.length === 0 && (
+                    <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                      暂无历史记录
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* User Profile in Sidebar */}
+              <div className="p-4 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3 px-2">
+                  <Avatar className="size-9 border border-gray-200 dark:border-gray-700">
+                    <AvatarImage src={user?.avatar_url || undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs">
+                      {user?.username?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{user?.username || '用户'}</div>
+                    <div className="text-xs text-gray-500 truncate">专业版</div>
+                  </div>
+                  <button onClick={() => setSettingsOpen(true)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    <Settings size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+        
+        <div className="flex items-center gap-3 font-serif text-xl font-medium tracking-wide">
+           <div className="relative size-8 rounded-full overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm">
+             <Image src="/logo.gif" alt="Logo" fill className="object-cover" unoptimized />
            </div>
-           <span className="font-bold text-lg">AI 助手</span>
+           <span>你好, {user?.username || '朋友'}!</span>
         </div>
-        <div className="flex items-center gap-2">
-           <button onClick={createNewSession} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-              <Plus size={20} />
-           </button>
-           <button onClick={() => setSettingsOpen(true)} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
-              <Settings size={20} />
-           </button>
-        </div>
+
+        <button onClick={() => setSettingsOpen(true)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+           <Infinity size={24} className="text-gray-800 dark:text-gray-200" />
+        </button>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col pt-16 pb-20 relative z-10">
-         <ScrollArea className="flex-1 px-4">
-           <div className="flex flex-col gap-6 pb-32 pt-4">
+      <div className="flex-1 flex flex-col pt-16 relative z-10 min-h-0">
+         <ScrollArea className="flex-1 px-4 h-full">
+           <div className="flex flex-col gap-6 pb-48 pt-4">
              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center mt-20 space-y-8">
-                   <div className="text-center space-y-2">
-                      <h2 className="text-3xl font-bold">晚上好, {user?.username || '朋友'}</h2>
-                      <p className="text-muted-foreground">今天想聊点什么？</p>
+                <div className="flex flex-col items-center justify-center flex-1 space-y-10">
+                   {/* Central Logo */}
+                   <div className="relative w-48 h-48 mx-auto my-8 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+                      <Image 
+                        src="/logo.gif" 
+                        alt="App Logo" 
+                        width={192} 
+                        height={192} 
+                        className="object-contain relative z-10 drop-shadow-2xl hover:scale-105 transition-transform duration-500" 
+                        unoptimized
+                      />
                    </div>
+
+                   {/* Greeting Text */}
+                   <h2 className="text-3xl font-serif text-center leading-tight text-gray-800 dark:text-gray-100 max-w-[280px]">
+                      您的草莓大棚<br/>智能管家
+                   </h2>
                    
-                   <div className="grid grid-cols-2 gap-3 w-full max-w-md">
-                      {[
-                         { icon: <Activity size={16} />, text: "分析环境", action: "分析当前环境数据" },
-                         { icon: <Sprout size={16} />, text: "灌溉计划", action: "制定今日灌溉计划" },
-                         { icon: <Search size={16} />, text: "病虫害诊断", action: "诊断草莓病害" },
-                         { icon: <Zap size={16} />, text: "设备检查", action: "检查设备运行状态" },
-                       ].map((item, i) => (
-                          <button 
-                            key={i}
-                            onClick={() => handleSend(item.action)}
-                            className="flex flex-col items-center justify-center gap-2 p-4 bg-white/60 dark:bg-white/5 border border-white/20 rounded-2xl hover:bg-white/80 transition-all"
-                          >
-                            <span className="text-blue-500">{item.icon}</span>
-                            <span className="text-sm font-medium">{item.text}</span>
-                          </button>
-                       ))}
+                   {/* Action Chips */}
+                   <div className="flex gap-3 overflow-x-auto w-full max-w-sm justify-center py-2 no-scrollbar px-4">
+                      <button onClick={() => handleSend("分析当前大棚环境数据")} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all whitespace-nowrap flex-shrink-0">
+                         <Activity size={16} className="text-purple-500" />
+                         <span className="text-sm font-medium">环境分析</span>
+                      </button>
+                      <button onClick={() => handleSend("检查所有设备运行状态")} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all whitespace-nowrap flex-shrink-0">
+                         <Zap size={16} className="text-blue-500" />
+                         <span className="text-sm font-medium">设备检查</span>
+                      </button>
+                      <button onClick={() => handleSend("草莓常见病害有哪些？")} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all whitespace-nowrap flex-shrink-0">
+                         <Search size={16} className="text-green-500" />
+                         <span className="text-sm font-medium">病害咨询</span>
+                      </button>
+                       <button onClick={() => handleSend("制定今天的灌溉计划")} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 rounded-full border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all whitespace-nowrap flex-shrink-0">
+                         <Sprout size={16} className="text-amber-500" />
+                         <span className="text-sm font-medium">灌溉计划</span>
+                      </button>
                    </div>
                 </div>
              ) : (
@@ -703,12 +814,12 @@ export default function AIAssistantIOSPage() {
                       </div>
                     )}
                     <div className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+                      "max-w-[85%] min-w-0 break-words rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
                       msg.role === "user" 
                         ? "bg-blue-600 text-white rounded-tr-sm" 
                         : "bg-white dark:bg-[#1a1a1a] text-foreground border border-gray-100 dark:border-gray-800 rounded-tl-sm"
                     )}>
-                      <div className={cn("prose prose-sm max-w-none dark:prose-invert", msg.role === "user" ? "prose-invert" : "")}>
+                      <div className={cn("prose prose-sm max-w-none dark:prose-invert break-words", msg.role === "user" ? "prose-invert" : "")}>
                         {renderMessageContent(msg)}
                       </div>
                     </div>
@@ -732,10 +843,10 @@ export default function AIAssistantIOSPage() {
          </ScrollArea>
 
          {/* Floating Input Bar */}
-         <div className="fixed bottom-20 left-0 right-0 px-4 z-40">
-            <div className="bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl rounded-[24px] border border-white/20 shadow-lg p-2 flex flex-col gap-2">
+         <div className="fixed bottom-[88px] left-0 right-0 px-4 z-40">
+            <div className="bg-white/95 dark:bg-[#1a1a1a]/95 backdrop-blur-xl rounded-[32px] shadow-[0_8px_40px_-12px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-gray-800 p-2 flex flex-col gap-2 relative">
                {attachments.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto px-2 py-1">
+                  <div className="flex gap-2 overflow-x-auto px-4 py-2">
                      {attachments.map((url, i) => (
                         <div key={i} className="relative size-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
                            <Image src={url} alt="preview" fill className="object-cover" />
@@ -744,36 +855,82 @@ export default function AIAssistantIOSPage() {
                      ))}
                   </div>
                )}
-               <div className="flex items-center gap-2 pl-2 pr-1">
-                  <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 hover:text-gray-600"><Paperclip size={20} /></button>
+               
+               <div className="flex flex-col gap-2 p-2">
                   <textarea 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="问点什么..."
-                    className="flex-1 bg-transparent border-0 focus:ring-0 resize-none py-2 max-h-20 text-sm"
+                    placeholder="输入关于草莓种植的问题..."
+                    className="w-full bg-transparent border-0 focus:ring-0 resize-none px-2 py-1 min-h-[44px] text-base placeholder:text-gray-400"
                     rows={1}
                   />
-                  <button 
-                    onClick={() => handleSend()}
-                    disabled={!input.trim() && attachments.length === 0}
-                    className={cn(
-                      "p-2 rounded-full transition-all",
-                      (input.trim() || attachments.length > 0) 
-                        ? "bg-blue-600 text-white shadow-md" 
-                        : "bg-gray-100 text-gray-300"
-                    )}
-                  >
-                     <ArrowUp size={20} />
-                  </button>
+                  
+                  <div className="flex items-center justify-between px-1">
+                     <div className="flex items-center gap-2">
+                        <button onClick={() => fileInputRef.current?.click()} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 transition-colors">
+                           <Paperclip size={20} />
+                        </button>
+                        <PromptInputModelSelect value={selectedModel || aiSettings?.model || "qwen-vl-plus"} onValueChange={(val) => {
+                           setSelectedModel(val)
+                           if (aiSettings) {
+                              const newSettings = { ...aiSettings, model: val }
+                              setAiSettings(newSettings)
+                              localStorage.setItem("ai-settings", JSON.stringify(newSettings))
+                           } else {
+                              const defaultSettings = {
+                                 apiKey: "",
+                                 apiUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                                 model: val,
+                                 systemPrompt: ""
+                              }
+                              setAiSettings(defaultSettings)
+                              localStorage.setItem("ai-settings", JSON.stringify(defaultSettings))
+                           }
+                        }}>
+                           <PromptInputModelSelectTrigger className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500 transition-colors border-0 shadow-none h-auto">
+                              <Rocket size={16} />
+                              <span className="text-sm font-medium max-w-[80px] truncate">{selectedModel || aiSettings?.model || "自动"}</span>
+                              <ChevronDown size={14} />
+                           </PromptInputModelSelectTrigger>
+                           <PromptInputModelSelectContent className="w-[200px] mb-2" align="start" side="top">
+                              <PromptInputModelSelectItem value="qwen3-vl-plus">Qwen3 VL Plus</PromptInputModelSelectItem>
+                              <PromptInputModelSelectItem value="qwen3-vl-flash">Qwen3 VL Flash</PromptInputModelSelectItem>
+                              <PromptInputModelSelectItem value="qwen3-max">Qwen3 Max</PromptInputModelSelectItem>
+                              <PromptInputModelSelectItem value="qwen3-flash">Qwen3 Flash</PromptInputModelSelectItem>
+                           </PromptInputModelSelectContent>
+                        </PromptInputModelSelect>
+                     </div>
+
+                     <button 
+                        onClick={() => handleSend()}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-full transition-all",
+                          (input.trim() || attachments.length > 0) 
+                            ? "bg-black dark:bg-white text-white dark:text-black shadow-lg hover:shadow-xl active:scale-95" 
+                            : "bg-gray-100 dark:bg-white/10 text-gray-400"
+                        )}
+                     >
+                        {(input.trim() || attachments.length > 0) ? (
+                           <>
+                              <ArrowUp size={18} />
+                              <span className="font-medium text-sm">发送</span>
+                           </>
+                        ) : (
+                           <>
+                              <Mic size={18} />
+                              <span className="font-medium text-sm">语音</span>
+                           </>
+                        )}
+                     </button>
+                  </div>
                </div>
+               
                <input ref={fileInputRef} type="file" accept="image/*,.pdf,.doc,.docx,.txt,.md" multiple className="hidden" onChange={onSelectFiles} />
             </div>
          </div>
       </div>
 
-      <MobileBottomNav />
-
-      <AISettingsDialog
+      <MobileAISettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         onSave={handleSettingsSave}

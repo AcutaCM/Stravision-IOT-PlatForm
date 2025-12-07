@@ -172,7 +172,17 @@ export function USBCameraPlayer({
     // AI Inference WebSocket Connection
     useEffect(() => {
         // Connect to WebSocket Server (FastAPI defaults to 8000 and endpoint /ws)
-        const ws = new WebSocket("ws://localhost:8000/ws")
+        let wsUrl: string
+        if (process.env.NODE_ENV === 'development') {
+          wsUrl = "ws://localhost:8000/ws"
+        } else {
+          // Use relative path /inference/ws handled by Nginx
+          // Construct absolute URL based on current location protocol
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+          wsUrl = `${protocol}//${window.location.host}/inference/ws`
+        }
+
+        const ws = new WebSocket(wsUrl)
         
         ws.onopen = () => {
           console.log("Connected to inference server")

@@ -37,24 +37,24 @@ function CountdownToast({ id, targetTime, title }: { id: string | number, target
   const progress = Math.max(0, Math.min(100, (remaining / totalDuration) * 100))
 
   return (
-    <div className="w-[356px] bg-white rounded-xl shadow-lg border border-gray-200 p-4 flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
+    <div className="w-[356px] bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-gray-200 dark:border-white/10 p-4 flex flex-col gap-3 pointer-events-auto relative overflow-hidden">
       <div className="flex items-start justify-between gap-2 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 animate-pulse">
+          <div className="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 animate-pulse">
             <Timer size={18} />
           </div>
           <div>
-            <div className="font-semibold text-gray-900">任务倒计时</div>
-            <div className="text-xs text-gray-500 max-w-[200px] truncate">{title}</div>
+            <div className="font-semibold text-gray-900 dark:text-gray-100">任务倒计时</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">{title}</div>
           </div>
         </div>
-        <div className="text-xl font-bold text-blue-600 font-mono w-12 text-right">{remaining}s</div>
+        <div className="text-xl font-bold text-blue-600 dark:text-blue-400 font-mono w-12 text-right">{remaining}s</div>
       </div>
       
       {/* Progress Bar */}
-      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden relative z-10">
+      <div className="h-1.5 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden relative z-10">
         <div 
-          className="h-full bg-blue-500 transition-all duration-1000 ease-linear" 
+          className="h-full bg-blue-500 dark:bg-blue-600 transition-all duration-1000 ease-linear" 
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -62,7 +62,7 @@ function CountdownToast({ id, targetTime, title }: { id: string | number, target
       {/* Close Button */}
       <button 
         onClick={() => toast.dismiss(id)} 
-        className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors z-20"
+        className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-white/10 dark:hover:text-gray-200 rounded-md transition-colors z-20"
       >
         <X size={14} />
       </button>
@@ -142,30 +142,30 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
 
   if (status === 'success') {
     return (
-      <div className="my-4 p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3">
-        <div className="size-10 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+      <div className="my-4 p-4 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20 rounded-xl flex items-center gap-3">
+        <div className="size-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 shrink-0">
            <CheckCircle2 size={20} />
         </div>
         <div>
-           <div className="font-semibold text-green-900">任务已设定</div>
-           <div className="text-xs text-green-700">{data.title}</div>
+           <div className="font-semibold text-green-900 dark:text-green-100">任务已设定</div>
+           <div className="text-xs text-green-700 dark:text-green-300">{data.title}</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="my-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-blue-100 flex items-center gap-2">
-          <CalendarClock size={18} className="text-blue-600" />
-          <span className="font-semibold text-blue-900 text-sm">建议定时任务</span>
+    <div className="my-4 bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-4 py-3 border-b border-blue-100 dark:border-white/5 flex items-center gap-2">
+          <CalendarClock size={18} className="text-blue-600 dark:text-blue-400" />
+          <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">建议定时任务</span>
        </div>
        
        <div className="p-4 space-y-3">
           <div>
-             <div className="text-lg font-bold text-gray-900">{data.title}</div>
-             <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                <span className="bg-gray-100 px-2 py-0.5 rounded text-xs font-mono">
+             <div className="text-lg font-bold text-gray-900 dark:text-white">{data.title}</div>
+             <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-1">
+                <span className="bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded text-xs font-mono">
                    {data.cron 
                      ? `Cron: ${data.cron}` 
                      : data.delay_seconds 
@@ -174,7 +174,7 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
                    }
                 </span>
                 <ArrowRight size={14} />
-                <span className="text-gray-700 font-medium">
+                <span className="text-gray-700 dark:text-gray-300 font-medium">
                    {data.task_action === 'toggle_relay' ? `设备 ${data.device} -> ${data.value ? '开' : '关'}` : '调节灯光'}
                 </span>
              </div>
@@ -183,7 +183,7 @@ export function ScheduleCard({ data }: { data: ScheduleData }) {
           <button 
             onClick={handleConfirm}
             disabled={status === 'loading'}
-            className="w-full flex items-center justify-center gap-2 bg-black text-white py-2.5 rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-all active:scale-[0.98] font-medium text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-black dark:bg-white text-white dark:text-black py-2.5 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-all active:scale-[0.98] font-medium text-sm"
           >
              {status === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
              确认创建任务

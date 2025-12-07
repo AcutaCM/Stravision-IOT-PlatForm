@@ -3,7 +3,6 @@
 import { useEffect, useState, type ElementType } from "react"
 import Image from "next/image"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import { MobileBackground } from "@/components/mobile-background"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
 import type { UserPublic } from "@/lib/db/user-service"
@@ -150,7 +149,6 @@ export default function DashboardIOSPage() {
             <StatCard icon={FireIcon} label="土壤温度" value={deviceData ? (deviceData.earth_temp / 10).toFixed(1) : '--'} unit="°C" color="text-rose-500" bg="bg-rose-500/10" />
           </div>
         </div>
-        <MobileBottomNav position="sticky" />
       </div>
     </div>
   )

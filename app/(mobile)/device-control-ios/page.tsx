@@ -1,35 +1,35 @@
 "use client"
 
-import { useEffect, useState, type ElementType } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import Image from "next/image"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
+import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import {
   LightBulbIcon,
-  SpeakerWaveIcon,
+  SunIcon,
+  BeakerIcon,
+  CloudIcon,
+  FireIcon,
   PlusIcon,
   Bars3Icon,
-  FireIcon,
-  BeakerIcon,
-  BoltIcon,
-  PlayIcon,
-  SpeakerXMarkIcon,
-  ArrowsPointingOutIcon,
-  SunIcon,
   ArrowPathIcon,
-  CloudIcon
+  BoltIcon
 } from "@heroicons/react/24/outline"
-import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 import type { UserPublic } from "@/lib/db/user-service"
+import { MobileBackground } from "@/components/mobile-background"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
-import { LiveStreamPlayer } from "@/components/live-stream-player"
+import { motion } from "framer-motion"
+import { WeatherCard } from "@/components/weather-card"
 
 // --- Components ---
 
-
 function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: string) => void }) {
-  const rooms = ["常用", "种植区A", "种植区B", "控制室"]
+  const rooms = ["全部设备", "种植区A", "种植区B", "控制室"]
 
   return (
     <div className="flex items-center gap-3 overflow-x-auto px-4 py-2 no-scrollbar">
@@ -48,7 +48,7 @@ function RoomTabs({ selected, onSelect }: { selected: string; onSelect: (room: s
           </button>
         )
       })}
-      <button className="p-2 rounded-full bg-white/60 dark:bg-white/5 text-foreground/70">
+      <button className="p-2 rounded-full bg-white/40 dark:bg-black/20 text-foreground/70">
         <Bars3Icon className="size-5" />
       </button>
     </div>
@@ -67,7 +67,7 @@ function DeviceCard({
 }: {
   title: string;
   subtitle: string;
-  icon: ElementType;
+  icon: any;
   isOn: boolean;
   onToggle?: () => void;
   room: string;
@@ -75,25 +75,18 @@ function DeviceCard({
   disabled?: boolean;
 }) {
   return (
-    <div className={`relative rounded-[2rem] p-5 shadow-sm flex flex-col justify-between h-[160px] transition-all duration-300 ${isOn
-      ? 'bg-[#2c3e50] dark:bg-[#1e2936]'
-      : 'bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl border border-white/20 dark:border-white/5'
-      } ${className}`}>
+    <div className={`relative bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl rounded-[2rem] p-5 shadow-sm border border-white/20 dark:border-white/5 flex flex-col justify-between h-[160px] transition-all duration-300 ${className}`}>
       <div className="flex justify-between items-start">
-        <div className={`size-12 rounded-full flex items-center justify-center transition-colors duration-300 ${isOn
-          ? 'bg-blue-500/20 text-blue-300'
-          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-          }`}>
+        <div className={`size-12 rounded-full flex items-center justify-center transition-colors duration-300 ${isOn ? 'bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
           <Icon className="size-7" />
         </div>
-        <span className={`text-xs font-medium ${isOn ? 'text-blue-200/70' : 'text-slate-400'}`}>{room}</span>
+        <span className="text-xs text-slate-400 font-medium">{room}</span>
       </div>
 
       <div>
-        <h3 className={`text-base font-bold mb-1 ${isOn ? 'text-white' : 'text-foreground'}`}>{title}</h3>
+        <h3 className="text-base font-bold text-foreground mb-1">{title}</h3>
         <div className="flex items-center justify-between">
-          <span className={`text-xs font-medium transition-colors duration-300 ${isOn ? 'text-blue-200/80' : 'text-slate-400'
-            }`}>
+          <span className={`text-xs font-medium transition-colors duration-300 ${isOn ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`}>
             {subtitle}
           </span>
 
@@ -101,11 +94,9 @@ function DeviceCard({
             <button
               onClick={(e) => { e.stopPropagation(); if (!disabled) onToggle(); }}
               disabled={disabled}
-              className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${isOn ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${isOn ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <div className={`absolute top-1 size-5 rounded-full transition-all duration-300 ${isOn ? 'left-[22px] bg-white' : 'left-1 bg-white'
-                }`} />
+              <div className={`absolute top-1 size-5 rounded-full transition-all duration-300 ${isOn ? 'left-[22px] bg-white' : 'left-1 bg-white'}`} />
             </button>
           )}
         </div>
@@ -114,12 +105,29 @@ function DeviceCard({
   )
 }
 
-export default function MonitorIOSPage() {
+function SliderRow({ label, value, onChange, color, displayValue }: { label: string; value: number; onChange: (v: number) => void; color: string; displayValue?: string }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+        <span className="text-sm font-bold text-foreground">{displayValue || value}</span>
+      </div>
+      <input type="range" min={0} max={255} value={value} onChange={(e) => onChange(parseInt(e.target.value))} className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow" style={{ background: `linear-gradient(to right, ${color} 0%, ${color} ${(value / 255) * 100}%, var(--muted) ${(value / 255) * 100}%, var(--muted) 100%)` }} />
+    </div>
+  )
+}
+
+export default function DeviceControlIOSPage() {
   const { deviceData, connectionStatus } = useDeviceData()
-  const { status: controlStatus, toggleRelay } = useDeviceControl()
+  const { status: controlStatus, toggleRelay, setLEDs } = useDeviceControl()
   const { weatherData } = useWeatherContext()
   const [user, setUser] = useState<UserPublic | null>(null)
-  const [selectedRoom, setSelectedRoom] = useState("常用")
+  const [selectedRoom, setSelectedRoom] = useState("全部设备")
+
+  const [localR, setLocalR] = useState<number | null>(null)
+  const [localG, setLocalG] = useState<number | null>(null)
+  const [localB, setLocalB] = useState<number | null>(null)
+  const [localW, setLocalW] = useState<number | null>(null)
 
   useEffect(() => {
     ; (async () => {
@@ -131,19 +139,20 @@ export default function MonitorIOSPage() {
     })()
   }, [])
 
+  const r = (localR ?? deviceData?.led1 ?? 0)
+  const g = (localG ?? deviceData?.led2 ?? 0)
+  const b = (localB ?? deviceData?.led3 ?? 0)
+  const w = (localW ?? deviceData?.led4 ?? 0)
+
   const handleRelayToggle = async (relayNum: number) => {
     if (!deviceData) return
     const currentState = (deviceData[`relay${relayNum}` as keyof typeof deviceData] as number) || 0
     await toggleRelay(relayNum, currentState)
   }
 
-  // Count active devices
-  const activeCount = [
-    deviceData?.relay5,
-    deviceData?.relay6,
-    deviceData?.relay7,
-    deviceData?.relay8
-  ].filter(state => state === 1).length
+  const handleLEDUpdate = async () => {
+    await setLEDs(r, g, b, w)
+  }
 
   return (
     <div className="min-h-screen w-screen bg-slate-50 dark:bg-[#0B1121] text-foreground overflow-hidden font-sans transition-colors duration-500">
@@ -203,57 +212,11 @@ export default function MonitorIOSPage() {
           </div>
         </div>
 
-        <div className="px-4 mb-4">
-          <div className="relative bg-[#1a1a1a] dark:bg-[#0a0a0a] rounded-[2rem] overflow-hidden h-[200px] shadow-xl">
-            <LiveStreamPlayer
-              sources={[
-                { src: "webrtc://223897.push.tlivecloud.com/live/stravision?txSecret=9f7996a9d4295232332d40ab868648c5&txTime=69297772" },
-                { src: "http://yidiudiu1.top/live/stravision.m3u8" },
-                { src: "http://yidiudiu1.top/live/stravision.flv" }
-              ]}
-              licenseUrl={process.env.NEXT_PUBLIC_TCPLAYER_LICENSE_URL}
-              autoplay
-              muted
-              controls={false}
-              className="absolute inset-0 w-full h-full"
-            />
-
-            {/* Live Badge */}
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-500/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-              <span className="size-2 rounded-full bg-white animate-pulse" />
-              <span className="text-white text-xs font-bold">Live</span>
-            </div>
-
-            {/* Location Tag */}
-            <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full">
-              <span className="text-white text-xs font-medium">1号机</span>
-            </div>
-
-            {/* Controls */}
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
-              <button className="size-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
-                <SpeakerXMarkIcon className="size-5 text-white" />
-              </button>
-              <button className="size-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
-                <ArrowsPointingOutIcon className="size-5 text-white" />
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* Room Tabs */}
         <RoomTabs selected={selectedRoom} onSelect={setSelectedRoom} />
 
-        {/* Execution Devices Section */}
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-foreground">执行设备 <span className="text-sm text-slate-400">({activeCount}台设备运行中)</span></h2>
-            <button className="text-blue-600 text-sm font-medium">+</button>
-          </div>
-        </div>
-
         {/* Device Grid */}
-        <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 py-6 pb-32 no-scrollbar">
           <div className="grid grid-cols-2 gap-4">
 
             {/* Relay 5: Water Pump */}
@@ -300,10 +263,61 @@ export default function MonitorIOSPage() {
               disabled={controlStatus.loading || !connectionStatus.connected}
             />
 
+            {/* RGB Control Card */}
+            <div className="col-span-2 bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl rounded-[2rem] p-5 shadow-sm border border-white/20 dark:border-white/5">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <LightBulbIcon className="size-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">补光灯 (RGB)</h3>
+                    <span className="text-xs text-slate-400 font-medium">控制室</span>
+                  </div>
+                </div>
+                <div className="w-12 h-6 rounded-full border border-border" style={{ backgroundColor: `rgb(${r}, ${g}, ${b})` }} />
+              </div>
+
+              <div className="space-y-3">
+                <SliderRow label="红色" value={r} onChange={setLocalR} color="#ef4444" />
+                <SliderRow label="绿色" value={g} onChange={setLocalG} color="#22c55e" />
+                <SliderRow label="蓝色" value={b} onChange={setLocalB} color="#3b82f6" />
+                <SliderRow label="亮度 (占空比)" value={w} onChange={setLocalW} color="#f59e0b" displayValue={`${Math.round((w / 255) * 100)}%`} />
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <Button onClick={handleLEDUpdate} disabled={controlStatus.loading || !connectionStatus.connected} size="sm" className="rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
+                  {controlStatus.loading ? "..." : "更新颜色"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Sensors (Read Only) */}
+            <DeviceCard
+              title="温湿度"
+              subtitle="传感器"
+              icon={FireIcon}
+              isOn={true}
+              room="种植区"
+              disabled={true}
+            />
+
+            <DeviceCard
+              title="CO₂"
+              subtitle="传感器"
+              icon={CloudIcon}
+              isOn={true}
+              room="种植区"
+              disabled={true}
+            />
+
+            {/* Weather Card */}
+            <div className="col-span-2 mt-4">
+              <WeatherCard deviceData={deviceData} />
+            </div>
+
           </div>
         </div>
-
-        <MobileBottomNav position="sticky" />
       </div>
     </div>
   )

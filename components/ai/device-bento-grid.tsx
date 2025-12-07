@@ -42,6 +42,39 @@ export function DeviceBentoGrid() {
     led4: 0,
   }
 
+  // Calculate Air Quality based on CO2
+  const getAirQuality = (co2: number) => {
+    if (co2 <= 1000) return { text: "优", color: "bg-green-500", labelColor: "text-green-600 dark:text-green-400" }
+    if (co2 <= 1500) return { text: "良", color: "bg-yellow-500", labelColor: "text-yellow-600 dark:text-yellow-400" }
+    return { text: "差", color: "bg-red-500", labelColor: "text-red-600 dark:text-red-400" }
+  }
+
+  // Calculate Growth Suitability
+  const getGrowthStatus = (data: any) => {
+    const temp = data.temperature / 10
+    const humidity = data.humidity / 10
+    const light = data.light
+    const co2 = data.co2
+
+    const isTempGood = temp >= 15 && temp <= 30
+    const isHumidityGood = humidity >= 40 && humidity <= 90
+    const isLightGood = light > 1000 // Basic threshold
+    const isCo2Good = co2 < 2000
+
+    if (isTempGood && isHumidityGood && isCo2Good) {
+      if (light < 500) return { text: "光照不足", color: "text-orange-600 dark:text-orange-400" }
+      return { text: "适宜生长", color: "text-green-600 dark:text-green-400" }
+    }
+    
+    if (!isTempGood) return { text: temp < 15 ? "温度偏低" : "温度偏高", color: "text-red-600 dark:text-red-400" }
+    if (!isHumidityGood) return { text: humidity < 40 ? "环境干燥" : "湿度过高", color: "text-blue-600 dark:text-blue-400" }
+    
+    return { text: "需调节", color: "text-yellow-600 dark:text-yellow-400" }
+  }
+
+  const airQuality = getAirQuality(data.co2)
+  const growthStatus = getGrowthStatus(data)
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -69,38 +102,42 @@ export function DeviceBentoGrid() {
         {/* Main Environment Card - Large (2x2) */}
         <motion.div 
           variants={item}
-          className="col-span-2 row-span-2 relative overflow-hidden rounded-[32px] p-6 shadow-sm group transition-all hover:scale-[1.02] duration-300 border border-white/40"
+          className="col-span-2 row-span-2 relative overflow-hidden rounded-[32px] p-6 shadow-sm group transition-all hover:scale-[1.02] duration-300 border border-white/40 dark:border-white/10"
           style={{
-            background: "rgba(255, 255, 255, 0.4)",
+            background: "var(--card-bg-blur, rgba(255, 255, 255, 0.4))",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)"
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-rose-100/40 to-orange-100/40 opacity-60 pointer-events-none" />
+          <div className="absolute inset-0 bg-white/40 dark:bg-black/40" style={{ display: 'none' }} /> {/* Theme fallback hack if needed */}
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-100/40 to-orange-100/40 dark:from-rose-900/20 dark:to-orange-900/20 opacity-60 pointer-events-none" />
           
           <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
              <Thermometer size={80} className="text-rose-500 rotate-12" />
           </div>
           
-          <div className="relative z-10 h-full flex flex-col justify-between text-gray-700">
-            <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md w-fit px-3 py-1.5 rounded-full border border-white/50 shadow-sm">
+          <div className="relative z-10 h-full flex flex-col justify-between text-gray-700 dark:text-gray-200">
+            <div className="flex items-center gap-2 bg-white/40 dark:bg-black/40 backdrop-blur-md w-fit px-3 py-1.5 rounded-full border border-white/50 dark:border-white/10 shadow-sm">
                <Thermometer size={14} className="text-rose-500" />
-               <span className="text-xs font-bold uppercase tracking-wider text-rose-600/80">环境监测</span>
+               <span className="text-xs font-bold uppercase tracking-wider text-rose-600/80 dark:text-rose-400">环境监测</span>
             </div>
             
             <div className="space-y-1 my-auto">
-              <div className="text-6xl font-bold tracking-tighter text-gray-800 flex items-baseline gap-2">
-                {data.temperature / 10} <span className="text-3xl font-medium text-gray-500">°C</span>
+              <div className="text-6xl font-bold tracking-tighter text-gray-800 dark:text-white flex items-baseline gap-2">
+                {data.temperature / 10} <span className="text-3xl font-medium text-gray-500 dark:text-gray-400">°C</span>
               </div>
-              <div className="text-lg font-medium text-gray-600 flex items-center gap-2">
+              <div className="text-lg font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
                 <Droplets size={18} className="text-blue-400" />
                 湿度: {data.humidity / 10}%
               </div>
             </div>
             
-            <div className="flex items-center justify-between text-sm font-medium text-gray-500">
-               <span className="flex items-center gap-1.5"><div className="size-2 rounded-full bg-green-400" /> 空气质量: 优</span>
+            <div className="flex items-center justify-between text-sm font-medium text-gray-500 dark:text-gray-400">
+               <span className={cn("flex items-center gap-1.5 transition-colors", airQuality.labelColor)}>
+                 <div className={cn("size-2 rounded-full", airQuality.color)} /> 
+                 空气质量: {airQuality.text}
+               </span>
                <span className="opacity-70">刚刚更新</span>
             </div>
           </div>
@@ -109,29 +146,30 @@ export function DeviceBentoGrid() {
         {/* Light Card - Wide (2x1) */}
         <motion.div 
           variants={item}
-          className="col-span-2 relative overflow-hidden rounded-[32px] p-5 shadow-sm group hover:scale-[1.02] transition-transform duration-300 border border-white/40"
+          className="col-span-2 relative overflow-hidden rounded-[32px] p-5 shadow-sm group hover:scale-[1.02] transition-transform duration-300 border border-white/40 dark:border-white/10"
           style={{
-            background: "rgba(255, 255, 255, 0.4)",
+            background: "var(--card-bg-blur, rgba(255, 255, 255, 0.4))",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)"
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-100/40 to-yellow-100/40 opacity-60 pointer-events-none" />
+          <div className="absolute inset-0 bg-white/40 dark:bg-black/40" style={{ display: 'none' }} />
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-100/40 to-yellow-100/40 dark:from-amber-900/20 dark:to-yellow-900/20 opacity-60 pointer-events-none" />
           <div className="absolute -right-4 -bottom-4 opacity-20">
             <Sun size={100} className="text-amber-400" />
           </div>
           
-          <div className="relative z-10 h-full flex flex-col justify-between text-gray-700">
+          <div className="relative z-10 h-full flex flex-col justify-between text-gray-700 dark:text-gray-200">
             <div className="flex items-center justify-between">
-               <div className="flex items-center gap-2 bg-white/40 backdrop-blur-md w-fit px-3 py-1.5 rounded-full border border-white/50 shadow-sm">
+               <div className="flex items-center gap-2 bg-white/40 dark:bg-black/40 backdrop-blur-md w-fit px-3 py-1.5 rounded-full border border-white/50 dark:border-white/10 shadow-sm">
                   <Sun size={14} className="text-amber-500" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-600/80">光照强度</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-600/80 dark:text-amber-400">光照强度</span>
                </div>
-               <div className="text-2xl font-bold text-gray-800">{data.light} <span className="text-sm font-normal text-gray-500">Lux</span></div>
+               <div className="text-2xl font-bold text-gray-800 dark:text-white">{data.light} <span className="text-sm font-normal text-gray-500 dark:text-gray-400">Lux</span></div>
             </div>
-            <div className="text-sm text-gray-600 font-medium">
-              适合生长
+            <div className={cn("text-sm font-medium transition-colors", growthStatus.color)}>
+              {growthStatus.text}
             </div>
           </div>
         </motion.div>
@@ -139,59 +177,62 @@ export function DeviceBentoGrid() {
         {/* CO2 Card - Small (1x1) */}
         <motion.div 
           variants={item}
-          className="relative overflow-hidden rounded-[32px] p-5 shadow-sm hover:scale-[1.02] transition-transform duration-300 border border-white/40"
+          className="relative overflow-hidden rounded-[32px] p-5 shadow-sm hover:scale-[1.02] transition-transform duration-300 border border-white/40 dark:border-white/10"
           style={{
-            background: "rgba(255, 255, 255, 0.4)",
+            background: "var(--card-bg-blur, rgba(255, 255, 255, 0.4))",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)"
           }}
         >
-           <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 to-teal-100/40 opacity-60 pointer-events-none" />
-           <div className="relative z-10 h-full flex flex-col justify-between text-gray-700">
-             <div className="flex items-center gap-2 text-emerald-600">
+           <div className="absolute inset-0 bg-white/40 dark:bg-black/40" style={{ display: 'none' }} />
+           <div className="absolute inset-0 bg-gradient-to-br from-emerald-100/40 to-teal-100/40 dark:from-emerald-900/20 dark:to-teal-900/20 opacity-60 pointer-events-none" />
+           <div className="relative z-10 h-full flex flex-col justify-between text-gray-700 dark:text-gray-200">
+             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                 <Wind size={18} />
                 <span className="font-bold text-sm">CO2</span>
              </div>
-             <div className="text-2xl font-bold text-gray-800">{data.co2}<span className="text-sm ml-1 text-gray-500 font-normal">ppm</span></div>
+             <div className="text-2xl font-bold text-gray-800 dark:text-white">{data.co2}<span className="text-sm ml-1 text-gray-500 dark:text-gray-400 font-normal">ppm</span></div>
            </div>
         </motion.div>
 
         {/* Soil Moisture - Small (1x1) */}
         <motion.div 
           variants={item}
-          className="relative overflow-hidden rounded-[32px] p-5 shadow-sm hover:scale-[1.02] transition-transform duration-300 border border-white/40"
+          className="relative overflow-hidden rounded-[32px] p-5 shadow-sm hover:scale-[1.02] transition-transform duration-300 border border-white/40 dark:border-white/10"
           style={{
-            background: "rgba(255, 255, 255, 0.4)",
+            background: "var(--card-bg-blur, rgba(255, 255, 255, 0.4))",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)"
           }}
         >
-           <div className="absolute inset-0 bg-gradient-to-br from-sky-100/40 to-indigo-100/40 opacity-60 pointer-events-none" />
-           <div className="relative z-10 h-full flex flex-col justify-between text-gray-700">
-             <div className="flex items-center gap-2 text-sky-600">
+           <div className="absolute inset-0 bg-white/40 dark:bg-black/40" style={{ display: 'none' }} />
+           <div className="absolute inset-0 bg-gradient-to-br from-sky-100/40 to-indigo-100/40 dark:from-sky-900/20 dark:to-indigo-900/20 opacity-60 pointer-events-none" />
+           <div className="relative z-10 h-full flex flex-col justify-between text-gray-700 dark:text-gray-200">
+             <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
                 <Sprout size={18} />
                 <span className="font-bold text-sm">土壤水分</span>
              </div>
-             <div className="text-2xl font-bold text-gray-800">{data.earth_water / 10}<span className="text-sm ml-1 text-gray-500 font-normal">%</span></div>
+             <div className="text-2xl font-bold text-gray-800 dark:text-white">{data.earth_water / 10}<span className="text-sm ml-1 text-gray-500 dark:text-gray-400 font-normal">%</span></div>
            </div>
         </motion.div>
 
         {/* Soil Detailed Stats - Wide (2x1) */}
         <motion.div 
           variants={item}
-          className="col-span-2 relative overflow-hidden rounded-[32px] p-5 shadow-sm hover:scale-[1.02] transition-transform duration-300 border border-white/40"
+          className="col-span-2 relative overflow-hidden rounded-[32px] p-5 shadow-sm hover:scale-[1.02] transition-transform duration-300 border border-white/40 dark:border-white/10"
           style={{
-            background: "rgba(255, 255, 255, 0.4)",
+            background: "var(--card-bg-blur, rgba(255, 255, 255, 0.4))",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)"
           }}
         >
-           <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/40 to-blue-100/40 opacity-60 pointer-events-none" />
-           <div className="relative z-10 flex flex-col h-full justify-between text-gray-700">
-             <div className="flex items-center gap-2 mb-2 text-cyan-700">
+           <div className="absolute inset-0 bg-white/40 dark:bg-black/40" style={{ display: 'none' }} />
+           <div className="absolute inset-0 bg-gradient-to-br from-cyan-100/40 to-blue-100/40 dark:from-cyan-900/20 dark:to-blue-900/20 opacity-60 pointer-events-none" />
+           <div className="relative z-10 flex flex-col h-full justify-between text-gray-700 dark:text-gray-200">
+             <div className="flex items-center gap-2 mb-2 text-cyan-700 dark:text-cyan-400">
                 <Leaf size={16} />
                 <span className="text-xs font-bold uppercase tracking-wider">土壤营养元素 (NPK)</span>
              </div>

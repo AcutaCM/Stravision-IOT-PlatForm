@@ -182,7 +182,7 @@ export function OnboardingGuide() {
       
       // Handle navigation when clicking Next
       onNextClick: (element, step, { state }) => {
-        const currentStepIndex = state.activeIndex
+        const currentStepIndex = state.activeIndex ?? 0
         const nextStepIndex = currentStepIndex + 1
 
         if (nextStepIndex < tourSteps.length) {
@@ -211,7 +211,7 @@ export function OnboardingGuide() {
       
       // Handle Previous button similarly if needed (optional for MVP)
       onPrevClick: (element, step, { state }) => {
-         const currentStepIndex = state.activeIndex
+         const currentStepIndex = state.activeIndex ?? 0
          const prevStepIndex = currentStepIndex - 1
          
          if (prevStepIndex >= 0) {

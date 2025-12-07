@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
-import ReactECharts from 'echarts-for-react'
+import dynamic from 'next/dynamic'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DeviceData } from "@/lib/hooks/use-device-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false })
 
 interface SpectralCardProps {
   data: DeviceData | null

@@ -34,6 +34,12 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         return index === -1 ? 0 : index
     }
 
+    const isMobile = pathname.includes("-ios") || pathname === "/profile"
+
+    if (isMobile) {
+        return <>{children}</>
+    }
+
     const currentIndex = getPageIndex(pathname)
     // We need to store the previous index to determine direction
     // However, in a functional component, we can't easily get "previous" props without a ref or state
