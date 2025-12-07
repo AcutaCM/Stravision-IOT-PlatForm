@@ -60,7 +60,7 @@ export async function setAuthCookie(token: string): Promise<void> {
   cookieStore.set("auth", token, {
     httpOnly: true, // 防止 XSS 攻击
     sameSite: "lax", // 防止 CSRF 攻击
-    secure: process.env.NODE_ENV === "production", // 生产环境仅 HTTPS
+    secure: false, // 允许 HTTP 访问 (因为目前是 IP 直接访问，没有 HTTPS)
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 天(秒)
   })
