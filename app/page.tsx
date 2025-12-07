@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function LandingPage() {
   return (
@@ -42,13 +43,34 @@ export default function LandingPage() {
           </Link>
         </div>
         
-        {/* Mobile Menu Button - Simplified for now */}
+        {/* Mobile Menu */}
         <div className="md:hidden">
-          <Link href="/login">
-            <Button size="sm" className="bg-white text-black hover:bg-gray-200 rounded-full">
-              开始
-            </Button>
-          </Link>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] bg-[#02040a] border-gray-800 text-white p-6">
+              <div className="flex flex-col gap-8 mt-8">
+                <div className="flex flex-col gap-4 text-lg font-medium text-gray-400">
+                  <Link href="#about" className="hover:text-white transition-colors">关于我们</Link>
+                  <Link href="#technologies" className="hover:text-white transition-colors">核心技术</Link>
+                  <Link href="#products" className="hover:text-white transition-colors">产品中心</Link>
+                  <Link href="#discover" className="hover:text-white transition-colors">探索更多</Link>
+                  <div className="h-px bg-gray-800 my-2" />
+                  <Link href="#team" className="hover:text-white transition-colors">团队</Link>
+                  <Link href="#pricing" className="hover:text-white transition-colors">价格</Link>
+                  <Link href="#buy" className="hover:text-white transition-colors">订阅服务</Link>
+                </div>
+                <Link href="/login" className="w-full">
+                  <Button className="w-full bg-white text-black hover:bg-gray-200 rounded-full font-semibold">
+                    立即开始
+                  </Button>
+                </Link>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
 
@@ -72,7 +94,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] mb-8"
+          className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] mb-8"
         >
           <span className="block text-gray-300">智慧感知.</span>
           <span className="block text-gray-200">万物互联.</span>
@@ -86,7 +108,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="max-w-2xl text-lg md:text-xl text-gray-400 mb-12 leading-relaxed"
+          className="max-w-2xl text-base sm:text-lg md:text-xl text-gray-400 mb-12 leading-relaxed px-4"
         >
           Stravision 是您的一站式精准农业物联网平台。
           利用人工智能的力量，实时监测、分析并精准调控您的温室环境。
@@ -97,22 +119,22 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center gap-4"
+          className="flex flex-col w-full sm:w-auto sm:flex-row items-center gap-4 px-4 sm:px-0"
         >
-          <Link href="/dashboard">
+          <Link href="/dashboard" className="w-full sm:w-auto">
             <Button 
               size="lg" 
-              className="group h-14 px-8 rounded-full bg-white text-black hover:bg-gray-200 transition-all text-base font-semibold"
+              className="w-full sm:w-auto group h-14 px-8 rounded-full bg-white text-black hover:bg-gray-200 transition-all text-base font-semibold"
             >
               进入控制台
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
-          <Link href="/monitor">
+          <Link href="/monitor" className="w-full sm:w-auto">
             <Button 
               size="lg" 
               variant="outline" 
-              className="group h-14 px-8 rounded-full border-gray-700 bg-transparent text-white hover:bg-white/5 hover:border-gray-500 transition-all text-base"
+              className="w-full sm:w-auto group h-14 px-8 rounded-full border-gray-700 bg-transparent text-white hover:bg-white/5 hover:border-gray-500 transition-all text-base"
             >
               实时监控
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
