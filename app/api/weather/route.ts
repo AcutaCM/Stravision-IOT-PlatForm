@@ -42,9 +42,30 @@ export async function GET(request: NextRequest) {
         location = clientIp
         locationSource = 'client-ip'
       } else if (useIP) {
-        // Fallback to WeatherAPI's auto-IP (server IP) if no client IP found but useIP requested
-        location = 'auto:ip'
-        locationSource = 'server-ip'
+        // First try to fetch IP information from a free IP geolocation service
+        try {
+          const ipResponse = await fetch('http://ip-api.com/json/?lang=zh-CN', { next: { revalidate: 3600 } })
+          if (ipResponse.ok) {
+            const ipData = await ipResponse.json()
+            if (ipData && ipData.status === 'success') {
+              // Use city name for weather query
+              location = ipData.city
+              locationSource = 'external-ip-api'
+              console.log('[Weather API] Detected location from ip-api.com:', location)
+            } else {
+              // Fallback to WeatherAPI's auto-IP
+              location = 'auto:ip'
+              locationSource = 'server-ip'
+            }
+          } else {
+             location = 'auto:ip'
+             locationSource = 'server-ip'
+          }
+        } catch (e) {
+          console.error('[Weather API] Failed to fetch from ip-api.com:', e)
+          location = 'auto:ip'
+          locationSource = 'server-ip'
+        }
       }
     }
 
