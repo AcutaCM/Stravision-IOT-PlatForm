@@ -1,6 +1,7 @@
 "use client"
 
 import LogoLoop from "@/components/LogoLoop"
+const LogoLoopAny: any = LogoLoop
 import { motion } from "framer-motion"
 
 const techLogos = [
@@ -52,8 +53,7 @@ export function TechStackSection() {
       </div>
 
       <div className="relative w-full overflow-hidden mask-gradient-x">
-        {/* @ts-ignore */}
-        <LogoLoop
+        <LogoLoopAny
           logos={techLogos}
           speed={50}
           gap={60}
