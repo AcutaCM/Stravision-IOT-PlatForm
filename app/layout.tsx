@@ -7,6 +7,7 @@ import { SchedulerInit } from "@/components/scheduler-init";
 import { Toaster } from "sonner";
 import { PageTransition } from "@/components/page-transition";
 import { OnboardingGuide } from "@/components/onboarding-guide";
+import { SmoothScroll } from "@/components/smooth-scroll";
 
 export const metadata: Metadata = {
   title: "stravision莓界 · 登录",
@@ -30,11 +31,13 @@ export default function RootLayout({
           <SchedulerInit />
           <WeatherProvider>
             <DeviceProvider>
-              <PageTransition>
-                {children}
-              </PageTransition>
-              <OnboardingGuide />
-              <Toaster />
+              <SmoothScroll>
+                <PageTransition>
+                  {children}
+                </PageTransition>
+                <OnboardingGuide />
+                <Toaster />
+              </SmoothScroll>
             </DeviceProvider>
           </WeatherProvider>
         </ThemeProvider>

@@ -1,14 +1,110 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Menu } from "lucide-react"
+import Image from "next/image"
+import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { HeroSection } from "@/components/landing/hero-section"
+import { TechStackSection } from "@/components/landing/tech-stack-section"
+import { FeaturesSection } from "@/components/landing/features-section"
+import { SmartControlSection } from "@/components/landing/smart-control-section"
+import { AnytimeControlSection } from "@/components/landing/anytime-control-section"
+import { AiChatSection } from "@/components/landing/ai-chat-section"
+import { ProductShowcase } from "@/components/landing/product-showcase"
+import { Footer } from "@/components/landing/footer"
+import { motion, useScroll, useTransform } from "framer-motion"
+import { useRef, useEffect, useState } from "react"
 
 export default function LandingPage() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [windowHeight, setWindowHeight] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowHeight(window.innerHeight)
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    // Initial check
+    handleResize()
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  const { scrollY } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"]
+  })
+
+  // Calculations for Mascot Animation
+  // Stage 1: Hero (0 - 100vh) -> Stays centered but moves down slightly
+  // Stage 2: Transition to Features (100vh - 150vh) -> Moves to side
+  // Stage 3: Stay at Features (150vh - 200vh) -> Stays at side
+  // Stage 4: Exit (> 200vh) -> Fades out
+
+  // Note: These values are approximations based on typical section heights.
+  // Hero is min-h-[90vh], Features is py-24 (approx 100vh total height with content)
+
+  const vh = windowHeight || 1000 // Fallback
+
+  const mascotX = useTransform(scrollY,
+    [0, vh * 0.5, vh * 1.2],
+    ["50%", "50%", "15%"] // Moves from center to left side
+  )
+
+  const mascotY = useTransform(scrollY,
+    [0, vh * 0.5, vh * 1.2],
+    ["25vh", "40vh", "115vh"] // Moves down to Features section title level
+  )
+
+  const mascotScale = useTransform(scrollY,
+    [0, vh * 0.5, vh * 1.2],
+    [1, 1.2, 0.6] // Scales up then down to fit as an icon
+  )
+
+  const mascotRotate = useTransform(scrollY,
+    [0, vh * 1.2],
+    [0, 360] // Full rotation
+  )
+
+  const mascotOpacity = useTransform(scrollY,
+    [vh * 1.8, vh * 2.5],
+    [1, 0] // Fades out after Features section
+  )
+
   return (
-    <div className="min-h-screen bg-[#02040a] text-white overflow-hidden selection:bg-blue-500/30">
+    <div ref={containerRef} className="min-h-screen bg-[#02040a] text-white selection:bg-blue-500/30 relative">
+      {/* Global Mascot - Hidden on mobile to improve performance */}
+      {!isMobile && (
+        <motion.div
+          style={{
+            position: "absolute",
+            top: 0,
+            x: "-50%", // Center the element itself
+            left: mascotX,
+            top: mascotY,
+            scale: mascotScale,
+            rotate: mascotRotate,
+            opacity: mascotOpacity,
+            zIndex: 40,
+            pointerEvents: "none"
+          }}
+          className="w-32 h-32 sm:w-40 sm:h-40 fixed" // fixed to viewport, but we control position manually via top/left which framer motion handles
+        >
+          <div className="absolute inset-0 bg-blue-500/20 blur-[40px] rounded-full" />
+          <Image
+            src="/logo.gif"
+            alt="Stravision Mascot"
+            fill
+            className="object-contain drop-shadow-[0_0_25px_rgba(59,130,246,0.5)]"
+            unoptimized
+          />
+        </motion.div>
+      )}
+
       {/* Background Gradients */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[120px]" />
@@ -25,9 +121,9 @@ export default function LandingPage() {
         </div>
 
         <div className="flex items-center gap-2">
-           <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-             Stravision 莓界
-           </span>
+          <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+            Stravision 莓界
+          </span>
         </div>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-medium">
@@ -42,7 +138,7 @@ export default function LandingPage() {
             </Button>
           </Link>
         </div>
-        
+
         {/* Mobile Menu */}
         <div className="md:hidden">
           <Sheet>
@@ -74,77 +170,17 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <main className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] px-4 text-center max-w-5xl mx-auto mt-[-40px]">
-        
-        {/* Badge */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-blue-600/20 text-blue-400 border border-blue-500/20 backdrop-blur-sm">
-            AI 驱动的智慧农业解决方案
-          </span>
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[1.1] mb-8"
-        >
-          <span className="block text-gray-300">智慧感知.</span>
-          <span className="block text-gray-200">万物互联.</span>
-          <span className="block bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400">
-            面向未来
-          </span>
-        </motion.h1>
-
-        {/* Subheadline */}
-        <motion.p 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="max-w-2xl text-base sm:text-lg md:text-xl text-gray-400 mb-12 leading-relaxed px-4"
-        >
-          Stravision 是您的一站式精准农业物联网平台。
-          利用人工智能的力量，实时监测、分析并精准调控您的温室环境。
-        </motion.p>
-
-        {/* CTA Button */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-col w-full sm:w-auto sm:flex-row items-center gap-4 px-4 sm:px-0"
-        >
-          <Link href="/dashboard" className="w-full sm:w-auto">
-            <Button 
-              size="lg" 
-              className="w-full sm:w-auto group h-14 px-8 rounded-full bg-white text-black hover:bg-gray-200 transition-all text-base font-semibold"
-            >
-              进入控制台
-              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
-          <Link href="/monitor" className="w-full sm:w-auto">
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="w-full sm:w-auto group h-14 px-8 rounded-full border-gray-700 bg-transparent text-white hover:bg-white/5 hover:border-gray-500 transition-all text-base"
-            >
-              实时监控
-              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
-        </motion.div>
+      <main className="relative z-10">
+        <HeroSection />
+        <FeaturesSection />
+        <SmartControlSection />
+        <AiChatSection />
+        <AnytimeControlSection />
+        <ProductShowcase />
+        <TechStackSection />
       </main>
 
-      {/* Footer / Bottom Glow Overlay */}
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#02040a] to-transparent z-20 pointer-events-none" />
+      <Footer />
     </div>
   )
 }

@@ -29,6 +29,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@studio-freight/react-lenis": "^0.0.47",
     "@tabler/icons-react": "^3.35.0",
     "@types/jsonwebtoken": "^9.0.10",
     "ai": "^5.0.106",

@@ -90,7 +90,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
                     x: { type: "spring", stiffness: 300, damping: 30 },
                     opacity: { duration: 0.2 }
                 }}
-                className="h-full w-full"
+                className="w-full"
             >
                 <FrozenRouter>{children}</FrozenRouter>
             </motion.div>
