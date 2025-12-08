@@ -1,96 +1,55 @@
-# Deployment Guide (Ubuntu Server)
+# Deployment Guide
 
-This guide assumes you have a fresh Ubuntu server (e.g., Ubuntu 20.04/22.04 LTS).
+This project has been configured for Docker deployment with Nginx as a reverse proxy.
 
-## 1. Install Docker & Git
+## Prerequisites
 
-Run the following commands on your server:
+- Docker
+- Docker Compose
 
-```bash
-# Update package list
-sudo apt-get update
+## Deployment Steps
 
-# Install Docker and Git
-sudo apt-get install -y docker.io docker-compose git
+1.  **Transfer Files**: Copy the entire project directory to your cloud server.
+2.  **Build and Run**:
+    Run the following command in the project root:
 
-# Start Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-## 2. Clone the Repository
-
-Clone the project from your Git repository:
-
-```bash
-# GitHub
-git clone https://github.com/AcutaCM/Stravision-IOT-PlatForm.git
-
-# OR Gitee (Faster in China)
-git clone https://gitee.com/guantougitee/Stravision-IOT-PlatForm.git
-
-# Enter the directory
-cd Stravision-IOT-PlatForm
-```
-
-## 3. Configure Environment Variables
-
-1.  Copy the example configuration file:
     ```bash
-    cp .env.example .env
+    docker-compose up -d --build
     ```
 
-2.  Edit the `.env` file with your real credentials:
-    ```bash
-    nano .env
-    ```
-    *   **MQTT_***: Fill in your MQTT broker details (Host, Username, Password).
-    *   **WEATHER_API_KEY**: Get a free key from [weatherapi.com](https://www.weatherapi.com/).
-    *   **JWT_SECRET**: Set a random string for security.
+3.  **Verify**:
+    -   Web Application: `http://<your-server-ip>`
+    -   The application is now accessible on port 80 (default HTTP port).
 
-    *Press `Ctrl+O` then `Enter` to save, `Ctrl+X` to exit.*
+## Architecture
 
-## 4. Start the Application
+The deployment uses Nginx to proxy requests to the backend services:
 
-Build and start the containers using Docker Compose:
+-   **Nginx (Port 80)**: The only exposed service.
+    -   `/*` -> Proxies to Next.js App (Port 3000)
+    -   `/inference/*` -> Proxies to AI Inference Server (Port 8000)
+    -   `/inference/ws` -> Proxies WebSockets to AI Inference Server
 
-```bash
-sudo docker-compose up -d --build
-```
+-   **Next.js App (Internal Port 3000)**: Frontend and Backend API.
+-   **Inference Server (Internal Port 8000)**: Python/FastAPI server for object detection.
 
-*   `--build`: Ensures images are built from scratch.
-*   `-d`: Runs in detached mode (background).
+## Configuration
 
-## 5. Access the Application
+-   **Data Persistence**:
+    -   Database and session data are stored in `./data`.
+    -   User avatars are stored in `./public/uploads`.
+    -   These directories are mapped to the container, so data persists across restarts.
 
-Open your browser and visit:
+-   **Ports**:
+    -   Only port **80** needs to be open in your server's firewall.
 
-*   **http://<YOUR_SERVER_IP>**
+## Local Development
 
-You should see the application running.
+When running locally with `npm run dev` and `python models/inference_server.py`:
+-   The frontend automatically detects the development environment and connects to `localhost:8000` for AI features.
+-   Nginx is not required for local development.
 
----
+## Troubleshooting
 
-## Maintenance
-
-### Updating Code
-If you have pushed new code to Git, update the server with:
-
-```bash
-# Pull latest changes
-git pull origin main
-
-# Rebuild and restart containers
-sudo docker-compose up -d --build
-```
-
-### Viewing Logs
-To see logs from the application:
-
-```bash
-# View all logs
-sudo docker-compose logs -f
-
-# View specific service logs (e.g., web app)
-sudo docker-compose logs -f web
-```
+-   **Database Errors**: If you encounter SQLite errors, ensure the `data` directory has write permissions.
+-   **WebSocket Connection**: If the AI camera features don't work, check the browser console. Ensure Nginx is running and correctly routing `/inference/ws`.
