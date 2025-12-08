@@ -10,14 +10,26 @@ This project has been configured for Docker deployment with Nginx as a reverse p
 ## Deployment Steps
 
 1.  **Transfer Files**: Copy the entire project directory to your cloud server.
-2.  **Build and Run**:
+
+2.  **Configure Docker Registry Mirror (China Server)**:
+    If your server is in China, you might fail to pull images from Docker Hub.
+    
+    Run the following command to configure a registry mirror:
+    ```bash
+    sudo mkdir -p /etc/docker
+    sudo cp daemon.json /etc/docker/daemon.json
+    sudo systemctl daemon-reload
+    sudo systemctl restart docker
+    ```
+
+3.  **Build and Run**:
     Run the following command in the project root:
 
     ```bash
     docker-compose up -d --build
     ```
 
-3.  **Verify**:
+4.  **Verify**:
     -   Web Application: `http://<your-server-ip>`
     -   The application is now accessible on port 80 (default HTTP port).
 
