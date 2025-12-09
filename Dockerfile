@@ -10,7 +10,8 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm install
+    npm config set legacy-peer-deps true && \
+    npm install --legacy-peer-deps
 
 # Rebuild the source code only when needed
 FROM base AS builder
