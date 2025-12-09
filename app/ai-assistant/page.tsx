@@ -36,15 +36,28 @@ import {
   ArrowUpRight,
   ArrowRight,
   ArrowLeft,
-  Wand2
+  Wand2,
+  Download
 } from "lucide-react"
-import MermaidChart from "@/components/mermaid-chart"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import ChartRenderer from "@/components/chart-renderer"
+import remarkGfm from "remark-gfm"
+import * as htmlToImage from 'html-to-image'
+import jsPDF from "jspdf"
+
+const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false })
+const MermaidChart = dynamic(() => import("@/components/mermaid-chart"), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-gray-400">Loading diagram...</div>
+})
+
+const ChartRenderer = dynamic(() => import("@/components/chart-renderer"), {
+  ssr: false,
+  loading: () => <div className="p-4 text-xs text-gray-400">Loading chart...</div>
+})
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -530,6 +543,82 @@ export default function AIAssistantPage() {
     setAttachments((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items
+    const files: File[] = []
+    
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        const file = items[i].getAsFile()
+        if (file) {
+          files.push(file)
+        }
+      }
+    }
+    
+    if (files.length > 0) {
+      e.preventDefault()
+      files.forEach((file) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const url = typeof reader.result === "string" ? reader.result : ""
+          if (url) setAttachments((prev) => [...prev, url])
+        }
+        reader.readAsDataURL(file)
+      })
+      showNotice("已粘贴附件", `共 ${files.length} 个文件`, "success")
+    }
+  }
+
+  const handleDownloadPDF = async (messageIndex: number) => {
+    const element = document.getElementById(`message-content-${messageIndex}`)
+    if (!element) return
+
+    showNotice("正在生成 PDF...", "请稍候，这可能需要几秒钟", "loading")
+
+    try {
+      const dataUrl = await htmlToImage.toPng(element, {
+        backgroundColor: '#ffffff',
+        style: {
+          // 强制覆盖可能出问题的颜色属性，虽然 html-to-image 对 lab 支持更好，但防患于未然
+          color: '#000000',
+        }
+      })
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      const img = new window.Image()
+      img.src = dataUrl
+      await new Promise((resolve) => { img.onload = resolve })
+
+      const imgWidth = 210 // A4 width in mm
+      const pageHeight = 297 // A4 height in mm
+      const imgHeight = (img.height * imgWidth) / img.width
+      let heightLeft = imgHeight
+      let position = 0
+
+      pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(dataUrl, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
+
+      pdf.save(`AI-Assistant-Report-${new Date().toISOString().slice(0, 10)}.pdf`)
+      showNotice("PDF 生成成功", "文件已开始下载", "success")
+    } catch (error) {
+      console.error("PDF Generation Error:", error)
+      showNotice("PDF 生成失败", "请重试或检查内容是否包含复杂元素", "error")
+    }
+  }
+
   const handleSettingsSave = (settings: AISettings) => {
     setAiSettings(settings)
     localStorage.setItem("ai-settings", JSON.stringify(settings))
@@ -727,7 +816,29 @@ export default function AIAssistantPage() {
           if (part.match(/^<\s*SOURCES/)) {
             try {
               const jsonStr = part.replace(/<\s*SOURCES\s*>/, '').replace(/<\/\s*SOURCES\s*>/, '').trim()
-              const sources = JSON.parse(jsonStr) as Array<{ title: string, url: string, number: number }>
+              let sources: Array<{ title: string, url: string, number: number }> = []
+
+              if (jsonStr.startsWith('[')) {
+                try {
+                  sources = JSON.parse(jsonStr)
+                } catch (e) {
+                  console.warn("Sources JSON parse failed, attempting regex fallback")
+                }
+              }
+
+              if (!sources || sources.length === 0) {
+                // Fallback for Markdown style links: [Title](URL)
+                const regex = /\[([^\]]+)\]\(([^)]+)\)/g
+                let match
+                let idx = 1
+                while ((match = regex.exec(jsonStr)) !== null) {
+                  sources.push({
+                    title: match[1],
+                    url: match[2],
+                    number: idx++
+                  })
+                }
+              }
 
               if (!sources || sources.length === 0) return null
 
@@ -822,7 +933,21 @@ export default function AIAssistantPage() {
 
                     return <code className={cn("bg-gray-100 dark:bg-zinc-800 rounded px-1 font-mono text-sm text-gray-800 dark:text-gray-200 font-semibold", className)} {...props}>{children}</code>
                   },
-                  pre: ({ node, children, ...props }: any) => <pre className="bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg overflow-x-auto my-2 border border-gray-200 dark:border-gray-800" {...props}>{children}</pre>
+                  pre: ({ node, children, ...props }: any) => <pre className="bg-gray-50 dark:bg-zinc-900 p-3 rounded-lg overflow-x-auto my-2 border border-gray-200 dark:border-gray-800" {...props}>{children}</pre>,
+                  table: ({ children }: any) => <div className="overflow-x-auto my-4 rounded-lg border border-gray-200 dark:border-gray-800"><table className="w-full text-sm text-left text-gray-600 dark:text-gray-300">{children}</table></div>,
+                  thead: ({ children }: any) => <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-zinc-900 dark:text-gray-400 font-semibold">{children}</thead>,
+                  tbody: ({ children }: any) => <tbody className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-transparent">{children}</tbody>,
+                  tr: ({ children }: any) => <tr className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">{children}</tr>,
+                  th: ({ children }: any) => <th className="px-6 py-3 whitespace-nowrap">{children}</th>,
+                  td: ({ children }: any) => <td className="px-6 py-4">{children}</td>,
+                  ul: ({ children }: any) => <ul className="list-disc list-inside my-2 space-y-1 ml-2">{children}</ul>,
+                  ol: ({ children }: any) => <ol className="list-decimal list-inside my-2 space-y-1 ml-2">{children}</ol>,
+                  li: ({ children }: any) => <li className="text-gray-700 dark:text-gray-300">{children}</li>,
+                  blockquote: ({ children }: any) => <blockquote className="border-l-4 border-blue-500 pl-4 py-1 my-4 italic bg-blue-50/50 dark:bg-blue-900/10 rounded-r text-gray-600 dark:text-gray-400">{children}</blockquote>,
+                  h1: ({ children }: any) => <h1 className="text-2xl font-bold mt-6 mb-4 text-gray-900 dark:text-gray-100">{children}</h1>,
+                  h2: ({ children }: any) => <h2 className="text-xl font-bold mt-5 mb-3 text-gray-900 dark:text-gray-100 pb-2 border-b border-gray-100 dark:border-gray-800">{children}</h2>,
+                  h3: ({ children }: any) => <h3 className="text-lg font-bold mt-4 mb-2 text-gray-900 dark:text-gray-100">{children}</h3>,
+                  a: ({ href, children }: any) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline decoration-blue-300 underline-offset-2">{children}</a>
                 }}
               >
                 {part}
@@ -894,7 +1019,7 @@ export default function AIAssistantPage() {
               className="flex items-center gap-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg px-2 py-1 transition-colors text-sm font-medium w-full text-gray-700 dark:text-gray-300"
             >
               <SquarePen size={18} />
-              <span>New chat</span>
+              <span>新会话</span>
             </button>
             <button onClick={() => setSidebarOpen(false)} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 md:hidden">
               <PanelLeftClose size={18} />
@@ -906,7 +1031,7 @@ export default function AIAssistantPage() {
             {/* Search */}
             <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg transition-colors text-left">
               <Search size={18} />
-              <span>Search chats</span>
+              <span>搜索会话</span>
             </button>
 
             {/* Return Button */}
@@ -928,7 +1053,7 @@ export default function AIAssistantPage() {
               if (!group || group.length === 0) return null
               return (
                 <div key={key}>
-                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-3">{key === "Today" ? "Today" : key === "Yesterday" ? "Yesterday" : key === "Previous 7 Days" ? "Previous 7 Days" : "Earlier"}</div>
+                  <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-3">{key === "Today" ? "今天" : key === "Yesterday" ? "昨天" : key === "Previous 7 Days" ? "过去7天" : "更早"}</div>
                   <div className="flex flex-col gap-0.5">
                     {group.map(s => (
                       <div
@@ -971,10 +1096,10 @@ export default function AIAssistantPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="start" side="top">
               <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => setSettingsOpen(true)}>
-                <Settings size={16} /> Settings
+                <Settings size={16} /> 设置
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer gap-2 text-red-600" onClick={() => router.push('/login')}>
-                <LogOut size={16} /> Log out
+                <LogOut size={16} /> 退出登录
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1134,6 +1259,7 @@ export default function AIAssistantPage() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                      onPaste={handlePaste}
                       placeholder="问点什么..."
                       className="w-full bg-transparent border-0 focus:ring-0 resize-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400 text-lg leading-relaxed py-2"
                       rows={1}
@@ -1363,14 +1489,15 @@ export default function AIAssistantPage() {
                             ? "bg-[#f4f4f4] dark:bg-zinc-800 text-gray-900 dark:text-gray-100 rounded-tr-sm"
                             : "bg-transparent text-gray-900 dark:text-gray-100 px-0 py-0"
                         )}>
-                          <div className="prose prose-neutral dark:prose-invert max-w-none break-words">
+                          <div id={`message-content-${i}`} className="prose prose-neutral dark:prose-invert max-w-none break-words">
                             {renderMessageContent(msg)}
                           </div>
 
                           {msg.role === "assistant" && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <button onClick={() => copyText(typeof msg.content === 'string' ? msg.content : "")} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"><Copy size={14} /></button>
-                              <button className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1"><RotateCcw size={14} /></button>
+                            <div className="flex items-center gap-2 mt-2 no-print">
+                              <button onClick={() => copyText(typeof msg.content === 'string' ? msg.content : "")} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1" title="复制内容"><Copy size={14} /></button>
+                              <button className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1" title="重新生成"><RotateCcw size={14} /></button>
+                              <button onClick={() => handleDownloadPDF(i)} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1" title="导出为 PDF"><Download size={14} /></button>
                             </div>
                           )}
                         </div>
@@ -1421,7 +1548,8 @@ export default function AIAssistantPage() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-                      placeholder="Message AI Assistant..."
+                      onPaste={handlePaste}
+                      placeholder="发消息给 AI 助手..."
                       className="w-full bg-transparent border-0 focus:ring-0 resize-none text-gray-800 dark:text-gray-100 placeholder:text-gray-400/80 text-[15px] leading-relaxed py-2 px-1 min-h-[40px] max-h-[200px] font-medium"
                       rows={1}
                       style={{ height: 'auto' }}
@@ -1438,10 +1566,10 @@ export default function AIAssistantPage() {
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors text-gray-400 hover:text-[#6366f1] group relative"
-                          title="Upload file"
+                          title="上传文件"
                         >
                           <Paperclip size={18} strokeWidth={2} />
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">Upload File</span>
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">上传文件</span>
                         </button>
 
                         <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
@@ -1454,10 +1582,10 @@ export default function AIAssistantPage() {
                               ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 shadow-sm"
                               : "bg-white dark:bg-zinc-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-gray-200"
                           )}
-                          title="Web search"
+                          title="联网搜索"
                         >
                           <Globe size={14} strokeWidth={2.5} />
-                          <span>Search</span>
+                          <span>联网搜索</span>
                         </button>
 
                         <button
