@@ -37,7 +37,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Wand2,
-  Download
+  Download,
+  Bell
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
@@ -334,6 +335,22 @@ export default function AIAssistantPage() {
 
   const handleSend = async (overrideText?: any) => {
     const text = typeof overrideText === "string" ? overrideText : input
+    
+    if (text === "TEST_PUSH") {
+      showNotice("正在发送测试推送...", "请求已提交", "loading")
+      try {
+        const res = await fetch('/api/test/push', { method: 'POST' })
+        if (res.ok) {
+          showNotice("推送成功", "请检查企业微信通知", "success")
+        } else {
+          showNotice("推送失败", "API 请求错误", "error")
+        }
+      } catch (e) {
+        showNotice("推送失败", "网络错误", "error")
+      }
+      return
+    }
+
     if (!text.trim() || isLoading) return
     if (!aiSettings?.apiKey) { setSettingsOpen(true); return }
     const userMsg = text.trim()
@@ -1347,6 +1364,7 @@ export default function AIAssistantPage() {
                   { icon: <Search size={16} />, text: "诊断病虫害", action: "诊断草莓病害" },
                   { icon: <SquarePen size={16} />, text: "生成种植周报", action: "生成本周种植报告" },
                   { icon: <Zap size={16} />, text: "检查设备状态", action: "检查设备运行状态" },
+                  { icon: <Bell size={16} />, text: "测试推送通知", action: "TEST_PUSH" },
                 ].map((item, i) => (
                   <button
                     key={i}
