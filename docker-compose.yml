@@ -12,6 +12,7 @@ services:
       - DATABASE_PATH=/app/data/users.db
       - JWT_SECRET=${JWT_SECRET}
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - TZ=Asia/Shanghai
       - MQTT_HOST=${MQTT_HOST}
       - MQTT_PORT=${MQTT_PORT}
       - MQTT_USERNAME=${MQTT_USERNAME}

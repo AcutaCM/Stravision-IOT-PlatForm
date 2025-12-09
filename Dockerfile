@@ -10,7 +10,7 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
 RUN npm config set registry https://registry.npmmirror.com && \
-    npm install --legacy-peer-deps
+    npm install
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -36,6 +36,9 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
+    apk add --no-cache tzdata
+
 COPY --from=builder /app/public ./public
 
 # Set the correct permission for prerender cache
@@ -57,5 +60,6 @@ EXPOSE 3000
 ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
+ENV TZ Asia/Shanghai
 
 CMD ["node", "server.js"]

@@ -80,6 +80,7 @@ export class MQTTService {
   private dataListeners: Set<DataListener> = new Set()
   private lastNotificationTime: Map<string, number> = new Map()
   private readonly NOTIFICATION_COOLDOWN = 30 * 60 * 1000 // 30 minutes
+  private readonly ALERT_TIMEZONE = process.env.ALERT_TIMEZONE || 'Asia/Shanghai'
 
   /**
    * Private constructor to enforce singleton pattern
@@ -480,7 +481,8 @@ export class MQTTService {
     }
 
     // Light (Low < 1200 lux during daytime 8:00-17:00)
-    const hour = new Date(now).getHours()
+    const hourStr = new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', hourCycle: 'h23', timeZone: this.ALERT_TIMEZONE }).format(new Date(now))
+    const hour = parseInt(hourStr, 10)
     if (hour >= 8 && hour < 17) {
       if (data.light < 1200) {
         alerts.push(`☀️ **光照不足**: ${data.light} lux\n> 日间阈值 < 1200 lux\n> 建议：检查补光灯状态或清理遮挡物。`)
@@ -520,10 +522,11 @@ export class MQTTService {
       
       if (now - lastGlobalSent > this.NOTIFICATION_COOLDOWN) {
         try {
-          const title = `🚨 **环境监控告警汇总** (${new Date().toLocaleTimeString()})`
+          const timeText = new Intl.DateTimeFormat('zh-CN', { timeZone: this.ALERT_TIMEZONE, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(now))
+          const title = `🚨 **环境监控告警汇总** (${timeText})`
           const body = alerts.join('\n\n---\n\n')
           const fullMessage = `${title}\n\n${body}`
-          
+
           await sendWeComNotification(fullMessage, 'markdown')
           
           this.lastNotificationTime.set(globalCooldownKey, now)

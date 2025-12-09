@@ -23,46 +23,58 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Build location query with priority: GPS > IP > Default
-    let location = 'Ningbo,China' // Default location
+    let location = 'Ningbo,China'
     let locationSource = 'default'
+
+    const isPrivateIPv4 = (ip: string) => {
+      const m = ip.match(/^([0-9]{1,3}\.){3}[0-9]{1,3}$/)
+      if (!m) return false
+      const [a, b] = ip.split('.').map(Number)
+      if (a === 10) return true
+      if (a === 172 && b >= 16 && b <= 31) return true
+      if (a === 192 && b === 168) return true
+      if (a === 127) return true
+      return false
+    }
+    const normalizeIp = (ip: string | null) => {
+      if (!ip) return null
+      const first = ip.split(',')[0].trim()
+      const mapped = first.startsWith('::ffff:') ? first.replace('::ffff:', '') : first
+      return mapped
+    }
 
     if (lat && lon) {
       location = `${lat},${lon}`
       locationSource = 'gps'
     } else {
-      // Try to get client IP from headers
-      const forwardedFor = request.headers.get('x-forwarded-for')
-      const realIp = request.headers.get('x-real-ip')
+      const forwardedFor = normalizeIp(request.headers.get('x-forwarded-for'))
+      const realIp = normalizeIp(request.headers.get('x-real-ip'))
+      const candidateIp = forwardedFor || realIp
 
-      // Get the first IP from x-forwarded-for (client IP)
-      const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : realIp
+      const shouldUseHeaderIp = !!candidateIp && candidateIp !== '::1' && candidateIp !== '127.0.0.1' && !isPrivateIPv4(candidateIp) && !useIP
 
-      if (clientIp && clientIp !== '::1' && clientIp !== '127.0.0.1') {
-        location = clientIp
+      if (shouldUseHeaderIp) {
+        location = candidateIp as string
         locationSource = 'client-ip'
       } else if (useIP) {
-        // First try to fetch IP information from a free IP geolocation service
         try {
-          const ipResponse = await fetch('http://ip-api.com/json/?lang=zh-CN', { next: { revalidate: 3600 } })
+          const ipResponse = await fetch('https://ipapi.co/json', { next: { revalidate: 3600 } })
           if (ipResponse.ok) {
             const ipData = await ipResponse.json()
-            if (ipData && ipData.status === 'success') {
-              // Use city name for weather query
+            if (ipData && ipData.city) {
               location = ipData.city
               locationSource = 'external-ip-api'
-              console.log('[Weather API] Detected location from ip-api.com:', location)
+              console.log('[Weather API] Detected location from ipapi.co:', location)
             } else {
-              // Fallback to WeatherAPI's auto-IP
               location = 'auto:ip'
               locationSource = 'server-ip'
             }
           } else {
-             location = 'auto:ip'
-             locationSource = 'server-ip'
+            location = 'auto:ip'
+            locationSource = 'server-ip'
           }
         } catch (e) {
-          console.error('[Weather API] Failed to fetch from ip-api.com:', e)
+          console.error('[Weather API] Failed to fetch from ipapi.co:', e)
           location = 'auto:ip'
           locationSource = 'server-ip'
         }

@@ -82,6 +82,7 @@ export default function LandingPage() {
         <motion.div
           style={{
             position: "absolute",
+            top: 0,
             x: "-50%", // Center the element itself
             left: mascotX,
             top: mascotY,
