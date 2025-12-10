@@ -1,44 +1,51 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { Layers, Activity, Cpu, Brain, Server, ShieldCheck } from "lucide-react"
 
 const features = [
   {
-    label: "Insights",
-    title: "Analytics",
-    description: "Track user behavior",
+    label: "Perception",
+    title: "多模态融合感知",
+    description: "视觉与传感器数据交叉验证，精准识别病害",
+    icon: Layers,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
     hasDots: true,
     glow: "border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]"
   },
   {
-    label: "Overview",
-    title: "Dashboard",
-    description: "Centralized data view",
+    label: "Monitoring",
+    title: "全栈环境监测",
+    description: "覆盖空气、土壤、光照的全维度数据采集",
+    icon: Activity,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
   },
   {
-    label: "Teamwork",
-    title: "Collaboration",
-    description: "Work together seamlessly",
+    label: "Automation",
+    title: "智能决策引擎",
+    description: "动态环境调控算法，自动管理水肥光气，实现全天候无人化精准种植",
+    icon: Cpu,
     className: "col-span-1 md:col-span-2 lg:col-span-2",
   },
   {
-    label: "Efficiency",
-    title: "Automation",
-    description: "Streamline workflows",
+    label: "AI Assistant",
+    title: "农业大模型专家",
+    description: "基于 RAG 技术的智能顾问，提供实时的病害诊断与种植指导",
+    icon: Brain,
     className: "col-span-1 md:col-span-2 lg:col-span-2",
   },
   {
-    label: "Connectivity",
-    title: "Integration",
-    description: "Connect favorite tools",
+    label: "Edge Computing",
+    title: "边缘计算节点",
+    description: "本地实时推理，断网亦可稳定运行",
+    icon: Server,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
   },
   {
-    label: "Protection",
-    title: "Security",
-    description: "Enterprise-grade protection",
+    label: "Security",
+    title: "企业级安全",
+    description: "数据加密传输与存储，保障资产安全",
+    icon: ShieldCheck,
     className: "col-span-1 md:col-span-1 lg:col-span-1",
   },
 ]
@@ -118,6 +125,9 @@ export function FeaturesSection() {
             {feature.hasDots && <Dots />}
             
             <div className="relative z-10">
+              <div className="mb-3 text-white">
+                <feature.icon size={28} />
+              </div>
               <span className="text-sm font-medium text-gray-500 tracking-wide">
                 {feature.label}
               </span>

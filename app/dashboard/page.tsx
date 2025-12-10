@@ -16,9 +16,74 @@ import "react-grid-layout/css/styles.css"
 import "react-resizable/css/styles.css"
 import { DashboardChartCard } from "@/components/dashboard/DashboardChartCard"
 import { SpectralCard } from "@/components/dashboard/spectral-card"
+import { IntroDisclosure } from "@/components/ui/intro-disclosure"
+
+const tourSteps = [
+  {
+    title: "欢迎使用 Stravision",
+    short_description: "开启智慧农业新篇章",
+    full_description: "Stravision 是您的全栈式智慧农业管理平台。通过融合物联网与人工智能技术，我们为您提供精准的环境监测、智能决策支持和自动化的设备控制。让我们花一分钟了解核心功能。",
+    media: {
+      type: "image" as const,
+      src: "/tour/starter.png",
+      alt: "Welcome to Stravision",
+    },
+  },
+  {
+    title: "实时环境监测",
+    short_description: "全维度的生长环境数据",
+    full_description: "仪表盘实时展示空气温湿度、光照、CO2 以及土壤 NPK 等关键指标。数据实时更新，图表清晰直观，帮助您随时掌握作物生长环境。",
+    media: {
+      type: "video" as const,
+      src: "/tour/dashboard.mp4",
+      alt: "Dashboard Monitoring",
+    },
+  },
+  {
+    title: "自定义布局",
+    short_description: "打造您的专属工作台",
+    full_description: "点击右上角的'编辑'按钮，您可以自由拖拽、调整各个数据卡片的大小和位置。无论是重点关注光照还是土壤肥力，都能随心定制。",
+    media: {
+      type: "video" as const,
+      src: "/tour/editLayer.mp4",
+      alt: "Custom Layout",
+    },
+  },
+  {
+    title: "AI 种植顾问",
+    short_description: "基于 RAG 技术的智能专家",
+    full_description: "遇到种植难题？随时点击顶部的'AI 助手'。无论是病害诊断还是种植建议，我们的 AI 专家都能基于权威知识库为您提供精准解答。",
+    media: {
+      type: "video" as const,
+      src: "/tour/ai.mp4",
+      alt: "AI Assistant",
+    },
+  },
+  {
+    title: "开始探索",
+    short_description: "立即体验智慧种植",
+    full_description: "您已经准备好开始使用了！如果需要再次查看此教程，可以在设置中重新开启。现在，尽情探索 Stravision 的强大功能吧。",
+    action: {
+      label: "开始使用",
+      onClick: () => {},
+    },
+  },
+]
 
 export default function DashboardPage() {
   const router = useRouter()
+  const [isTourOpen, setIsTourOpen] = useState(false)
+
+  // Check if tour should be shown
+  useEffect(() => {
+    // We can use a slight delay to ensure the UI is loaded
+    const timer = setTimeout(() => {
+        // The IntroDisclosure component handles localStorage checking internally via featureId
+        // But we need to default 'open' to true initially to let the component decide based on storage
+        setIsTourOpen(true)
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   // User authentication state
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
@@ -432,6 +497,12 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      <IntroDisclosure
+        steps={tourSteps}
+        open={isTourOpen}
+        setOpen={setIsTourOpen}
+        featureId="dashboard-tour-v1"
+      />
     </>
   )
 }
