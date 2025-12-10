@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
-import { SmartCameraSystem } from "@/components/smart-camera-system"
 import { VideoCameraIcon, SignalIcon } from "@heroicons/react/24/solid"
 import { ArrowPathIcon } from "@heroicons/react/24/outline"
 import { analyzePlantFromVideo } from "@/lib/utils/plant-analysis-helper"
@@ -37,8 +36,6 @@ export default function MonitorPage() {
   // Track EC value history for chart (last 20 data points)
   const [ecHistory, setEcHistory] = useState<number[]>([])
 
-  // Camera source state
-  const [videoSource, setVideoSource] = useState<'live' | 'usb'>('live')
   const [analyzing, setAnalyzing] = useState(false)
 
   const handleAnalyze = async () => {
@@ -182,49 +179,19 @@ export default function MonitorPage() {
 
               {/* Left Panel - Live Stream */}
               <div id="monitor-player" className="relative rounded-3xl glass overflow-hidden group">
-                {/* Camera Toggle */}
-                <div className="absolute top-6 right-6 z-20 flex bg-black/40 rounded-xl p-1 backdrop-blur-md border border-white/10">
-                  <button
-                    onClick={() => setVideoSource('live')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${videoSource === 'live'
-                      ? 'bg-white text-black shadow-lg'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                      }`}
-                  >
-                    <SignalIcon className="size-3.5" />
-                    直播流
-                  </button>
-                  <button
-                    onClick={() => setVideoSource('usb')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${videoSource === 'usb'
-                      ? 'bg-white text-black shadow-lg'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                      }`}
-                  >
-                    <VideoCameraIcon className="size-3.5" />
-                    本地USB
-                  </button>
-                </div>
-
-                {videoSource === 'live' ? (
-                  <LiveStreamPlayer
-                    id="monitor-player"
-                    sources={[
-                      { src: "webrtc://yidiudiu1.top/live/stravision" },
-                      { src: "http://yidiudiu1.top/live/stravision.m3u8" },
-                      { src: "http://yidiudiu1.top/live/stravision.flv" }
-                    ]}
-                    autoplay
-                    muted
-                    controls
-                    className="absolute inset-0 w-full h-full object-cover"
-                    poster="/logo.svg"
-                  />
-                ) : (
-                  <SmartCameraSystem
-                    className="absolute inset-0 w-full h-full"
-                  />
-                )}
+                <LiveStreamPlayer
+                  id="monitor-player"
+                  sources={[
+                    { src: "webrtc://yidiudiu1.top/live/stravision" },
+                    { src: "http://yidiudiu1.top/live/stravision.m3u8" },
+                    { src: "http://yidiudiu1.top/live/stravision.flv" }
+                  ]}
+                  autoplay
+                  muted
+                  controls
+                  className="absolute inset-0 w-full h-full object-cover"
+                  poster="/logo.svg"
+                />
 
                 {/* Weather Card */}
                 {(() => {

@@ -3,18 +3,15 @@
 import { useState, useEffect, useMemo, memo } from "react"
 import { cn } from "@/lib/utils"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
-import { USBCameraPlayer } from "@/components/usb-camera-player"
 import { Eye, ArrowUpRight, Video, Wifi, WifiOff, RefreshCw, Maximize2, X } from "lucide-react"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogTitle } from "@/components/ui/dialog"
 
 const MemoizedLiveStreamPlayer = memo(LiveStreamPlayer)
-const MemoizedUSBCameraPlayer = memo(USBCameraPlayer)
 
 export function MonitorCard() {
   const [date, setDate] = useState("")
   const { connectionStatus } = useDeviceData()
-  const [videoSource, setVideoSource] = useState<'live' | 'usb'>('live')
   const [refreshKey, setRefreshKey] = useState(0)
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -37,25 +34,16 @@ export function MonitorCard() {
   }
 
   const renderPlayer = (isFull = false) => {
-     if (videoSource === 'live') {
-        return (
-          <MemoizedLiveStreamPlayer
-            key={`live-${refreshKey}-${isFull ? 'full' : 'mini'}`}
-            className="w-full h-full object-cover"
-            sources={liveSources}
-            autoplay
-            muted={!isFull}
-            controls={isFull}
-          />
-        )
-     } else {
-        return (
-          <MemoizedUSBCameraPlayer 
-             key={`usb-${refreshKey}-${isFull ? 'full' : 'mini'}`}
-             className="w-full h-full object-cover"
-          />
-        )
-     }
+    return (
+      <MemoizedLiveStreamPlayer
+        key={`live-${refreshKey}-${isFull ? 'full' : 'mini'}`}
+        className="w-full h-full object-cover"
+        sources={liveSources}
+        autoplay
+        muted={!isFull}
+        controls={isFull}
+      />
+    )
   }
 
   return (
@@ -72,28 +60,6 @@ export function MonitorCard() {
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{date}</p>
           </div>
         </div>
-        
-        {/* Source Toggle */}
-        <div className="flex bg-gray-100 dark:bg-white/10 rounded-full p-1">
-           <button 
-             onClick={() => setVideoSource('live')}
-             className={cn(
-               "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-               videoSource === 'live' ? "bg-white dark:bg-white/20 text-black dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-             )}
-           >
-             直播
-           </button>
-           <button 
-             onClick={() => setVideoSource('usb')}
-             className={cn(
-               "px-3 py-1 rounded-full text-[10px] font-bold transition-all",
-               videoSource === 'usb' ? "bg-white dark:bg-white/20 text-black dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-             )}
-           >
-             USB
-           </button>
-        </div>
       </div>
 
       {/* Video Content */}
@@ -103,8 +69,8 @@ export function MonitorCard() {
         
         {/* Overlay Status */}
         <div className="absolute top-3 left-3 px-2 py-1 bg-black/40 backdrop-blur-md rounded-full flex items-center gap-1.5 border border-white/10 z-10">
-          <div className={cn("size-1.5 rounded-full animate-pulse", videoSource === 'live' ? "bg-red-500" : "bg-blue-500")}></div>
-          <span className="text-[10px] font-medium text-white/90">{videoSource === 'live' ? '直播中' : 'USB相机'}</span>
+          <div className="size-1.5 rounded-full animate-pulse bg-red-500"></div>
+          <span className="text-[10px] font-medium text-white/90">直播中</span>
         </div>
 
         {/* Controls (Visible on Hover) */}
@@ -159,8 +125,8 @@ export function MonitorCard() {
         <DialogTitle className="sr-only">全屏监控</DialogTitle>
         <div className="absolute top-4 left-4 z-50 flex items-center gap-3">
             <div className="px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-full flex items-center gap-2 border border-white/10">
-                <div className={cn("size-2 rounded-full animate-pulse", videoSource === 'live' ? "bg-red-500" : "bg-blue-500")}></div>
-                <span className="text-xs font-medium text-white/90">{videoSource === 'live' ? '直播中' : 'USB相机'} - 全屏模式</span>
+                <div className="size-2 rounded-full animate-pulse bg-red-500"></div>
+                <span className="text-xs font-medium text-white/90">直播中 - 全屏模式</span>
             </div>
         </div>
         
