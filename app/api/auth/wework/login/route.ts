@@ -9,7 +9,9 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
-  const origin = url.origin
+  // 优先使用环境变量中配置的 PUBLIC_URL，如果没有则使用请求的 origin
+  // 这对于部署在反向代理后面或需要指定域名的情况很有用
+  const origin = process.env.NEXT_PUBLIC_APP_URL || url.origin
   const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
   const redirectUri = `${origin}/api/auth/wework/callback`
 
