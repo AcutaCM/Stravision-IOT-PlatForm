@@ -62,6 +62,7 @@ export async function initDB(): Promise<void> {
       avatar_url TEXT,
       wechat_openid TEXT UNIQUE,
       wechat_unionid TEXT,
+      wework_userid TEXT UNIQUE,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
@@ -93,6 +94,9 @@ export async function initDB(): Promise<void> {
     }
     if (!names.has("wechat_unionid")) {
       db.exec(`ALTER TABLE users ADD COLUMN wechat_unionid TEXT`)
+    }
+    if (!names.has("wework_userid")) {
+      db.exec(`ALTER TABLE users ADD COLUMN wework_userid TEXT`)
     }
   } catch (e) {
     console.error("Failed to migrate users table columns:", e)

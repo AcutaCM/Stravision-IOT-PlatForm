@@ -25,6 +25,7 @@ export interface User {
   avatar_url: string | null
   wechat_openid?: string | null
   wechat_unionid?: string | null
+  wework_userid?: string | null
   created_at: number
   updated_at: number
 }
@@ -165,6 +166,16 @@ export async function getUserByWeChatUnionId(unionid: string): Promise<User | nu
     SELECT * FROM users WHERE wechat_unionid = ?
   `)
   const user = stmt.get(unionid) as User | undefined
+  return user || null
+}
+
+export async function getUserByWeWorkUserId(userid: string): Promise<User | null> {
+  await ensureDB()
+  const db = getDB()
+  const stmt = db.prepare(`
+    SELECT * FROM users WHERE wework_userid = ?
+  `)
+  const user = stmt.get(userid) as User | undefined
   return user || null
 }
 
@@ -325,4 +336,119 @@ export async function findOrCreateWeChatUser(params: {
     throw new Error("创建微信用户后无法获取用户信息")
   }
   return toPublicUser(created)
+}
+
+export async function findOrCreateWeWorkUser(params: {
+  userid: string
+  name?: string
+  avatar?: string | null
+  email?: string
+}): Promise<UserPublic> {
+  await ensureDB()
+  const db = getDB()
+  const now = Date.now()
+
+  // 1. 尝试通过 wework_userid 查找
+  let existingUser = await getUserByWeWorkUserId(params.userid)
+
+  // 2. 如果没找到，但提供了 email，尝试通过 email 查找（用于关联已有账号）
+  if (!existingUser && params.email) {
+    existingUser = await getUserByEmail(params.email)
+    
+    // 如果找到了对应邮箱的用户，更新其 wework_userid
+    if (existingUser && !existingUser.wework_userid) {
+       const stmt = db.prepare(`UPDATE users SET wework_userid = ?, updated_at = ? WHERE id = ?`)
+       stmt.run(params.userid, now, existingUser.id)
+       // 重新获取最新数据
+       existingUser = await getUserById(existingUser.id)
+    }
+  }
+
+  if (existingUser) {
+    const updates: string[] = []
+    const values: (string | number | null)[] = []
+
+    // 只有当现有用户名是默认格式时，或者没有头像时才更新
+    // 避免覆盖用户自定义的资料
+    if (params.name && (existingUser.username === `wework_${params.userid}` || !existingUser.username)) {
+      updates.push("username = ?")
+      values.push(params.name)
+    }
+    if (params.avatar && !existingUser.avatar_url) {
+      updates.push("avatar_url = ?")
+      values.push(params.avatar)
+    }
+
+    if (updates.length > 0) {
+        updates.push("updated_at = ?")
+        values.push(now)
+        values.push(existingUser.id)
+
+        const stmt = db.prepare(`
+            UPDATE users SET ${updates.join(", ")} WHERE id = ?
+        `)
+        stmt.run(...values)
+    }
+
+    const updated = await getUserById(existingUser.id)
+    if (!updated) {
+      throw new Error("更新企业微信用户后无法获取用户信息")
+    }
+    return toPublicUser(updated)
+  }
+
+  // 创建新用户
+  // 使用企业微信提供的邮箱，如果没有则生成一个虚拟邮箱
+  const userEmail = params.email || `wework_${params.userid}@wework.local`
+  
+  const stmt = db.prepare(`
+    INSERT INTO users (email, password_hash, username, avatar_url, wework_userid, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  
+  try {
+      const result = stmt.run(
+        userEmail,
+        "", // 无密码
+        params.name || `企业微信用户`,
+        params.avatar || null,
+        params.userid,
+        now,
+        now
+      )
+
+      const newId = result.lastInsertRowid as number
+      const created = await getUserById(newId)
+      if (!created) {
+        throw new Error("创建企业微信用户后无法获取用户信息")
+      }
+      return toPublicUser(created)
+  } catch (error) {
+     if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+         // 极端情况：邮箱冲突（例如 generated email 冲突，或者 params.email 已被注册但未被上面查到？）
+         // 这里简单处理：如果邮箱冲突，尝试追加随机后缀
+         const retryEmail = params.email 
+             ? `conflict_${Date.now()}_${params.email}` 
+             : `wework_${params.userid}_${Date.now()}@wework.local`
+             
+          const retryStmt = db.prepare(`
+            INSERT INTO users (email, password_hash, username, avatar_url, wework_userid, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `)
+          const retryResult = retryStmt.run(
+            retryEmail,
+            "",
+            params.name || `企业微信用户`,
+            params.avatar || null,
+            params.userid,
+            now,
+            now
+          )
+          const newId = retryResult.lastInsertRowid as number
+          const created = await getUserById(newId)
+          if (!created) throw new Error("创建企业微信用户(重试)后无法获取用户信息")
+          return toPublicUser(created)
+     }
+     throw error
+  }
 }

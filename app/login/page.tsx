@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Facebook, Mail } from "lucide-react";
+import { Facebook, Mail, Building2 } from "lucide-react";
 import SplitText from "@/components/ui/split-text";
 import TextPressure from "@/components/ui/text-pressure";
  
@@ -135,8 +135,10 @@ export default function LoginPage() {
                   <Mail className="h-6 w-6 text-[#4285F4]" />
                   <span className="text-[16px]">使用微信登录</span>
                 </Button>
-                <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]">
-                  <Facebook className="h-6 w-6 text-[#1877F2]" />
+                <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]" onClick={() => {
+                  window.location.href = "/api/auth/wework/login"
+                }}>
+                  <Building2 className="h-6 w-6 text-[#1877F2]" />
                   <span className="text-[16px]">使用企业微信登录</span>
                 </Button>
               </div>
