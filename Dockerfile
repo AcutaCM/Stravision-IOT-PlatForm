@@ -24,7 +24,9 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN npm run build
+RUN npm run build && \
+    rm -rf node_modules && \
+    npm cache clean --force
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -50,6 +52,9 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Clean up cache
+RUN rm -rf .next/cache
 
 # Ensure data directory exists and has correct permissions
 RUN mkdir -p data && chown nextjs:nodejs data
