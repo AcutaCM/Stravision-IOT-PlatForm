@@ -10,7 +10,7 @@ import { usePathname, useRouter } from "next/navigation"
 // Define steps with an optional route property
 type ExtendedDriveStep = DriveStep & { route?: string }
 
-export function OnboardingGuide() {
+export function DesktopOnboardingGuide() {
   const driverObj = useRef<any>(null)
   const router = useRouter()
   const pathname = usePathname()
@@ -157,7 +157,18 @@ export function OnboardingGuide() {
       route: "/ai-assistant"
     },
 
-    // --- Step 13: User Menu ---
+    // --- Step 13: AI Assistant - Settings (API Key) ---
+    {
+      element: "#ai-settings-trigger",
+      popover: {
+        title: "API 设置",
+        description: "重要：首次使用请点击此处设置 API Key（支持阿里云 DashScope 等）。只有配置了正确的 Key，AI 功能才能正常使用。",
+        side: "top",
+      },
+      route: "/ai-assistant"
+    },
+
+    // --- Step 14: User Menu ---
     {
       element: "#user-menu-trigger",
       popover: {
@@ -290,8 +301,13 @@ export function OnboardingGuide() {
 
   }, [pathname, router]) // Re-run effect when pathname changes to check for resume
 
-  // Don't show help button on auth pages
-  if (pathname === "/login" || pathname === "/register" || pathname === "/") {
+  // Don't show help button on auth pages or mobile pages
+  if (
+    pathname === "/login" || 
+    pathname === "/register" || 
+    pathname === "/" ||
+    pathname.includes("-ios")
+  ) {
     return null
   }
 

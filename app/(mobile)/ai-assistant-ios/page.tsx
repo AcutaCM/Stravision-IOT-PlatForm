@@ -757,7 +757,7 @@ export default function AIAssistantIOSPage() {
            <span>你好, {user?.username || '朋友'}!</span>
         </div>
 
-        <button onClick={() => setSettingsOpen(true)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors" aria-label="设置">
+        <button onClick={() => setSettingsOpen(true)} className="p-2 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors" aria-label="设置" id="mobile-ai-settings-trigger">
            <Infinity size={24} className="text-gray-800 dark:text-gray-200" />
         </button>
       </div>

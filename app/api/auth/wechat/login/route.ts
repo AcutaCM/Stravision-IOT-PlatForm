@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server"
 
 export async function GET(req: Request) {
-  const appId = process.env.WECHAT_APP_ID
-  if (!appId) {
+  // 尝试获取不同环境的配置
+  // WECHAT_OFFICIAL_APP_ID: 微信公众号 AppID (用于微信内访问)
+  // WECHAT_OPEN_APP_ID: 微信开放平台 AppID (用于 PC/外部浏览器访问)
+  
+  // 严格区分：WECHAT_APP_ID 默认作为开放平台 ID (Open Platform / Website App)
+  // 只有当明确配置了 WECHAT_OFFICIAL_APP_ID 时，才在微信内启用公众号登录流程
+  const officialAppId = process.env.WECHAT_OFFICIAL_APP_ID
+  const openAppId = process.env.WECHAT_OPEN_APP_ID || process.env.WECHAT_APP_ID
+  
+  // 打印调试信息，帮助定位 ID 问题
+  console.log('WeChat Login Debug:', {
+    isWeChat,
+    officialAppId: officialAppId ? 'configured' : 'missing',
+    openAppId: openAppId ? 'configured' : 'missing',
+    usedAppId: (isWeChat && officialAppId) ? officialAppId : openAppId
+  })
+
+  if (!officialAppId && !openAppId) {
     return NextResponse.json({ error: "未配置 WECHAT_APP_ID" }, { status: 500 })
   }
 
@@ -10,12 +26,34 @@ export async function GET(req: Request) {
   const origin = url.origin
   const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
   const redirectUri = `${origin}/api/auth/wechat/callback`
+  
+  const userAgent = req.headers.get("user-agent") || ""
+  // Check if running in WeChat client
+  const isWeChat = /MicroMessenger/i.test(userAgent)
 
-  const wechatUrl = `https://open.weixin.qq.com/connect/qrconnect?appid=${appId}&redirect_uri=${encodeURIComponent(
-    redirectUri
-  )}&response_type=code&scope=snsapi_login&state=${state}#wechat_redirect`
+  let wechatUrl: string
+  let loginType: 'official' | 'open'
+
+  // 只有在微信环境且明确配置了公众号 ID 时，才使用公众号 OAuth
+  if (isWeChat && officialAppId) {
+    // 微信环境：使用公众号 OAuth (snsapi_userinfo)
+    loginType = 'official'
+    wechatUrl = `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${officialAppId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=code&scope=snsapi_userinfo&state=${state}#wechat_redirect`
+  } else {
+    // 其他情况（PC、外部浏览器、或未配置公众号ID的微信环境）：使用开放平台 QR Login
+    // 注意：微信内也可以打开 QR Login 页面，虽然体验不如 OAuth 流畅，但能解决 Scope 问题
+    loginType = 'open'
+    // 确保使用 snsapi_login
+    wechatUrl = `https://open.weixin.qq.com/connect/qrconnect?appid=${openAppId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=code&scope=snsapi_login&state=${state}#wechat_redirect`
+  }
 
   const res = NextResponse.redirect(wechatUrl)
+  
+  // 存储 state 和 登录类型，以便 callback 知道使用哪个 AppID/Secret 验证
   res.cookies.set("wx_state", state, {
     httpOnly: true,
     sameSite: "lax",
@@ -23,5 +61,14 @@ export async function GET(req: Request) {
     path: "/",
     maxAge: 300,
   })
+  
+  res.cookies.set("wx_login_type", loginType, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 300,
+  })
+  
   return res
 }

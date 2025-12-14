@@ -48,6 +48,9 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
+# Install sqlite3 for potential manual db operations if needed (optional)
+# apk add --no-cache sqlite
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -57,7 +60,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 RUN rm -rf .next/cache
 
 # Ensure data directory exists and has correct permissions
-RUN mkdir -p data && chown nextjs:nodejs data
+# 注意：在 Dockerfile 中设置 VOLUME 后，该目录的权限管理会变得复杂
+# 更好的方式是在 Dockerfile 中设置所有权，但在运行时由 docker-compose 挂载时可能会覆盖
+# 这里确保基础目录权限是正确的，并且使用 USER nextjs
+RUN mkdir -p data && chown -R nextjs:nodejs data
 
 USER nextjs
 

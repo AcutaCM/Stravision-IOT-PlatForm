@@ -7,12 +7,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Facebook, Mail, Building2 } from "lucide-react";
+import { Facebook, Building2, QrCode, MessageCircle } from "lucide-react";
 import SplitText from "@/components/ui/split-text";
 import TextPressure from "@/components/ui/text-pressure";
- 
 
-export default function LoginPage() {
+function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -128,13 +127,15 @@ export default function LoginPage() {
               </div>
               {/* Social buttons */}
               <div className="space-y-4">
-                <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]" onClick={() => {
-                  window.location.href = "/api/auth/wechat/login"
-                }}>
-                  {/* Using Mail icon to approximate Google brand */}
-                  <Mail className="h-6 w-6 text-[#4285F4]" />
-                  <span className="text-[16px]">使用微信登录</span>
+                <Button 
+                  variant="secondary" 
+                  className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]"
+                  onClick={() => window.location.href = "/api/auth/wechat/login"}
+                >
+                  <MessageCircle className="h-6 w-6 text-[#07C160]" />
+                  <span className="text-[16px]">微信登录</span>
                 </Button>
+
                 <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]" onClick={() => {
                   window.location.href = "/api/auth/wework/login"
                 }}>
@@ -185,3 +186,5 @@ export default function LoginPage() {
     </>
   );
 }
+
+export default LoginPage;

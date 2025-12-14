@@ -43,3 +43,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQLite
+*.db-shm
+*.db-wal
+
+# Certificates
+nginx/certs/

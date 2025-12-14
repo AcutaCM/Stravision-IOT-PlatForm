@@ -171,55 +171,64 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen w-screen h-screen bg-background text-foreground">
-      <div className="grid grid-rows-[72px_1fr] h-full w-full">
+    <div className="min-h-screen w-screen h-screen bg-background dark:bg-[#0B1121] text-foreground transition-colors duration-500">
+      {/* Background blobs for mobile/desktop style consistency */}
+      <div className="fixed top-[-20%] right-[-20%] w-[80%] h-[60%] rounded-full bg-blue-200/20 dark:bg-blue-900/10 blur-[100px] pointer-events-none" />
+      <div className="fixed top-[20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-200/20 dark:bg-indigo-900/10 blur-[100px] pointer-events-none" />
+
+      <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
         {/* Header */}
-        <div className="relative flex items-center px-8 border-b border-border bg-background/50 backdrop-blur-sm">
+        <div className="relative flex items-center px-8 border-b border-border bg-background/50 dark:bg-[#111827]/50 backdrop-blur-xl">
           <div className="flex items-center gap-4 text-foreground">
-            <Image src="/logo.svg" alt="logo" width={64} height={64} />
-            <div className="leading-tight">
+            <Image src="/logo.svg" alt="logo" width={64} height={64} className="hidden md:block" />
+            <div className="leading-tight hidden md:block">
               <div className="text-base font-bold tracking-wide">STRAVISION</div>
               <div className="text-xs text-muted-foreground">莓界 · 智慧农业平台</div>
             </div>
+            
+            {/* Mobile Title */}
+            <div className="md:hidden text-lg font-bold">编辑资料</div>
           </div>
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 hidden md:block">
             <PageNavigation />
           </div>
           <div className="ml-auto flex items-center gap-3">
-            {connectionStatus.connected ? (
-              <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
-                <Wifi className="size-3 mr-1" />
-                已连接
-              </Badge>
-            ) : (
-              <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
-                <WifiOff className="size-3 mr-1" />
-                {connectionStatus.error || '未连接'}
-              </Badge>
-            )}
-            {connectionStatus.lastUpdate && (
-              <span className="text-xs text-muted-foreground/60">
-                更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
+            <div className="hidden md:flex items-center gap-3">
+              {connectionStatus.connected ? (
+                <Badge className="bg-green-500/20 text-green-300 border-green-500/30 hover:bg-green-500/30">
+                  <Wifi className="size-3 mr-1" />
+                  已连接
+                </Badge>
+              ) : (
+                <Badge className="bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30">
+                  <WifiOff className="size-3 mr-1" />
+                  {connectionStatus.error || '未连接'}
+                </Badge>
+              )}
+              {connectionStatus.lastUpdate && (
+                <span className="text-xs text-muted-foreground/60">
+                  更新: {connectionStatus.lastUpdate.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
             <UserAvatarMenu user={currentUser} />
           </div>
         </div>
 
         {/* Content */}
-        <div className="relative px-8 pb-8 pt-6 overflow-auto">
+        <div className="relative px-4 md:px-8 pb-8 pt-6 overflow-auto">
           <div className="max-w-2xl mx-auto">
             {/* Back Button */}
             <Button
               variant="ghost"
               onClick={() => router.back()}
-              className="mb-6 text-muted-foreground hover:text-foreground hover:bg-accent"
+              className="mb-6 text-muted-foreground hover:text-foreground hover:bg-accent/50"
             >
               <ArrowLeft className="mr-2 size-4" />
               返回
             </Button>
 
-            <Card className="rounded-2xl glass border-border text-foreground shadow-2xl">
+            <Card className="rounded-2xl bg-white/70 dark:bg-[#111827]/70 backdrop-blur-xl border border-white/20 dark:border-white/5 text-foreground shadow-sm">
               <CardHeader>
                 <CardTitle className="text-2xl font-bold">个人设置</CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -250,7 +259,7 @@ export default function SettingsPage() {
                       type="email"
                       value={email}
                       disabled
-                      className="bg-muted/50 border-border text-muted-foreground cursor-not-allowed"
+                      className="bg-muted/50 dark:bg-black/20 border-border text-muted-foreground cursor-not-allowed"
                     />
                     <p className="text-xs text-muted-foreground/60">
                       邮箱地址不可修改
@@ -271,7 +280,7 @@ export default function SettingsPage() {
                       required
                       minLength={2}
                       maxLength={20}
-                      className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:ring-blue-500/20"
+                      className="bg-muted/50 dark:bg-black/20 border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:ring-blue-500/20"
                     />
                     <p className="text-xs text-muted-foreground/60">
                       2-20个字符
@@ -283,8 +292,8 @@ export default function SettingsPage() {
                     <Label className="text-foreground/90">头像</Label>
 
                     {/* Avatar Preview */}
-                    <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 border border-border">
-                      <div className="size-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 dark:bg-black/20 border border-border">
+                      <div className="size-20 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 border-2 border-white/10">
                         {(previewUrl || avatarUrl) ? (
                           <img
                             src={previewUrl || avatarUrl}
@@ -301,7 +310,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm text-foreground/90 mb-1">{username}</p>
+                        <p className="text-sm text-foreground/90 mb-1 font-medium">{username}</p>
                         <p className="text-xs text-muted-foreground mb-3">{email}</p>
                         <div className="flex gap-2">
                           <Button
@@ -309,7 +318,7 @@ export default function SettingsPage() {
                             size="sm"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
-                            className="bg-muted/50 hover:bg-muted text-foreground border-border"
+                            className="bg-white dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/20 text-foreground border border-border shadow-sm"
                           >
                             <Upload className="mr-2 size-3" />
                             {isUploading ? "上传中..." : "上传头像"}
@@ -321,7 +330,7 @@ export default function SettingsPage() {
                               variant="outline"
                               onClick={handleRemoveAvatar}
                               disabled={isUploading}
-                              className="border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                              className="border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 bg-transparent"
                             >
                               <X className="mr-2 size-3" />
                               移除
@@ -356,7 +365,7 @@ export default function SettingsPage() {
                       value={avatarUrl}
                       onChange={(e) => setAvatarUrl(e.target.value)}
                       placeholder="https://example.com/avatar.jpg"
-                      className="bg-muted/50 border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:ring-blue-500/20"
+                      className="bg-muted/50 dark:bg-black/20 border-border text-foreground placeholder:text-muted-foreground focus:border-blue-500/50 focus:ring-blue-500/20"
                     />
                     <p className="text-xs text-muted-foreground/60">
                       直接输入头像图片链接或相对路径
@@ -383,11 +392,11 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Save Button */}
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-4 sticky bottom-0 bg-background/80 dark:bg-[#0B1121]/80 backdrop-blur-md p-4 -mx-6 -mb-6 mt-6 border-t border-border md:static md:bg-transparent md:p-0 md:m-0 md:border-none">
                     <Button
                       type="submit"
                       disabled={isSaving}
-                      className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 rounded-xl"
                     >
                       <Save className="mr-2 size-4" />
                       {isSaving ? "保存中..." : "保存更改"}
@@ -396,7 +405,7 @@ export default function SettingsPage() {
                       type="button"
                       variant="outline"
                       onClick={() => router.back()}
-                      className="border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                      className="border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 bg-transparent rounded-xl"
                     >
                       取消
                     </Button>

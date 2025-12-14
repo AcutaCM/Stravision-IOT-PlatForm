@@ -1,4 +1,5 @@
 import { MobileBottomNav } from "@/components/mobile-bottom-nav"
+import { MobileOnboardingGuide } from "@/components/mobile-onboarding-guide"
 
 export default function MobileLayout({
   children,
@@ -9,6 +10,7 @@ export default function MobileLayout({
     <>
       {children}
       <MobileBottomNav />
+      <MobileOnboardingGuide />
     </>
   )
 }

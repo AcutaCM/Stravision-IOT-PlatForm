@@ -171,7 +171,7 @@ export default function MonitorIOSPage() {
           </div>
 
           {/* Weather Row */}
-          <div className="flex justify-between items-center px-2">
+          <div className="flex justify-between items-center px-2" id="mobile-weather-row">
             <div className="flex flex-col items-center">
               <div className="flex items-center gap-1 text-foreground">
                 <FireIcon className="size-5 text-blue-500" />
@@ -203,7 +203,7 @@ export default function MonitorIOSPage() {
         </div>
 
         <div className="px-4 mb-4">
-          <div className="relative bg-[#1a1a1a] dark:bg-[#0a0a0a] rounded-[2rem] overflow-hidden h-[200px] shadow-xl">
+          <div className="relative bg-[#1a1a1a] dark:bg-[#0a0a0a] rounded-[2rem] overflow-hidden h-[200px] shadow-xl" id="mobile-video-player">
             <LiveStreamPlayer
               sources={[
                 { src: "webrtc://223897.push.tlivecloud.com/live/stravision?txSecret=9f7996a9d4295232332d40ab868648c5&txTime=69297772" },
@@ -241,7 +241,9 @@ export default function MonitorIOSPage() {
         </div>
 
         {/* Room Tabs */}
-        <RoomTabs selected={selectedRoom} onSelect={setSelectedRoom} />
+        <div id="mobile-room-tabs">
+            <RoomTabs selected={selectedRoom} onSelect={setSelectedRoom} />
+        </div>
 
         {/* Execution Devices Section */}
         <div className="px-4 py-2">
@@ -252,7 +254,7 @@ export default function MonitorIOSPage() {
         </div>
 
         {/* Device Grid */}
-        <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar" id="mobile-device-grid">
           <div className="grid grid-cols-2 gap-4">
 
             {/* Relay 5: Water Pump */}

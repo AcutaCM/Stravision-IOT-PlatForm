@@ -6,7 +6,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SchedulerInit } from "@/components/scheduler-init";
 import { Toaster } from "sonner";
 import { PageTransition } from "@/components/page-transition";
-import { OnboardingGuide } from "@/components/onboarding-guide";
 import { SmoothScroll } from "@/components/smooth-scroll";
 
 export const metadata: Metadata = {
@@ -35,7 +34,6 @@ export default function RootLayout({
                 <PageTransition>
                   {children}
                 </PageTransition>
-                <OnboardingGuide />
                 <Toaster />
               </SmoothScroll>
             </DeviceProvider>

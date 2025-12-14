@@ -216,7 +216,7 @@ export default function DeviceControlIOSPage() {
         <RoomTabs selected={selectedRoom} onSelect={setSelectedRoom} />
 
         {/* Device Grid */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 pb-32 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-4 py-6 pb-32 no-scrollbar" id="mobile-control-grid">
           <div className="grid grid-cols-2 gap-4">
 
             {/* Relay 5: Water Pump */}

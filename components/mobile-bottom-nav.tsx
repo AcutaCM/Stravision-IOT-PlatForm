@@ -23,14 +23,15 @@ interface NavItem {
   label: string
   icon: any
   iconSolid: any
+  id: string
 }
 
 const navItems: NavItem[] = [
-  { href: "/monitor-ios", label: "监测", icon: HomeIcon, iconSolid: HomeIconSolid },
-  { href: "/device-control-ios", label: "设备", icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid },
-  { href: "/dashboard-ios", label: "看板", icon: Squares2X2Icon, iconSolid: Squares2X2IconSolid },
-  { href: "/ai-assistant-ios", label: "AI助手", icon: SparklesIcon, iconSolid: SparklesIconSolid },
-  { href: "/profile", label: "我的", icon: UserIcon, iconSolid: UserIconSolid },
+  { href: "/monitor-ios", label: "监测", icon: HomeIcon, iconSolid: HomeIconSolid, id: "nav-monitor-ios" },
+  { href: "/device-control-ios", label: "设备", icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, id: "nav-device-control-ios" },
+  { href: "/dashboard-ios", label: "看板", icon: Squares2X2Icon, iconSolid: Squares2X2IconSolid, id: "nav-dashboard-ios" },
+  { href: "/ai-assistant-ios", label: "AI助手", icon: SparklesIcon, iconSolid: SparklesIconSolid, id: "nav-ai-assistant-ios" },
+  { href: "/profile-ios", label: "我的", icon: UserIcon, iconSolid: UserIconSolid, id: "nav-profile-ios" },
 ]
 
 export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "sticky" }) {
@@ -46,7 +47,7 @@ export function MobileBottomNav({ position = "fixed" }: { position?: "fixed" | "
               const Icon = isActive ? item.iconSolid : item.icon
   
               return (
-                <Link key={item.href} href={item.href} className="relative">
+                <Link key={item.href} href={item.href} className="relative" id={item.id}>
                   <motion.div
                     whileTap={{ scale: 0.95 }}
                     className="relative"

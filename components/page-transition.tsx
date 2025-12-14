@@ -24,6 +24,8 @@ function FrozenRouter(props: { children: React.ReactNode }) {
     )
 }
 
+import { DesktopOnboardingGuide } from "@/components/onboarding-guide"
+
 export function PageTransition({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
 
@@ -78,22 +80,25 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-            <motion.div
-                key={pathname}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 }
-                }}
-                className="w-full"
-            >
-                <FrozenRouter>{children}</FrozenRouter>
-            </motion.div>
-        </AnimatePresence>
+        <>
+            <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                <motion.div
+                    key={pathname}
+                    custom={direction}
+                    variants={variants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.2 }
+                    }}
+                    className="w-full"
+                >
+                    <FrozenRouter>{children}</FrozenRouter>
+                </motion.div>
+            </AnimatePresence>
+            <DesktopOnboardingGuide />
+        </>
     )
 }

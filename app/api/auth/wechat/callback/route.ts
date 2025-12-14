@@ -4,18 +4,28 @@ import { findOrCreateWeChatUser } from "@/lib/db/user-service"
 import { generateToken, setAuthCookie } from "@/lib/auth"
 
 export async function GET(req: Request) {
-  const appId = process.env.WECHAT_APP_ID
-  const secret = process.env.WECHAT_APP_SECRET
   const url = new URL(req.url)
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
+  
+  const cookieStore = await cookies()
+  const expectedState = cookieStore.get("wx_state")?.value
+  const loginType = cookieStore.get("wx_login_type")?.value || 'open' // Default to open if not set
+  
+  // 根据登录类型选择对应的 AppID 和 Secret
+  // 优先使用明确指定的环境变量，如果不存在则回退到通用变量
+  const appId = loginType === 'official' 
+    ? (process.env.WECHAT_OFFICIAL_APP_ID || process.env.WECHAT_APP_ID)
+    : (process.env.WECHAT_OPEN_APP_ID || process.env.WECHAT_APP_ID)
+    
+  const secret = loginType === 'official'
+    ? (process.env.WECHAT_OFFICIAL_APP_SECRET || process.env.WECHAT_APP_SECRET)
+    : (process.env.WECHAT_OPEN_APP_SECRET || process.env.WECHAT_APP_SECRET)
 
   if (!appId || !secret) {
     return NextResponse.redirect(`/login?error=wechat_config`)
   }
 
-  const cookieStore = await cookies()
-  const expectedState = cookieStore.get("wx_state")?.value
   if (!code || !state || !expectedState || expectedState !== state) {
     return NextResponse.redirect(`/login?error=wechat_state`)
   }
@@ -55,12 +65,13 @@ export async function GET(req: Request) {
     const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
     await setAuthCookie(jwt)
 
-    const res = NextResponse.redirect(`/monitor`)
+    const res = NextResponse.redirect(new URL("/monitor", req.url))
     res.cookies.set("wx_state", "", { path: "/", maxAge: 0 })
+    res.cookies.set("wx_login_type", "", { path: "/", maxAge: 0 })
     return res
   } catch (error) {
     console.error("微信登录回调处理失败:", error)
-    return NextResponse.redirect(`/login?error=wechat_error`)
+    return NextResponse.redirect(new URL("/login?error=wechat_error", req.url))
   }
 }
 
