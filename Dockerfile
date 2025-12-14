@@ -65,7 +65,8 @@ RUN rm -rf .next/cache
 # 这里确保基础目录权限是正确的，并且使用 USER nextjs
 RUN mkdir -p data && chown -R nextjs:nodejs data
 
-USER nextjs
+# Switch back to root to fix permissions at runtime
+USER root
 
 EXPOSE 3000
 
@@ -74,4 +75,11 @@ ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 ENV TZ Asia/Shanghai
 
-CMD ["node", "server.js"]
+# Use a shell script to fix permissions and start the app
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'chown -R nextjs:nodejs /app/data' >> /app/entrypoint.sh && \
+    echo 'exec su-exec nextjs node server.js' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh && \
+    apk add --no-cache su-exec
+
+CMD ["/app/entrypoint.sh"]
