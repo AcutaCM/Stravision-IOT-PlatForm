@@ -80,7 +80,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <>
+        <div className="relative w-full h-screen overflow-hidden bg-gray-50 dark:bg-zinc-950">
             <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                 <motion.div
                     key={pathname}
@@ -93,12 +93,12 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
                         x: { type: "spring", stiffness: 300, damping: 30 },
                         opacity: { duration: 0.2 }
                     }}
-                    className="w-full"
+                    className="w-full h-full"
                 >
                     <FrozenRouter>{children}</FrozenRouter>
                 </motion.div>
             </AnimatePresence>
             <DesktopOnboardingGuide />
-        </>
+        </div>
     )
 }
