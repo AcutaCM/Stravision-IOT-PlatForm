@@ -44,9 +44,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# SQLite
+# SQLite & Data
+*.db
 *.db-shm
 *.db-wal
+data/*.db
+data/*.json
+!data/.gitkeep
 
 # Certificates
 nginx/certs/
