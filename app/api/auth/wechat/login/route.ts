@@ -10,6 +10,10 @@ export async function GET(req: Request) {
   const officialAppId = process.env.WECHAT_OFFICIAL_APP_ID
   const openAppId = process.env.WECHAT_OPEN_APP_ID || process.env.WECHAT_APP_ID
   
+  const userAgent = req.headers.get("user-agent") || ""
+  // Check if running in WeChat client
+  const isWeChat = /MicroMessenger/i.test(userAgent)
+
   // 打印调试信息，帮助定位 ID 问题
   console.log('WeChat Login Debug:', {
     isWeChat,
@@ -26,10 +30,6 @@ export async function GET(req: Request) {
   const origin = url.origin
   const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
   const redirectUri = `${origin}/api/auth/wechat/callback`
-  
-  const userAgent = req.headers.get("user-agent") || ""
-  // Check if running in WeChat client
-  const isWeChat = /MicroMessenger/i.test(userAgent)
 
   let wechatUrl: string
   let loginType: 'official' | 'open'
