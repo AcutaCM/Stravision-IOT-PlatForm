@@ -995,7 +995,7 @@ export default function AIAssistantPage() {
   const groupOrder = ["Today", "Yesterday", "Previous 7 Days", "Earlier"]
 
   return (
-    <div className="flex h-screen w-full bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 font-sans">
+    <div className="fixed inset-0 w-full h-full bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 font-sans overflow-hidden flex">
       {/* Sidebar */}
       <div className={cn(
         "flex-shrink-0 bg-[#f9f9f9] dark:bg-zinc-900 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800 relative",
@@ -1046,7 +1046,7 @@ export default function AIAssistantPage() {
         </div>
 
         {/* Scrollable Chat History */}
-        <ScrollArea className="flex-1 px-3">
+        <div className="flex-1 overflow-y-auto px-3 custom-scrollbar">
           <div className="flex flex-col gap-4 pb-4 pt-2">
             {groupOrder.map(key => {
               const group = groupedSessions[key]
@@ -1079,7 +1079,7 @@ export default function AIAssistantPage() {
               )
             })}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Bottom User/Upgrade */}
         <div className="p-3 border-t border-gray-200 dark:border-gray-800 mt-auto">
@@ -1228,9 +1228,10 @@ export default function AIAssistantPage() {
         </div>
 
         {/* Chat Area */}
-        <div id="ai-welcome-area" className="flex-1 min-h-0 overflow-hidden relative flex flex-col">
+        <div id="ai-welcome-area" className="flex-1 min-h-0 relative flex flex-col overflow-y-auto custom-scrollbar">
           {messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-4 pb-32">
+            <div className="flex-1 flex flex-col items-center p-4 min-h-[600px]">
+              <div className="w-full max-w-5xl flex flex-col items-center m-auto py-20">
               {/* Header */}
               <div className="text-center mb-10 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
@@ -1466,6 +1467,7 @@ export default function AIAssistantPage() {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           ) : (
             <>

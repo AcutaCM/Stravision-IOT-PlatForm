@@ -277,7 +277,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Dashboard Content */}
-          <div className="relative px-8 pb-8 pt-6 overflow-y-auto">
+          <div className="relative px-8 pb-8 pt-6 overflow-y-auto h-full w-full custom-scrollbar">
             <div id="dashboard-charts" className="w-full min-h-full">
               <GridLayout
                 className="layout"

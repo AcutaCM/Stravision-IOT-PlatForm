@@ -286,8 +286,8 @@ export default function DeviceControlPage() {
         </div>
 
         {/* Content */}
-        <div className="relative px-8 pb-8 pt-6 overflow-auto custom-scrollbar">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 h-full">
+        <div className="relative px-8 pb-24 pt-6 overflow-y-auto custom-scrollbar h-full w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-6 min-h-full">
             {/* Left: Device Cards */}
             <div className="space-y-6">
               {/* Row 1: 3 cards - Relay 5, 6, 7 */}
