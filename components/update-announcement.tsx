@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 
-const ANNOUNCEMENT_VERSION = "update-announcement-v2.0"
+const ANNOUNCEMENT_VERSION = "update-announcement-v2.1"
 const HIDE_KEY = `hide-${ANNOUNCEMENT_VERSION}`
 
 export function UpdateAnnouncement() {
