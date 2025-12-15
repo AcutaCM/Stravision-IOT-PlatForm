@@ -26,6 +26,7 @@ export interface User {
   wechat_openid?: string | null
   wechat_unionid?: string | null
   wework_userid?: string | null
+  qq_openid?: string | null
   created_at: number
   updated_at: number
 }
@@ -130,6 +131,16 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   `)
 
   const user = stmt.get(email) as User | undefined
+  return user || null
+}
+
+export async function getUserByQQOpenId(openid: string): Promise<User | null> {
+  await ensureDB()
+  const db = getDB()
+  const stmt = db.prepare(`
+    SELECT * FROM users WHERE qq_openid = ?
+  `)
+  const user = stmt.get(openid) as User | undefined
   return user || null
 }
 
@@ -450,5 +461,76 @@ export async function findOrCreateWeWorkUser(params: {
           return toPublicUser(created)
      }
      throw error
+  }
+}
+
+export async function findOrCreateQQUser(params: {
+  openid: string
+  nickname?: string
+  avatar?: string | null
+}): Promise<UserPublic> {
+  await ensureDB()
+  const db = getDB()
+  const now = Date.now()
+
+  let existingUser = await getUserByQQOpenId(params.openid)
+
+  if (existingUser) {
+    const updates: string[] = []
+    const values: (string | number | null)[] = []
+
+    if (params.nickname && params.nickname !== existingUser.username) {
+      updates.push("username = ?")
+      values.push(params.nickname)
+    }
+    if (params.avatar && params.avatar !== existingUser.avatar_url) {
+      updates.push("avatar_url = ?")
+      values.push(params.avatar)
+    }
+
+    if (updates.length > 0) {
+      updates.push("updated_at = ?")
+      values.push(now)
+      values.push(existingUser.id)
+
+      const stmt = db.prepare(`
+        UPDATE users SET ${updates.join(", ")} WHERE id = ?
+      `)
+      stmt.run(...values)
+    }
+
+    const updated = await getUserById(existingUser.id)
+    if (!updated) {
+      throw new Error("更新QQ用户后无法获取用户信息")
+    }
+    return toPublicUser(updated)
+  }
+
+  const email = `qq_${params.openid}@qq.local`
+  
+  const stmt = db.prepare(`
+    INSERT INTO users (email, password_hash, username, avatar_url, qq_openid, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  try {
+    const result = stmt.run(
+      email,
+      "", 
+      params.nickname || `QQ用户`,
+      params.avatar || null,
+      params.openid,
+      now,
+      now
+    )
+
+    const newId = result.lastInsertRowid as number
+    const created = await getUserById(newId)
+    if (!created) {
+      throw new Error("创建QQ用户后无法获取用户信息")
+    }
+    return toPublicUser(created)
+  } catch (error) {
+    throw error
   }
 }
