@@ -10,7 +10,8 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
-  const origin = url.origin
+  // 优先使用环境变量中的 APP_URL
+  const origin = process.env.APP_URL || url.origin
   const redirectUri = `${origin}/api/auth/qq/callback`
 
   if (!appId || !appKey) {
