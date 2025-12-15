@@ -84,6 +84,18 @@ export async function initDB(): Promise<void> {
     )
   `)
 
+  // 创建 device_logs 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS device_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      device_name TEXT NOT NULL,
+      action TEXT NOT NULL,
+      operator TEXT NOT NULL,
+      details TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `)
+
   // 旧库迁移：检测并补充缺失列
   try {
     const columns = db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>

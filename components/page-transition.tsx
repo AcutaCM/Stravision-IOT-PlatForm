@@ -37,9 +37,15 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
     }
 
     const isMobile = pathname.includes("-ios") || pathname === "/profile"
-
-    if (isMobile) {
-        return <>{children}</>
+    
+    // Disable transition wrapper for Landing Page ("/") to allow native scrolling
+    if (isMobile || pathname === "/") {
+        return (
+            <>
+                {children}
+                {!isMobile && <DesktopOnboardingGuide />}
+            </>
+        )
     }
 
     const currentIndex = getPageIndex(pathname)

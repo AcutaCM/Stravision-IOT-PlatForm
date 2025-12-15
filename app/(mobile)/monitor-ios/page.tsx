@@ -23,6 +23,7 @@ import {
 import type { UserPublic } from "@/lib/db/user-service"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { LiveStreamPlayer } from "@/components/live-stream-player"
+import { UpdateAnnouncement } from "@/components/update-announcement"
 
 // --- Components ---
 
@@ -146,6 +147,7 @@ export default function MonitorIOSPage() {
 
   return (
     <div className="min-h-screen w-screen bg-slate-50 dark:bg-[#0B1121] text-foreground overflow-hidden font-sans transition-colors duration-500">
+      <UpdateAnnouncement />
       {/* Background blobs */}
       <div className="fixed top-[-20%] right-[-20%] w-[80%] h-[60%] rounded-full bg-blue-200/20 dark:bg-blue-900/10 blur-[100px] pointer-events-none" />
       <div className="fixed top-[20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-200/20 dark:bg-indigo-900/10 blur-[100px] pointer-events-none" />

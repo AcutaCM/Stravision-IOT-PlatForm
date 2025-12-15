@@ -20,6 +20,7 @@ import { LiveStreamPlayer } from "@/components/live-stream-player"
 import { VideoCameraIcon, SignalIcon } from "@heroicons/react/24/solid"
 import { ArrowPathIcon } from "@heroicons/react/24/outline"
 import { analyzePlantFromVideo } from "@/lib/utils/plant-analysis-helper"
+import { UpdateAnnouncement } from "@/components/update-announcement"
 
 export default function MonitorPage() {
   const router = useRouter()
@@ -135,6 +136,7 @@ export default function MonitorPage() {
   return (
     <>
       <div className="min-h-screen w-screen h-screen bg-background text-foreground transition-colors duration-500 overflow-hidden">
+        <UpdateAnnouncement />
         {/* Background Gradients */}
         <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] animate-[float_10s_ease-in-out_infinite]" />

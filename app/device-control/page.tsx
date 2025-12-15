@@ -11,6 +11,7 @@ import {
   Wind,
   Wifi,
   WifiOff,
+  History,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,14 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import type { UserPublic } from "@/lib/db/user-service"
 import { ModeToggle } from "@/components/mode-toggle"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 function Toggle({
   checked = false,
@@ -164,6 +173,10 @@ export default function DeviceControlPage() {
   const [b, setB] = useState(0)
   const [w, setW] = useState(0)
 
+  // Logs state
+  const [logs, setLogs] = useState<any[]>([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
+
   // User authentication state
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
@@ -197,6 +210,48 @@ export default function DeviceControlPage() {
     fetchCurrentUser()
   }, [router])
 
+  // Fetch logs
+  const fetchLogs = async () => {
+    setLoadingLogs(true)
+    try {
+      const res = await fetch("/api/device-logs?limit=50")
+      const data = await res.json()
+      if (data.success) {
+        setLogs(data.logs)
+      }
+    } catch (error) {
+      console.error("Failed to fetch logs:", error)
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  // Create log
+  const createLog = async (deviceName: string, action: string, details?: string) => {
+    if (!currentUser) return
+    try {
+      await fetch("/api/device-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          device_name: deviceName,
+          action,
+          operator: currentUser.username || currentUser.email,
+          details
+        })
+      })
+      // Refresh logs
+      fetchLogs()
+    } catch (error) {
+      console.error("Failed to create log:", error)
+    }
+  }
+
+  // Fetch logs on mount
+  useEffect(() => {
+    fetchLogs()
+  }, [])
+
   // Sync LED sliders with device data on first load
   useEffect(() => {
     if (deviceData && r === 0 && g === 0 && b === 0 && w === 0) {
@@ -212,9 +267,18 @@ export default function DeviceControlPage() {
     if (!deviceData) return
 
     const currentState = deviceData[`relay${relayNum}` as keyof typeof deviceData] as number || 0
+    const newState = currentState === 1 ? 0 : 1
     const success = await toggleRelay(relayNum, currentState)
 
-    if (!success) {
+    if (success) {
+      const deviceNames: Record<number, string> = {
+        5: "水泵",
+        6: "风扇",
+        7: "补光灯",
+        8: "白灯"
+      }
+      createLog(deviceNames[relayNum] || `Relay ${relayNum}`, newState === 1 ? "开启" : "关闭")
+    } else {
       // Show error notification (you can add a toast notification here)
       console.error('Failed to toggle relay')
     }
@@ -224,7 +288,9 @@ export default function DeviceControlPage() {
   const handleLEDUpdate = async () => {
     const success = await setLEDs(r, g, b, 0)
 
-    if (!success) {
+    if (success) {
+      createLog("RGB 补光灯", "更新颜色", `R:${r} G:${g} B:${b} W:${w}`)
+    } else {
       console.error('Failed to update LEDs')
     }
   }
@@ -269,6 +335,49 @@ export default function DeviceControlPage() {
             <PageNavigation />
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <Sheet onOpenChange={(open) => { if (open) fetchLogs() }}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                  <History className="size-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>设备控制历史</SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="h-[calc(100vh-80px)] mt-4 pr-4">
+                  <div className="space-y-4">
+                    {loadingLogs ? (
+                      <div className="text-center text-muted-foreground py-8">加载中...</div>
+                    ) : logs.length === 0 ? (
+                      <div className="text-center text-muted-foreground py-8">暂无操作记录</div>
+                    ) : (
+                      logs.map((log) => (
+                        <div key={log.id} className="flex flex-col gap-1 p-3 rounded-lg bg-muted/50 border border-border">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-foreground">{log.device_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(log.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={log.action === "开启" ? "default" : "secondary"} className="text-xs">
+                              {log.action}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">操作人: {log.operator}</span>
+                          </div>
+                          {log.details && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {log.details}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
             <ModeToggle />
             {connectionStatus.connected ? (
               <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
