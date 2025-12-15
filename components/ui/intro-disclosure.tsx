@@ -419,22 +419,20 @@ export function IntroDisclosure({
   const { isVisible, hideFeature } = useFeatureVisibility(featureId)
   const stepRef = React.useRef<HTMLButtonElement>(null)
 
-  // Close the dialog if feature is hidden
+  // Close the dialog if feature is hidden or open is false
   React.useEffect(() => {
     if (!isVisible) {
       setOpen(false)
     }
   }, [isVisible, setOpen])
 
-  // Focus management
-  React.useEffect(() => {
-    if (open && stepRef.current) {
-      stepRef.current.focus()
-    }
-  }, [open, currentStep])
-
-  // Early return if feature should be hidden
+  // Don't render anything if not visible or closed
   if (!isVisible || !open) {
+    return null
+  }
+
+  // Prevent showing desktop tour on mobile if not forced
+  if (!isDesktop && !forceVariant) {
     return null
   }
 
