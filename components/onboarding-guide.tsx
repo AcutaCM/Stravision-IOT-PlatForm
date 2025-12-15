@@ -11,6 +11,22 @@ import { usePathname, useRouter } from "next/navigation"
 type ExtendedDriveStep = DriveStep & { route?: string }
 
 export function DesktopOnboardingGuide() {
+  // Helper hook for media query
+  const useMediaQuery = (query: string) => {
+    const [matches, setMatches] = useState(false)
+    useEffect(() => {
+      const media = window.matchMedia(query)
+      if (media.matches !== matches) {
+        setMatches(media.matches)
+      }
+      const listener = () => setMatches(media.matches)
+      window.addEventListener("resize", listener)
+      return () => window.removeEventListener("resize", listener)
+    }, [matches, query])
+    return matches
+  }
+
+  const isDesktop = useMediaQuery("(min-width: 768px)")
   const driverObj = useRef<any>(null)
   const router = useRouter()
   const pathname = usePathname()
@@ -292,9 +308,15 @@ export function DesktopOnboardingGuide() {
             // Wait for first element usually #nav-monitor
             waitForElement("#nav-monitor").then(() => {
                 setTimeout(() => {
+                    // Check if announcement dialog is open
+                    const isAnnouncementOpen = document.querySelector('[role="dialog"]')
+                    if (isAnnouncementOpen) {
+                      return // Skip auto-start if announcement is showing
+                    }
+                    
                     driverObj.current.drive()
                     localStorage.setItem("has-seen-guide", "true")
-                }, 1500)
+                }, 2000) // Increase delay to 2s to ensure announcement has time to appear
             })
         }
     }
@@ -306,7 +328,8 @@ export function DesktopOnboardingGuide() {
     pathname === "/login" || 
     pathname === "/register" || 
     pathname === "/" ||
-    pathname.includes("-ios")
+    pathname.includes("-ios") ||
+    !isDesktop
   ) {
     return null
   }

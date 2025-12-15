@@ -17,7 +17,8 @@ import {
   Clock,
   Bell,
   Link as LinkIcon,
-  History
+  History,
+  Smartphone
 } from "lucide-react"
 import Image from "next/image"
 
@@ -131,6 +132,15 @@ export function UpdateAnnouncement() {
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug pt-1">
                     新增设备控制历史记录功能，自动追踪所有操作日志，支持随时回溯查看
+                  </p>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="mt-0.5 w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                    <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-snug pt-1">
+                    移动端体验优化，智能屏蔽桌面端引导，界面更清爽
                   </p>
                 </div>
               </div>
