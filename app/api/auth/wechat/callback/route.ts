@@ -15,12 +15,12 @@ export async function GET(req: Request) {
   // 根据登录类型选择对应的 AppID 和 Secret
   // 优先使用明确指定的环境变量
   const appId = loginType === 'official' 
-    ? process.env.WECHAT_OFFICIAL_APP_ID
-    : process.env.WECHAT_OPEN_APP_ID
+    ? process.env.WECHAT_OFFICIAL_APP_ID?.trim()
+    : process.env.WECHAT_OPEN_APP_ID?.trim()
     
   const secret = loginType === 'official'
-    ? process.env.WECHAT_OFFICIAL_APP_SECRET
-    : process.env.WECHAT_OPEN_APP_SECRET
+    ? process.env.WECHAT_OFFICIAL_APP_SECRET?.trim()
+    : process.env.WECHAT_OPEN_APP_SECRET?.trim()
 
   if (!appId || !secret) {
     return NextResponse.redirect(`/login?error=wechat_config`)
