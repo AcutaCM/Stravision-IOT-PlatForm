@@ -27,7 +27,8 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
-  const origin = url.origin
+  // 优先使用环境变量中的 APP_URL (适用于云服务器/容器环境)
+  const origin = process.env.APP_URL || url.origin
   const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
   const redirectUri = `${origin}/api/auth/wechat/callback`
 
