@@ -52,6 +52,9 @@ export async function GET(req: Request) {
     )}&response_type=code&scope=snsapi_login&state=${state}#wechat_redirect`
   }
 
+  // 打印最终生成的 URL，方便调试
+  console.log('Generated WeChat URL:', wechatUrl)
+
   const res = NextResponse.redirect(wechatUrl)
   
   // 存储 state 和 登录类型，以便 callback 知道使用哪个 AppID/Secret 验证
