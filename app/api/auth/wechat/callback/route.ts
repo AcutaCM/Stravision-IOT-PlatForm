@@ -13,14 +13,14 @@ export async function GET(req: Request) {
   const loginType = cookieStore.get("wx_login_type")?.value || 'open' // Default to open if not set
   
   // 根据登录类型选择对应的 AppID 和 Secret
-  // 优先使用明确指定的环境变量，如果不存在则回退到通用变量
+  // 优先使用明确指定的环境变量
   const appId = loginType === 'official' 
-    ? (process.env.WECHAT_OFFICIAL_APP_ID || process.env.WECHAT_APP_ID)
-    : (process.env.WECHAT_OPEN_APP_ID || process.env.WECHAT_APP_ID)
+    ? process.env.WECHAT_OFFICIAL_APP_ID
+    : process.env.WECHAT_OPEN_APP_ID
     
   const secret = loginType === 'official'
-    ? (process.env.WECHAT_OFFICIAL_APP_SECRET || process.env.WECHAT_APP_SECRET)
-    : (process.env.WECHAT_OPEN_APP_SECRET || process.env.WECHAT_APP_SECRET)
+    ? process.env.WECHAT_OFFICIAL_APP_SECRET
+    : process.env.WECHAT_OPEN_APP_SECRET
 
   if (!appId || !secret) {
     return NextResponse.redirect(`/login?error=wechat_config`)

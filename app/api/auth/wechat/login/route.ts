@@ -5,10 +5,9 @@ export async function GET(req: Request) {
   // WECHAT_OFFICIAL_APP_ID: 微信公众号 AppID (用于微信内访问)
   // WECHAT_OPEN_APP_ID: 微信开放平台 AppID (用于 PC/外部浏览器访问)
   
-  // 严格区分：WECHAT_APP_ID 默认作为开放平台 ID (Open Platform / Website App)
   // 只有当明确配置了 WECHAT_OFFICIAL_APP_ID 时，才在微信内启用公众号登录流程
   const officialAppId = process.env.WECHAT_OFFICIAL_APP_ID
-  const openAppId = process.env.WECHAT_OPEN_APP_ID || process.env.WECHAT_APP_ID
+  const openAppId = process.env.WECHAT_OPEN_APP_ID
   
   const userAgent = req.headers.get("user-agent") || ""
   // Check if running in WeChat client
