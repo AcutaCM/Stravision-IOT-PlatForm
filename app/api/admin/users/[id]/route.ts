@@ -29,7 +29,7 @@ export async function PUT(
     // Validate input
     const result = updateUserSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
     }
 
     const input = result.data;
