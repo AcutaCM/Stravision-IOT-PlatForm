@@ -29,12 +29,12 @@ export async function POST(req: Request) {
     // 格式化设备数据（将需要除以10的数据转换为正确的小数）
     const formattedDeviceData = deviceData ? {
       ...deviceData,
-      temperature: deviceData.temperature ? (deviceData.temperature / 10).toFixed(1) + '°C' : null,
-      humidity: deviceData.humidity ? (deviceData.humidity / 10).toFixed(1) + '%' : null,
-      earth_temp: deviceData.earth_temp ? (deviceData.earth_temp / 10).toFixed(1) + '°C' : null,
+      temperature: deviceData.temperature ? deviceData.temperature.toFixed(1) + '°C' : null,
+      humidity: deviceData.humidity ? deviceData.humidity.toFixed(1) + '%' : null,
+      earth_temp: deviceData.earth_temp ? deviceData.earth_temp.toFixed(1) + '°C' : null,
       light: deviceData.light ? deviceData.light + ' lux' : null,
       co2: deviceData.co2 ? deviceData.co2 + ' ppm' : null,
-      earth_water: deviceData.earth_water ? (deviceData.earth_water / 10).toFixed(1) + '%' : null,
+      earth_water: deviceData.earth_water ? deviceData.earth_water.toFixed(1) + '%' : null,
       earth_ec: deviceData.earth_ec ? deviceData.earth_ec + ' μS/cm' : null,
       earth_n: deviceData.earth_n ? deviceData.earth_n + ' mg/kg' : null,
       earth_p: deviceData.earth_p ? deviceData.earth_p + ' mg/kg' : null,

@@ -312,8 +312,8 @@ export default function MonitorPage() {
 
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { icon: FireIcon, label: "温度", value: deviceData ? (deviceData.temperature / 10).toFixed(1) : '--', unit: "°C", color: "text-orange-500", bg: "bg-orange-500/10" },
-                        { icon: FireIcon, label: "土温", value: deviceData ? (deviceData.earth_temp / 10).toFixed(1) : '--', unit: "°C", color: "text-red-500", bg: "bg-red-500/10" },
+                        { icon: FireIcon, label: "温度", value: deviceData ? deviceData.temperature.toFixed(1) : '--', unit: "°C", color: "text-orange-500", bg: "bg-orange-500/10" },
+                        { icon: FireIcon, label: "土温", value: deviceData ? deviceData.earth_temp.toFixed(1) : '--', unit: "°C", color: "text-red-500", bg: "bg-red-500/10" },
                         { icon: SunIcon, label: "光照", value: deviceData ? deviceData.light : '--', unit: "lux", color: "text-yellow-500", bg: "bg-yellow-500/10" },
                       ].map((item, i) => (
                         <div key={i} className={`rounded-xl p-3 ${item.bg} hover:scale-105 transition-transform duration-300 cursor-default`}>

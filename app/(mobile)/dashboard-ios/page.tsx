@@ -145,8 +145,8 @@ export default function DashboardIOSPage() {
             <StatCard icon={SunIcon} label="光照" value={deviceData ? deviceData.light : '--'} unit="lux" color="text-yellow-500" bg="bg-yellow-500/10" />
             <StatCard icon={CloudIcon} label="CO₂" value={deviceData ? deviceData.co2 : '--'} unit="ppm" color="text-teal-500" bg="bg-teal-500/10" />
             <StatCard icon={BoltIcon} label="土壤电导" value={deviceData ? deviceData.earth_ec : '--'} unit="μS/cm" color="text-purple-500" bg="bg-purple-500/10" />
-            <StatCard icon={BeakerIcon} label="土壤水分" value={deviceData ? (deviceData.earth_water / 10).toFixed(1) : '--'} unit="%" color="text-green-500" bg="bg-green-500/10" />
-            <StatCard icon={FireIcon} label="土壤温度" value={deviceData ? (deviceData.earth_temp / 10).toFixed(1) : '--'} unit="°C" color="text-rose-500" bg="bg-rose-500/10" />
+            <StatCard icon={BeakerIcon} label="土壤水分" value={deviceData ? deviceData.earth_water.toFixed(1) : '--'} unit="%" color="text-green-500" bg="bg-green-500/10" />
+            <StatCard icon={FireIcon} label="土壤温度" value={deviceData ? deviceData.earth_temp.toFixed(1) : '--'} unit="°C" color="text-rose-500" bg="bg-rose-500/10" />
           </div>
         </div>
       </div>

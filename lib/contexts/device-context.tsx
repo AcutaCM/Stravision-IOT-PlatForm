@@ -102,7 +102,15 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
           if (message.type === 'connected') {
              // connection established message
           } else if (message.type === 'data' && message.data) {
-            setDeviceData(message.data)
+            // Normalize data (divide specific fields by 10)
+            const normalizedData = {
+              ...message.data,
+              temperature: message.data.temperature !== undefined ? message.data.temperature / 10 : 0,
+              humidity: message.data.humidity !== undefined ? message.data.humidity / 10 : 0,
+              earth_temp: message.data.earth_temp !== undefined ? message.data.earth_temp / 10 : 0,
+              earth_water: message.data.earth_water !== undefined ? message.data.earth_water / 10 : 0
+            }
+            setDeviceData(normalizedData)
             setConnectionStatus(prev => ({
               ...prev,
               lastUpdate: new Date()

@@ -23,6 +23,8 @@ export interface User {
   password_hash: string
   username: string
   avatar_url: string | null
+  role: string
+  permissions: string
   wechat_openid?: string | null
   wechat_unionid?: string | null
   wework_userid?: string | null
@@ -30,6 +32,11 @@ export interface User {
   alipay_user_id?: string | null
   created_at: number
   updated_at: number
+}
+
+export interface UserPermissions {
+  allowedControls?: string[];
+  [key: string]: unknown;
 }
 
 /**
@@ -40,6 +47,8 @@ export interface UserPublic {
   email: string
   username: string
   avatar_url: string | null
+  role: string
+  permissions: UserPermissions
   created_at: number
 }
 
@@ -50,6 +59,8 @@ export interface CreateUserInput {
   email: string
   password: string
   username: string
+  role?: string
+  permissions?: UserPermissions
 }
 
 /**
@@ -58,6 +69,9 @@ export interface CreateUserInput {
 export interface UpdateUserInput {
   username?: string
   avatar_url?: string | null
+  password?: string
+  role?: string
+  permissions?: UserPermissions
 }
 
 /**
@@ -65,13 +79,33 @@ export interface UpdateUserInput {
  * 移除敏感字段如 password_hash 和 updated_at
  */
 export function toPublicUser(user: User): UserPublic {
+  let permissions: UserPermissions = {};
+  try {
+    permissions = JSON.parse(user.permissions || '{}');
+  } catch (e) {
+    console.error('Failed to parse permissions:', e);
+  }
+
   return {
     id: user.id,
     email: user.email,
     username: user.username,
     avatar_url: user.avatar_url,
+    role: user.role || 'user',
+    permissions: permissions,
     created_at: user.created_at,
   }
+}
+
+/**
+ * 获取所有用户列表
+ */
+export async function getAllUsers(): Promise<UserPublic[]> {
+  await ensureDB()
+  const db = getDB()
+  const stmt = db.prepare('SELECT * FROM users ORDER BY created_at DESC')
+  const users = stmt.all() as User[]
+  return users.map(toPublicUser)
 }
 
 /**
@@ -93,15 +127,17 @@ export async function createUser(input: CreateUserInput): Promise<UserPublic> {
 
   // 哈希密码
   const password_hash = await bcrypt.hash(input.password, 10)
+  const role = input.role || 'user';
+  const permissions = JSON.stringify(input.permissions || {});
 
   // 插入新用户
   const stmt = db.prepare(`
-    INSERT INTO users (email, password_hash, username, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO users (email, password_hash, username, role, permissions, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
 
   try {
-    const result = stmt.run(input.email, password_hash, input.username, now, now)
+    const result = stmt.run(input.email, password_hash, input.username, role, permissions, now, now)
     const userId = result.lastInsertRowid as number
 
     // 获取创建的用户
@@ -221,6 +257,22 @@ export async function updateUser(id: number, input: UpdateUserInput): Promise<Us
   if (input.avatar_url !== undefined) {
     updates.push("avatar_url = ?")
     values.push(input.avatar_url)
+  }
+
+  if (input.password !== undefined) {
+    const password_hash = await bcrypt.hash(input.password, 10)
+    updates.push("password_hash = ?")
+    values.push(password_hash)
+  }
+
+  if (input.role !== undefined) {
+    updates.push("role = ?")
+    values.push(input.role)
+  }
+
+  if (input.permissions !== undefined) {
+    updates.push("permissions = ?")
+    values.push(JSON.stringify(input.permissions))
   }
 
   if (updates.length === 0) {

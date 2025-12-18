@@ -124,11 +124,11 @@ export function DeviceBentoGrid() {
             
             <div className="space-y-2 my-auto pl-2">
               <div className="text-7xl font-bold tracking-tighter text-gray-800 dark:text-white flex items-baseline gap-2 drop-shadow-sm">
-                {data.temperature / 10} <span className="text-3xl font-medium text-gray-500 dark:text-gray-400">°C</span>
+                {data.temperature} <span className="text-3xl font-medium text-gray-500 dark:text-gray-400">°C</span>
               </div>
               <div className="text-lg font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
                 <Droplets size={18} className="text-blue-400" />
-                湿度: {data.humidity / 10}%
+                湿度: {data.humidity}%
               </div>
             </div>
             

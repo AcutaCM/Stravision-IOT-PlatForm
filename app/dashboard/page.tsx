@@ -295,7 +295,7 @@ export default function DashboardPage() {
                 <div key="humidity">
                   <DashboardChartCard
                     title="湿度"
-                    value={deviceData ? (deviceData.humidity / 10).toFixed(1) : '--'}
+                    value={deviceData ? deviceData.humidity.toFixed(1) : '--'}
                     unit="%"
                     icon={<Droplets className="size-10 text-blue-400" />}
                     type="humidity"
@@ -309,7 +309,7 @@ export default function DashboardPage() {
                 <div key="temperature">
                   <DashboardChartCard
                     title="温度"
-                    value={deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
+                    value={deviceData ? deviceData.temperature.toFixed(1) : '--'}
                     unit="°C"
                     icon={<Sun className="size-10 text-orange-400" />}
                     type="temperature"

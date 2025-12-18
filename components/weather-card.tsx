@@ -96,7 +96,7 @@ export function WeatherCard({ deviceData }: WeatherCardProps) {
         >
           <div className="text-orange-700/70 dark:text-orange-200/70 text-sm mb-1">温度</div>
           <div className="text-3xl font-bold text-orange-950 dark:text-white">
-            {deviceData ? (deviceData.temperature / 10).toFixed(1) : '--'}
+            {deviceData ? deviceData.temperature.toFixed(1) : '--'}
             <span className="text-lg text-orange-900/70 dark:text-white/70 ml-1">°C</span>
           </div>
         </motion.div>

@@ -47,6 +47,21 @@ export async function initDB(): Promise<void> {
     // 增加 busy timeout，减少 SQLITE_BUSY 错误
     db.pragma('busy_timeout = 5000')
 
+    // 检查并添加 role 列
+    try {
+      const tableInfo = db.prepare("PRAGMA table_info(users)").all() as any[];
+      const hasRole = tableInfo.some(col => col.name === 'role');
+      if (!hasRole) {
+        db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+      }
+      const hasPermissions = tableInfo.some(col => col.name === 'permissions');
+      if (!hasPermissions) {
+        db.exec("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT '{}'");
+      }
+    } catch (e) {
+      console.error("Failed to migrate users table:", e);
+    }
+
   } catch (error) {
     console.error("Failed to open database:", error)
     throw error
@@ -60,6 +75,8 @@ export async function initDB(): Promise<void> {
       password_hash TEXT,
       username TEXT NOT NULL,
       avatar_url TEXT,
+      role TEXT DEFAULT 'user',
+      permissions TEXT DEFAULT '{}',
       wechat_openid TEXT UNIQUE,
       wechat_unionid TEXT,
       wework_userid TEXT,
