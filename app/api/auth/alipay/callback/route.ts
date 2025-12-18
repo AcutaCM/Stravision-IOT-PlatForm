@@ -60,24 +60,33 @@ export async function GET(req: Request) {
     })
 
     // 检查响应码，成功是 "10000"
-    if (userResult.code && userResult.code !== '10000') {
+    // 注意：alipay-sdk 可能会自动解包，也可能返回原始结构
+    // 如果是原始结构，code 可能在 alipay_user_info_share_response 中
+    const code = userResult.code || userResult.alipay_user_info_share_response?.code || userResult.alipayUserInfoShareResponse?.code;
+    
+    if (code && code !== '10000') {
         console.error("Failed to get alipay user info:", userResult)
-        return NextResponse.redirect(`${appUrl}/login?error=alipay_user_info`)
+        return NextResponse.redirect(`${appUrl}/login?error=alipay_user_info&code=${code}`)
     }
 
-    const alipayUserId = userResult.userId || userResult.user_id
+    const alipayUserId = userResult.userId || 
+                         userResult.user_id || 
+                         userResult.alipay_user_info_share_response?.user_id ||
+                         userResult.alipayUserInfoShareResponse?.userId;
+
     console.log("Alipay Login Debug:", { alipayUserId, userResult })
 
     if (!alipayUserId) {
         console.error("Alipay user_id missing in response")
-        return NextResponse.redirect(`${appUrl}/login?error=alipay_user_id_missing`)
+        const debugInfo = encodeURIComponent(JSON.stringify(userResult).slice(0, 200));
+        return NextResponse.redirect(`${appUrl}/login?error=alipay_user_id_missing&debug=${debugInfo}`)
     }
 
     // 3. 查找或创建用户
     const user = await findOrCreateAlipayUser({
       userId: alipayUserId,
-      nickname: userResult.nickName || userResult.nick_name || "支付宝用户",
-      avatar: userResult.avatar,
+      nickname: userResult.nickName || userResult.nick_name || userResult.alipayUserInfoShareResponse?.nickName || "支付宝用户",
+      avatar: userResult.avatar || userResult.alipayUserInfoShareResponse?.avatar,
     })
 
     // 4. 登录
