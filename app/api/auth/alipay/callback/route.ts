@@ -69,6 +69,8 @@ export async function GET(req: Request) {
         return NextResponse.redirect(`${appUrl}/login?error=alipay_user_info&code=${code}`)
     }
 
+    console.log("Alipay User Result Keys:", Object.keys(userResult));
+
     const alipayUserId = userResult.userId || 
                          userResult.user_id || 
                          userResult.openId || 
@@ -78,7 +80,7 @@ export async function GET(req: Request) {
                          userResult.alipay_user_info_share_response?.open_id ||
                          userResult.alipayUserInfoShareResponse?.openId;
 
-    console.log("Alipay Login Debug:", { alipayUserId, userResult })
+    console.log("Alipay Login Debug - Extracted ID:", alipayUserId)
 
     if (!alipayUserId) {
         console.error("Alipay user_id missing in response")
