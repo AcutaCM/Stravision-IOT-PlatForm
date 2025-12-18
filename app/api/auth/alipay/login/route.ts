@@ -7,10 +7,9 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url)
+  // 优先使用环境变量配置的 APP_URL
   const origin = process.env.APP_URL || url.origin
   const redirectUri = `${origin}/api/auth/alipay/callback`
-  console.log('Alipay Redirect URI:', redirectUri);
-
   const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
 
   // 构造支付宝授权 URL

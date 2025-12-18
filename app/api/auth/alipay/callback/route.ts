@@ -6,6 +6,9 @@ import { generateToken, setAuthCookie } from "@/lib/auth"
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
+  // 优先使用环境变量配置的 APP_URL，解决容器/反代环境下 req.url 可能为内网IP的问题
+  const appUrl = process.env.APP_URL || url.origin
+  
   const authCode = url.searchParams.get("auth_code")
   const state = url.searchParams.get("state")
   
@@ -14,7 +17,8 @@ export async function GET(req: Request) {
 
   // 简单的 State 验证
   if (!authCode || !state || !expectedState || expectedState !== state) {
-    return NextResponse.redirect(new URL(`/login?error=alipay_state`, req.url))
+    console.error("Alipay state mismatch:", { authCode: !!authCode, state, expectedState })
+    return NextResponse.redirect(`${appUrl}/login?error=alipay_state`)
   }
 
   const appId = process.env.ALIPAY_APP_ID
@@ -23,7 +27,7 @@ export async function GET(req: Request) {
 
   if (!appId || !privateKey || !alipayPublicKey) {
     console.error("Alipay configuration missing")
-    return NextResponse.redirect(new URL(`/login?error=alipay_config`, req.url))
+    return NextResponse.redirect(`${appUrl}/login?error=alipay_config`)
   }
 
   const alipaySdk = new AlipaySdk({
@@ -46,7 +50,7 @@ export async function GET(req: Request) {
     
     if (!accessToken) {
       console.error("Failed to get alipay access token:", tokenResult)
-      return NextResponse.redirect(new URL(`/login?error=alipay_token`, req.url))
+      return NextResponse.redirect(`${appUrl}/login?error=alipay_token`)
     }
 
     // 2. 获取用户信息
@@ -58,7 +62,7 @@ export async function GET(req: Request) {
     // 检查响应码，成功是 "10000"
     if (userResult.code && userResult.code !== '10000') {
         console.error("Failed to get alipay user info:", userResult)
-        return NextResponse.redirect(new URL(`/login?error=alipay_user_info`, req.url))
+        return NextResponse.redirect(`${appUrl}/login?error=alipay_user_info`)
     }
 
     // 3. 查找或创建用户
@@ -72,12 +76,12 @@ export async function GET(req: Request) {
     const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
     await setAuthCookie(jwt)
 
-    const res = NextResponse.redirect(new URL("/monitor", req.url))
+    const res = NextResponse.redirect(`${appUrl}/monitor`)
     res.cookies.set("alipay_state", "", { path: "/", maxAge: 0 })
     return res
 
   } catch (error) {
     console.error("Alipay callback error:", error)
-    return NextResponse.redirect(new URL(`/login?error=alipay_error`, req.url))
+    return NextResponse.redirect(`${appUrl}/login?error=alipay_error`)
   }
 }
