@@ -21,8 +21,9 @@ export async function GET(req: Request) {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
 
   if (isMobile) {
-    // 尝试唤起支付宝 APP
-    const schemeUrl = `alipays://platformapi/startapp?appId=20000067&url=${encodeURIComponent(alipayUrl)}`
+    // 之前使用 alipays:// 协议强制唤起 APP 会导致回调在支付宝 APP 内执行，
+    // 从而导致浏览器端无法获取登录态（Cookie 丢失）。
+    // 现在的方案是：使用标准 HTTPS 链接，让支付宝的 H5 页面自动处理 APP 唤起和浏览器回调。
     
     const html = `
 <!DOCTYPE html>
@@ -34,18 +35,16 @@ export async function GET(req: Request) {
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; }
     .btn { display: block; width: 100%; max-width: 300px; margin: 20px auto; padding: 12px 0; background: #1677FF; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; }
-    .btn-outline { background: white; color: #1677FF; border: 1px solid #1677FF; }
     p { color: #666; margin-bottom: 30px; }
   </style>
 </head>
 <body>
   <h3>正在跳转支付宝登录</h3>
-  <p>如果未自动唤起，请点击下方按钮</p>
-  <a href="${schemeUrl}" class="btn">打开支付宝 APP</a>
-  <a href="${alipayUrl}" class="btn btn-outline">继续使用网页版</a>
+  <p>请在弹出的页面中点击"打开"或进行授权</p>
+  <a href="${alipayUrl}" class="btn">点击跳转</a>
   <script>
     // 尝试自动跳转
-    window.location.href = "${schemeUrl}";
+    window.location.href = "${alipayUrl}";
   </script>
 </body>
 </html>
