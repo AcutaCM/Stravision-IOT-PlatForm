@@ -64,6 +64,7 @@ export async function initDB(): Promise<void> {
       wechat_unionid TEXT,
       wework_userid TEXT,
       qq_openid TEXT UNIQUE,
+      alipay_user_id TEXT UNIQUE,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
@@ -113,6 +114,9 @@ export async function initDB(): Promise<void> {
     }
     if (!names.has("qq_openid")) {
       db.exec(`ALTER TABLE users ADD COLUMN qq_openid TEXT`)
+    }
+    if (!names.has("alipay_user_id")) {
+      db.exec(`ALTER TABLE users ADD COLUMN alipay_user_id TEXT`)
     }
   } catch (e) {
     console.error("Failed to migrate users table columns:", e)

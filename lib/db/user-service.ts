@@ -27,6 +27,7 @@ export interface User {
   wechat_unionid?: string | null
   wework_userid?: string | null
   qq_openid?: string | null
+  alipay_user_id?: string | null
   created_at: number
   updated_at: number
 }
@@ -528,6 +529,86 @@ export async function findOrCreateQQUser(params: {
     const created = await getUserById(newId)
     if (!created) {
       throw new Error("创建QQ用户后无法获取用户信息")
+    }
+    return toPublicUser(created)
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function getUserByAlipayUserId(userId: string): Promise<User | null> {
+  await ensureDB()
+  const db = getDB()
+  const stmt = db.prepare(`
+    SELECT * FROM users WHERE alipay_user_id = ?
+  `)
+  const user = stmt.get(userId) as User | undefined
+  return user || null
+}
+
+export async function findOrCreateAlipayUser(params: {
+  userId: string
+  nickname?: string
+  avatar?: string | null
+}): Promise<UserPublic> {
+  await ensureDB()
+  const db = getDB()
+  const now = Date.now()
+
+  let existingUser = await getUserByAlipayUserId(params.userId)
+
+  if (existingUser) {
+    const updates: string[] = []
+    const values: (string | number | null)[] = []
+
+    if (params.nickname && params.nickname !== existingUser.username) {
+      updates.push("username = ?")
+      values.push(params.nickname)
+    }
+    if (params.avatar !== undefined && params.avatar !== existingUser.avatar_url) {
+      updates.push("avatar_url = ?")
+      values.push(params.avatar)
+    }
+
+    if (updates.length > 0) {
+      updates.push("updated_at = ?")
+      values.push(now)
+      values.push(existingUser.id)
+
+      const stmt = db.prepare(`
+        UPDATE users SET ${updates.join(", ")} WHERE id = ?
+      `)
+      stmt.run(...values)
+    }
+
+    const updated = await getUserById(existingUser.id)
+    if (!updated) {
+      throw new Error("更新支付宝用户后无法获取用户信息")
+    }
+    return toPublicUser(updated)
+  }
+
+  const email = `alipay_${params.userId}@alipay.local`
+  const stmt = db.prepare(`
+    INSERT INTO users (email, password_hash, username, avatar_url, alipay_user_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  
+  try {
+    const result = stmt.run(
+      email,
+      "",
+      params.nickname || "支付宝用户",
+      params.avatar || null,
+      params.userId,
+      now,
+      now
+    )
+
+    const newId = result.lastInsertRowid as number
+    const created = await getUserById(newId)
+    if (!created) {
+      throw new Error("创建支付宝用户后无法获取用户信息")
     }
     return toPublicUser(created)
   } catch (error) {

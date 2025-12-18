@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Facebook, Building2, QrCode, MessageCircle } from "lucide-react";
+import { Facebook, Building2, QrCode } from "lucide-react";
 import SplitText from "@/components/ui/split-text";
 import TextPressure from "@/components/ui/text-pressure";
 
@@ -130,10 +130,12 @@ function LoginPage() {
                 <Button 
                   variant="secondary" 
                   className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]"
-                  onClick={() => window.location.href = "/api/auth/wechat/login"}
+                  onClick={() => window.location.href = "/api/auth/alipay/login"}
                 >
-                  <MessageCircle className="h-6 w-6 text-[#07C160]" />
-                  <span className="text-[16px]">微信登录</span>
+                  <svg className="h-6 w-6" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M722.8 554c-12.8 13.8-26.6 27.2-41.2 39.8-19.8-15-37.8-31.8-54-50.2 40.8-36 71.8-82.6 90.2-136.2H509.4c-8.2 24.2-19.6 47-33.8 68.2-22.4-28-40.8-59.2-54.6-92.8H734V314H541.2V225.8h177.2v-68.6H541.2V68h-74v89.2H295.6v68.6h171.6v88.2H236v68.6h236.4c11 25.8 25.4 50 42.6 72.4-44.2 46.4-100.8 82.2-166 102.6l31.4 62.4c17.2-5.4 34-11.8 50.2-18.8l-19.8 84.4 67.2 15.6 18.2-77.8c12.2-5.2 24.2-10.8 36-16.6 50.4 63.8 116.8 108.6 193.4 128.2l30.4-65.4c-64.8-16.6-121.2-53.8-165-106.8 18.4-15 35.6-31.2 51.4-48.4 46.2 30.2 100.2 49.2 158.4 53.4l15.6-67.6c-48.2-3.4-93.2-18.6-132.6-42.8z" fill="#1677FF"></path>
+                  </svg>
+                  <span className="text-[16px]">支付宝登录</span>
                 </Button>
 
                 <Button variant="secondary" className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]" onClick={() => {
