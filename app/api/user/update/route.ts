@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { updateUser } from "@/lib/db/user-service"
+import { updateUserSchema } from "@/lib/validations/auth"
 
 /**
  * PUT /api/user/update
@@ -19,38 +20,18 @@ export async function PUT(req: Request) {
     }
     
     const body = await req.json()
-    const username = String(body?.username || "").trim()
-    const avatar_url = body?.avatar_url ? String(body.avatar_url).trim() : null
     
-    // 验证用户名
-    if (!username) {
+    // Use Zod to validate input
+    const result = updateUserSchema.safeParse(body)
+    
+    if (!result.success) {
       return NextResponse.json(
-        { error: "用户名不能为空" },
+        { error: result.error.errors[0].message },
         { status: 400 }
       )
     }
-    
-    if (username.length < 2 || username.length > 20) {
-      return NextResponse.json(
-        { error: "用户名长度需在2-20个字符之间" },
-        { status: 400 }
-      )
-    }
-    
-    // 验证头像 URL（如果提供）
-    if (avatar_url) {
-      // 允许相对路径（以 / 开头）或完整 URL
-      if (!avatar_url.startsWith("/")) {
-        try {
-          new URL(avatar_url)
-        } catch {
-          return NextResponse.json(
-            { error: "头像 URL 格式不正确" },
-            { status: 400 }
-          )
-        }
-      }
-    }
+
+    const { username, avatar_url } = result.data
     
     // 更新用户信息
     const updatedUser = await updateUser(currentUser.id, {

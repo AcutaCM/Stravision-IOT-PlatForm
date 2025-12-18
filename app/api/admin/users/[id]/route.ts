@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserById, updateUser, toPublicUser } from "@/lib/db/user-service";
 import { z } from "zod";
+import { usernameSchema, passwordSchema, avatarUrlSchema } from "@/lib/validations/auth";
 
 const updateUserSchema = z.object({
-  username: z.string().min(2, "Username must be at least 2 characters").max(50).optional(),
-  password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
+  username: usernameSchema.optional(),
+  password: passwordSchema.optional().or(z.literal("")),
   role: z.enum(["user", "admin", "super_admin"]).optional(),
   permissions: z.any().optional(),
-  avatar_url: z.string().optional(),
+  avatar_url: avatarUrlSchema,
 });
 
 export async function PUT(

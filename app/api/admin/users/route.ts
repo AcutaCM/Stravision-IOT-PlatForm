@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createUser, getAllUsers } from "@/lib/db/user-service";
 import { z } from "zod";
+import { usernameSchema, emailSchema, passwordSchema, avatarUrlSchema } from "@/lib/validations/auth";
 
 const createUserSchema = z.object({
-  username: z.string().min(2, "Username must be at least 2 characters").max(50),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: usernameSchema,
+  email: emailSchema,
+  password: passwordSchema,
   role: z.enum(["user", "admin", "super_admin"]).optional(),
   permissions: z.any().optional(),
-  avatar_url: z.string().optional(),
+  avatar_url: avatarUrlSchema,
 });
 
 export async function GET() {

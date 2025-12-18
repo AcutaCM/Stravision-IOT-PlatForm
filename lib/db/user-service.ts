@@ -14,6 +14,8 @@ async function ensureDB() {
   await dbInitPromise
 }
 
+export type UserRole = 'user' | 'admin' | 'super_admin';
+
 /**
  * 完整的用户数据模型(包含敏感字段)
  */
@@ -23,7 +25,7 @@ export interface User {
   password_hash: string
   username: string
   avatar_url: string | null
-  role: string
+  role: UserRole
   permissions: string
   wechat_openid?: string | null
   wechat_unionid?: string | null
@@ -47,7 +49,7 @@ export interface UserPublic {
   email: string
   username: string
   avatar_url: string | null
-  role: string
+  role: UserRole
   permissions: UserPermissions
   created_at: number
 }
@@ -59,7 +61,7 @@ export interface CreateUserInput {
   email: string
   password: string
   username: string
-  role?: string
+  role?: UserRole
   permissions?: UserPermissions
 }
 
@@ -70,7 +72,7 @@ export interface UpdateUserInput {
   username?: string
   avatar_url?: string | null
   password?: string
-  role?: string
+  role?: UserRole
   permissions?: UserPermissions
 }
 
@@ -86,12 +88,17 @@ export function toPublicUser(user: User): UserPublic {
     console.error('Failed to parse permissions:', e);
   }
 
+  // Ensure role is a valid UserRole, default to 'user' if invalid/missing
+  const role: UserRole = (['user', 'admin', 'super_admin'].includes(user.role) 
+    ? user.role 
+    : 'user') as UserRole;
+
   return {
     id: user.id,
     email: user.email,
     username: user.username,
     avatar_url: user.avatar_url,
-    role: user.role || 'user',
+    role: role,
     permissions: permissions,
     created_at: user.created_at,
   }

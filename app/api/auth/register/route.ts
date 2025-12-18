@@ -1,32 +1,19 @@
 import { createUser } from "@/lib/db/user-service"
 import { generateToken, setAuthCookie } from "@/lib/auth"
+import { registerSchema } from "@/lib/validations/auth"
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const email = String(body?.email || "").trim().toLowerCase()
-    const password = String(body?.password || "")
-    const username = String(body?.username || "").trim()
-
-    // 验证必填字段
-    if (!email || !password || !username) {
-      return Response.json({ error: "缺少必填字段" }, { status: 400 })
+    
+    // Use Zod to validate input
+    const result = registerSchema.safeParse(body)
+    
+    if (!result.success) {
+        return Response.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
-    // 验证邮箱格式
-    if (!email.includes("@")) {
-      return Response.json({ error: "邮箱格式不正确" }, { status: 400 })
-    }
-
-    // 验证密码长度(至少8个字符)
-    if (password.length < 8) {
-      return Response.json({ error: "密码至少需要8个字符" }, { status: 400 })
-    }
-
-    // 验证用户名长度(2-20个字符)
-    if (username.length < 2 || username.length > 20) {
-      return Response.json({ error: "用户名长度需在2-20个字符之间" }, { status: 400 })
-    }
+    const { email, password, username } = result.data
 
     // 使用 user-service 创建用户(保存到数据库)
     const user = await createUser({

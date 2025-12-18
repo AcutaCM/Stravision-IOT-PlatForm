@@ -1,16 +1,18 @@
 import { verifyCredentials } from "@/lib/db/user-service"
 import { generateToken, setAuthCookie } from "@/lib/auth"
+import { loginSchema } from "@/lib/validations/auth"
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const email = String(body?.email || "").trim()
-    const password = String(body?.password || "")
-
-    // 验证输入
-    if (!email || !password) {
+    
+    // Use Zod to validate input
+    const result = loginSchema.safeParse(body)
+    if (!result.success) {
       return Response.json({ error: "缺少邮箱或密码" }, { status: 400 })
     }
+
+    const { email, password } = result.data
 
     // 使用 user-service 的 verifyCredentials() 验证用户
     const user = await verifyCredentials(email, password)
