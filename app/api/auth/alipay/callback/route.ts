@@ -97,9 +97,26 @@ export async function GET(req: Request) {
 
     // 4. 登录
     const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
-    await setAuthCookie(jwt)
+    
+    // 注意：在 Next.js Route Handler 中，如果使用 cookies().set() 后直接返回 NextResponse.redirect，
+    // Cookie 有时可能不会正确合并到响应头中。
+    // 为了确保 Cookie 一定能种下，我们显式在 Response 对象上设置 Cookie。
+    // await setAuthCookie(jwt) 
 
     const res = NextResponse.redirect(`${appUrl}/monitor`)
+    
+    // 强制设置 Cookie，确保兼容 HTTP 环境 (secure: false)
+    // 如果您的生产环境启用了 HTTPS，可以考虑根据协议动态设置 secure
+    res.cookies.set("auth", jwt, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: false, // 允许 HTTP 访问 (解决云服务无 HTTPS 导致 Cookie 丢失的问题)
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7, // 7 天
+    })
+
+    return res
+}
     res.cookies.set("alipay_state", "", { path: "/", maxAge: 0 })
     return res
 

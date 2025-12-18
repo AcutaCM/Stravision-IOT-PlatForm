@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     res.cookies.set("alipay_state", state, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // 强制允许 HTTP，防止云服务无 HTTPS 导致 Cookie 丢失
       path: "/",
       maxAge: 300,
     })
@@ -66,7 +66,7 @@ export async function GET(req: Request) {
   res.cookies.set("alipay_state", state, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: false, // 强制允许 HTTP，防止云服务无 HTTPS 导致 Cookie 丢失
     path: "/",
     maxAge: 300,
   })
