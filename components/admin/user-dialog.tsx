@@ -124,7 +124,7 @@ export function UserDialog({ open, onOpenChange, user, currentUserRole, onSucces
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{user ? "Edit User" : "Create User"}</DialogTitle>
         </DialogHeader>
