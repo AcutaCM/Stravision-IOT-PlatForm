@@ -71,8 +71,12 @@ export async function GET(req: Request) {
 
     const alipayUserId = userResult.userId || 
                          userResult.user_id || 
+                         userResult.openId || 
+                         userResult.open_id || 
                          userResult.alipay_user_info_share_response?.user_id ||
-                         userResult.alipayUserInfoShareResponse?.userId;
+                         userResult.alipayUserInfoShareResponse?.userId ||
+                         userResult.alipay_user_info_share_response?.open_id ||
+                         userResult.alipayUserInfoShareResponse?.openId;
 
     console.log("Alipay Login Debug:", { alipayUserId, userResult })
 
