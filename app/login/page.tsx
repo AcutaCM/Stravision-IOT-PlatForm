@@ -132,9 +132,7 @@ function LoginPage() {
                   className="w-full justify-center gap-3 rounded-xl bg-[#F3F9FA] text-[#313957] hover:bg-[#E7F1F2]"
                   onClick={() => window.location.href = "/api/auth/alipay/login"}
                 >
-                  <svg className="h-6 w-6" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M780.6 397.6c-48 57.6-107.6 107.2-175.4 146.4 78.4 57.6 153.2 78.2 153.2 78.2l-26.6 86s-91-24.8-190.2-100c-78.2 79.2-177.8 135-290.4 157l-35-80.4c96.2-18.8 181.8-66.2 250.6-133.4-60-46-112.6-100-155.2-160.2H178v-86h244.4V190h-162v-86h162V51.8h90v52.2h167v86h-167v115.2h268.2v92.4z m-359.6 137c35.6 51 80 97.4 130.4 137.4 56.8-34 105.8-77 145.4-126.8l10.8-10.6H421z" fill="#1677FF"></path>
-                  </svg>
+                  <Image src="/alipay.svg" alt="Alipay" width={24} height={24} className="h-6 w-6" />
                   <span className="text-[16px]">支付宝登录</span>
                 </Button>
 
