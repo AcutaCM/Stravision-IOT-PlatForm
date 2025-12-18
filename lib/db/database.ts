@@ -98,6 +98,15 @@ export async function initDB(): Promise<void> {
     )
   `)
 
+  // 创建 login_tickets 表 (用于移动端唤起APP后的跨浏览器登录)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS login_tickets (
+      ticket TEXT PRIMARY KEY,
+      jwt TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `)
+
   // 旧库迁移：检测并补充缺失列
   try {
     const columns = db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>

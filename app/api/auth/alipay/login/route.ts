@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { createTicket } from "@/lib/db/ticket-service"
 
 export async function GET(req: Request) {
   const appId = process.env.ALIPAY_APP_ID
@@ -9,16 +10,25 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   // 优先使用环境变量配置的 APP_URL
   const origin = process.env.APP_URL || url.origin
-  const redirectUri = `${origin}/api/auth/alipay/callback`
+  let redirectUri = `${origin}/api/auth/alipay/callback`
   const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
-
-  // 构造支付宝授权 URL
-  // 使用 openauth.alipay.com 进行授权
-  const alipayUrl = `https://openauth.alipay.com/oauth2/publicAppAuthorize.htm?app_id=${appId}&scope=auth_user&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`
 
   // 检测是否移动端
   const userAgent = req.headers.get("user-agent") || ""
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+
+  // 如果是移动端，生成 ticket 并附加到 redirectUri
+  let ticket = ""
+  if (isMobile) {
+    ticket = Math.random().toString(36).slice(2) + Date.now().toString(36)
+    await createTicket(ticket)
+    // 附加 ticket 参数到回调地址，这样回调时我们就知道是哪个 ticket
+    redirectUri += `?ticket=${ticket}`
+  }
+
+  // 构造支付宝授权 URL
+  // 使用 openauth.alipay.com 进行授权
+  const alipayUrl = `https://openauth.alipay.com/oauth2/publicAppAuthorize.htm?app_id=${appId}&scope=auth_user&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`
 
   if (isMobile) {
     // 构造支付宝 Scheme 链接，强制唤起 APP
@@ -38,6 +48,7 @@ export async function GET(req: Request) {
     .secondary-btn { display: block; margin-top: 15px; color: #666; font-size: 14px; text-decoration: underline; }
     p { color: #666; margin-bottom: 30px; line-height: 1.5; }
     .tip { font-size: 12px; color: #999; margin-top: 40px; }
+    .status { margin-top: 20px; color: #1677FF; font-size: 14px; min-height: 20px; }
   </style>
 </head>
 <body>
@@ -46,8 +57,10 @@ export async function GET(req: Request) {
   
   <a href="${schemeUrl}" class="btn">打开支付宝 APP</a>
   
+  <div class="status" id="status">等待授权...</div>
+
   <div class="tip">
-    <p>注意：授权完成后，系统可能会在支付宝 APP 内继续运行。<br>这是为了确保登录状态的安全性。</p>
+    <p>注意：授权完成后，请返回此页面。<br>页面会自动刷新并进入系统。</p>
   </div>
 
   <script>
@@ -55,6 +68,35 @@ export async function GET(req: Request) {
     setTimeout(function() {
       window.location.href = "${schemeUrl}";
     }, 300);
+
+    // 轮询检查登录状态
+    const ticket = "${ticket}";
+    let checkCount = 0;
+    const maxChecks = 600; // 10分钟
+    
+    function checkStatus() {
+      if (checkCount >= maxChecks) return;
+      checkCount++;
+      
+      fetch('/api/auth/ticket/check?ticket=' + ticket)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            document.getElementById('status').innerText = "授权成功，正在跳转...";
+            window.location.href = '/monitor';
+          } else {
+            // 继续轮询
+            setTimeout(checkStatus, 2000);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          setTimeout(checkStatus, 3000);
+        });
+    }
+    
+    // 启动轮询
+    setTimeout(checkStatus, 2000);
   </script>
 </body>
 </html>
@@ -63,7 +105,7 @@ export async function GET(req: Request) {
     res.cookies.set("alipay_state", state, {
       httpOnly: true,
       sameSite: "lax",
-      secure: false, // 强制允许 HTTP，防止云服务无 HTTPS 导致 Cookie 丢失
+      secure: false, // 强制允许 HTTP
       path: "/",
       maxAge: 300,
     })

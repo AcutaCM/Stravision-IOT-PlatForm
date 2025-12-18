@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { AlipaySdk } from 'alipay-sdk'
 import { findOrCreateAlipayUser } from "@/lib/db/user-service"
+import { updateTicketWithJwt } from "@/lib/db/ticket-service"
 import { generateToken, setAuthCookie } from "@/lib/auth"
 
 export async function GET(req: Request) {
@@ -11,14 +12,23 @@ export async function GET(req: Request) {
   
   const authCode = url.searchParams.get("auth_code")
   const state = url.searchParams.get("state")
+  const ticket = url.searchParams.get("ticket") // 获取移动端跨浏览器登录凭证
   
-  const cookieStore = await cookies()
-  const expectedState = cookieStore.get("alipay_state")?.value
+  // 如果是 ticket 模式，不需要校验 cookie 中的 state (因为是跨浏览器的)
+  if (!ticket) {
+    const cookieStore = await cookies()
+    const expectedState = cookieStore.get("alipay_state")?.value
 
-  // 简单的 State 验证
-  if (!authCode || !state || !expectedState || expectedState !== state) {
-    console.error("Alipay state mismatch:", { authCode: !!authCode, state, expectedState })
-    return NextResponse.redirect(`${appUrl}/login?error=alipay_state`)
+    // 简单的 State 验证
+    if (!authCode || !state || !expectedState || expectedState !== state) {
+      console.error("Alipay state mismatch:", { authCode: !!authCode, state, expectedState })
+      return NextResponse.redirect(`${appUrl}/login?error=alipay_state`)
+    }
+  } else {
+    // 简单校验
+    if (!authCode) {
+      return NextResponse.redirect(`${appUrl}/login?error=alipay_code_missing`)
+    }
   }
 
   const appId = process.env.ALIPAY_APP_ID
@@ -98,6 +108,37 @@ export async function GET(req: Request) {
     // 4. 登录
     const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
     
+    // 如果是 ticket 模式 (移动端跨浏览器登录)
+    if (ticket) {
+        await updateTicketWithJwt(ticket, jwt)
+        
+        // 返回一个提示页，告诉用户可以返回浏览器了
+        const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录成功</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; }
+    .icon { font-size: 64px; color: #52c41a; margin-bottom: 20px; }
+    h3 { margin-bottom: 10px; }
+    p { color: #666; margin-bottom: 30px; }
+    .btn { display: block; width: 100%; max-width: 300px; margin: 20px auto; padding: 12px 0; background: #1677FF; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="icon">✅</div>
+  <h3>授权成功</h3>
+  <p>您已成功登录，请手动返回刚才的浏览器页面，系统将自动跳转。</p>
+  <a href="javascript:history.back()" class="btn">返回上一页</a>
+</body>
+</html>
+        `
+        return new NextResponse(html, { headers: { 'Content-Type': 'text/html' } })
+    }
+
     // 注意：在 Next.js Route Handler 中，如果使用 cookies().set() 后直接返回 NextResponse.redirect，
     // Cookie 有时可能不会正确合并到响应头中。
     // 为了确保 Cookie 一定能种下，我们显式在 Response 对象上设置 Cookie。
