@@ -116,10 +116,6 @@ export async function GET(req: Request) {
     })
 
     return res
-}
-    res.cookies.set("alipay_state", "", { path: "/", maxAge: 0 })
-    return res
-
   } catch (error: any) {
     console.error("Alipay callback error:", error)
     return NextResponse.redirect(`${appUrl}/login?error=alipay_error&message=${encodeURIComponent(error.message || "")}`)
