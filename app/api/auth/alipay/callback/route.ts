@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import AlipaySdk from 'alipay-sdk'
+import { AlipaySdk } from 'alipay-sdk'
 import { findOrCreateAlipayUser } from "@/lib/db/user-service"
 import { generateToken, setAuthCookie } from "@/lib/auth"
 
