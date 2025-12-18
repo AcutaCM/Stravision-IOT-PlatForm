@@ -65,9 +65,17 @@ export async function GET(req: Request) {
         return NextResponse.redirect(`${appUrl}/login?error=alipay_user_info`)
     }
 
+    const alipayUserId = userResult.userId || userResult.user_id
+    console.log("Alipay Login Debug:", { alipayUserId, userResult })
+
+    if (!alipayUserId) {
+        console.error("Alipay user_id missing in response")
+        return NextResponse.redirect(`${appUrl}/login?error=alipay_user_id_missing`)
+    }
+
     // 3. 查找或创建用户
     const user = await findOrCreateAlipayUser({
-      userId: userResult.userId || userResult.user_id,
+      userId: alipayUserId,
       nickname: userResult.nickName || userResult.nick_name || "支付宝用户",
       avatar: userResult.avatar,
     })
@@ -80,8 +88,8 @@ export async function GET(req: Request) {
     res.cookies.set("alipay_state", "", { path: "/", maxAge: 0 })
     return res
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Alipay callback error:", error)
-    return NextResponse.redirect(`${appUrl}/login?error=alipay_error`)
+    return NextResponse.redirect(`${appUrl}/login?error=alipay_error&message=${encodeURIComponent(error.message || "")}`)
   }
 }
