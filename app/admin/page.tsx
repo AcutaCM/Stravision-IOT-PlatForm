@@ -140,8 +140,9 @@ export default function AdminPage() {
           </div>
 
           {/* Desktop View: Table */}
-          <div className="hidden md:block rounded-md border bg-card overflow-y-auto max-h-[calc(100vh-250px)]">
-            <Table>
+          <div className="hidden md:block rounded-md border bg-card">
+            <div className="overflow-y-auto max-h-[calc(100vh-250px)]">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ID</TableHead>
@@ -178,6 +179,7 @@ export default function AdminPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
         </TabsContent>
 
