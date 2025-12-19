@@ -4,7 +4,7 @@ import { getBannedIPs, addBannedIP, removeBannedIP } from "@/lib/db/security-ser
 import { z } from "zod"
 
 const banIpSchema = z.object({
-  ip: z.string().ip({ message: "无效的 IP 地址" }),
+  ip: z.string().regex(/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/, { message: "无效的 IP 地址" }),
   reason: z.string().optional(),
 })
 
