@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
-import { getUserById, type UserPublic } from "./db/user-service"
+import { getUserById, type UserPublic, toPublicUser } from "./db/user-service"
 
 /**
  * JWT 令牌 Payload 接口
