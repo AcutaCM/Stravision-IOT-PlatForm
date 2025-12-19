@@ -57,10 +57,12 @@ export function verifyToken(token: string): JWTPayload | null {
  */
 export async function setAuthCookie(token: string): Promise<void> {
   const cookieStore = await cookies()
+  const isProduction = process.env.NODE_ENV === "production"
+  
   cookieStore.set("auth", token, {
     httpOnly: true, // 防止 XSS 攻击
     sameSite: "lax", // 防止 CSRF 攻击
-    secure: false, // 允许 HTTP 访问 (因为目前是 IP 直接访问，没有 HTTPS)
+    secure: isProduction, // 生产环境仅允许 HTTPS
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 天(秒)
   })

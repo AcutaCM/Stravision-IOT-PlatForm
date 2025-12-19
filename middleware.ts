@@ -68,6 +68,7 @@ export const config = {
     "/device-control/:path*", 
     "/settings/:path*",
     "/profile/:path*",
-    "/ai-assistant/:path*"
+    "/ai-assistant/:path*",
+    "/admin/:path*"
   ],
 }

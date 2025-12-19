@@ -1,9 +1,17 @@
 import { createUser } from "@/lib/db/user-service"
 import { generateToken, setAuthCookie } from "@/lib/auth"
 import { registerSchema } from "@/lib/validations/auth"
+import { rateLimit } from "@/lib/rate-limit"
+import { NextRequest } from "next/server"
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Rate Limit: 3 attempts per minute to prevent spam registration
+    const limiter = rateLimit(req, { limit: 3, windowMs: 60 * 1000 })
+    if (!limiter.success) {
+      return Response.json({ error: "请求过于频繁，请稍后再试" }, { status: 429 })
+    }
+
     const body = await req.json()
     
     // Use Zod to validate input
