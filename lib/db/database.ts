@@ -103,6 +103,33 @@ export async function initDB(): Promise<void> {
     )
   `)
 
+  // 创建 banned_ips 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS banned_ips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip TEXT UNIQUE NOT NULL,
+      reason TEXT,
+      banned_by TEXT,
+      expires_at INTEGER,
+      created_at INTEGER NOT NULL
+    )
+  `)
+
+  // 创建 access_logs 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS access_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip TEXT NOT NULL,
+      method TEXT,
+      path TEXT,
+      status INTEGER,
+      duration INTEGER,
+      user_id INTEGER,
+      user_agent TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `)
+
   // 创建 device_logs 表
   db.exec(`
     CREATE TABLE IF NOT EXISTS device_logs (

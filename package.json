@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "create-admin": "npx tsx scripts/create-admin.ts",
     "test": "vitest --run",
     "test:watch": "vitest"
   },

@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table" // Assuming table exists now or I will use standard HTML if it fails
 import { BannedIPsManager } from "@/components/admin/banned-ips-manager"
+import { AccessLogsViewer } from "@/components/admin/access-logs-viewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -106,7 +107,7 @@ export default function AdminPage() {
           </div>
 
           {/* Mobile View: Cards */}
-          <div className="grid gap-4 md:hidden">
+          <div className="grid gap-4 md:hidden overflow-y-auto max-h-[calc(100vh-250px)]">
             {users.map((user) => (
               <Card key={user.id}>
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
@@ -180,8 +181,15 @@ export default function AdminPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="security">
-          <BannedIPsManager />
+        <TabsContent value="security" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="col-span-4">
+              <AccessLogsViewer />
+            </div>
+            <div className="col-span-3">
+              <BannedIPsManager />
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MQTTService } from '@/lib/mqtt-service'
 import { getCurrentUser } from '@/lib/auth'
+import { checkSecurity, logRequest } from '@/lib/security'
 
 /**
  * Log structured message
@@ -103,11 +104,18 @@ function validateControlRequest(data: ControlRequest): string | null {
  * @returns {NextResponse} JSON response with success status
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  // 1. Security Check (IP Ban & Logging)
+  const securityCheck = await checkSecurity(req)
+  if (!securityCheck.allowed) {
+    return securityCheck.response!
+  }
+
   try {
     // Verify authentication
     const currentUser = await getCurrentUser()
     if (!currentUser) {
       log('WARN', 'Unauthorized control command attempt')
+      await logRequest(req, 401)
       
       return NextResponse.json(
         {
@@ -125,6 +133,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       body = await req.json()
     } catch (error) {
       log('WARN', 'Invalid JSON in request body', { error })
+      await logRequest(req, 400, currentUser.id)
       
       return NextResponse.json(
         {
@@ -140,6 +149,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const validationError = validateControlRequest(body)
     if (validationError) {
       log('WARN', 'Request validation failed', { error: validationError, body })
+      await logRequest(req, 400, currentUser.id)
       
       return NextResponse.json(
         {
@@ -149,6 +159,40 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         } as ControlResponse,
         { status: 400 }
       )
+    }
+
+    // 2. Permission Check
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      const permissions = typeof currentUser.permissions === 'string' 
+        ? JSON.parse(currentUser.permissions || '{}') 
+        : currentUser.permissions || {};
+      const allowedControls = permissions.allowedControls || [];
+
+      if (body.type === 'relay') {
+        const relayId = `relay${body.relayNum}`;
+        if (!allowedControls.includes(relayId)) {
+           log('WARN', 'Permission denied for relay control', { user: currentUser.username, relayId });
+           await logRequest(req, 403, currentUser.id);
+           return NextResponse.json(
+             { success: false, message: `Permission denied: You cannot control ${relayId}`, timestamp: Date.now() },
+             { status: 403 }
+           );
+        }
+      } else if (body.type === 'led') {
+        // Check permissions for each LED being set
+        if (body.led1 !== undefined && !allowedControls.includes('led1')) {
+           return NextResponse.json({ success: false, message: "Permission denied: You cannot control LED 1", timestamp: Date.now() }, { status: 403 });
+        }
+        if (body.led2 !== undefined && !allowedControls.includes('led2')) {
+           return NextResponse.json({ success: false, message: "Permission denied: You cannot control LED 2", timestamp: Date.now() }, { status: 403 });
+        }
+        if (body.led3 !== undefined && !allowedControls.includes('led3')) {
+           return NextResponse.json({ success: false, message: "Permission denied: You cannot control LED 3", timestamp: Date.now() }, { status: 403 });
+        }
+        if (body.led4 !== undefined && !allowedControls.includes('led4')) {
+           return NextResponse.json({ success: false, message: "Permission denied: You cannot control LED 4", timestamp: Date.now() }, { status: 403 });
+        }
+      }
     }
 
     // Get MQTT service instance
@@ -195,6 +239,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       })
 
       log('INFO', 'Control command sent successfully', { type: body.type })
+
+      await logRequest(req, 200, currentUser.id)
 
       // Return success response
       return NextResponse.json(

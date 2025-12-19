@@ -7,8 +7,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MQTTService } from '@/lib/mqtt-service'
 import { getCurrentUser } from '@/lib/auth'
+import { checkSecurity, logRequest } from '@/lib/security'
 
 export async function POST(request: NextRequest) {
+  // 1. Security Check
+  const securityCheck = await checkSecurity(request)
+  if (!securityCheck.allowed) {
+    return securityCheck.response!
+  }
+
   try {
     // 1. Authentication Check
     const currentUser = await getCurrentUser()
@@ -21,6 +28,37 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     let { action, device, value, r, g, b } = body
+
+    // Permission Check
+    if (currentUser.role !== 'super_admin' && currentUser.role !== 'admin') {
+      const permissions = typeof currentUser.permissions === 'string' 
+        ? JSON.parse(currentUser.permissions || '{}') 
+        : currentUser.permissions || {};
+      const allowedControls = permissions.allowedControls || [];
+
+      if (action === 'toggle_relay') {
+        const relayId = `relay${device}`;
+        if (!allowedControls.includes(relayId)) {
+           return NextResponse.json(
+             { success: false, error: `Permission denied: You cannot control ${relayId}` },
+             { status: 403 }
+           );
+        }
+      } else if (action === 'set_led') {
+        // AI sends r, g, b which map to led1, led2, led3
+        if (!allowedControls.includes('led1') && !allowedControls.includes('led2') && !allowedControls.includes('led3')) {
+           // If user has NO led permissions, block. 
+           // Ideally check per channel, but for now block if no LED control allowed.
+           // Or strictly:
+           if (!allowedControls.includes('led1') || !allowedControls.includes('led2') || !allowedControls.includes('led3')) {
+               return NextResponse.json(
+                 { success: false, error: `Permission denied: You need full LED control permissions` },
+                 { status: 403 }
+               );
+           }
+        }
+      }
+    }
     
     console.log('[AI Device Control] Received command:', JSON.stringify(body, null, 2))
     

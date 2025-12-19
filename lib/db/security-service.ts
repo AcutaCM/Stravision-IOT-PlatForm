@@ -43,3 +43,46 @@ export async function isIPBanned(ip: string): Promise<boolean> {
   const result = db.prepare("SELECT 1 FROM banned_ips WHERE ip = ?").get(ip)
   return !!result
 }
+
+export interface AccessLog {
+  id: number
+  ip: string
+  method: string
+  path: string
+  status: number
+  duration: number
+  user_id?: number
+  user_agent?: string
+  created_at: number
+}
+
+export async function recordAccessLog(data: Omit<AccessLog, 'id' | 'created_at'>): Promise<void> {
+  // Fire and forget, don't block
+  try {
+    await initDB()
+    const db = getDB()
+    const now = Date.now()
+    
+    db.prepare(`
+      INSERT INTO access_logs (ip, method, path, status, duration, user_id, user_agent, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.ip, 
+      data.method, 
+      data.path, 
+      data.status, 
+      data.duration, 
+      data.user_id || null, 
+      data.user_agent || null, 
+      now
+    )
+  } catch (e) {
+    console.error("Failed to record access log:", e)
+  }
+}
+
+export async function getAccessLogs(limit: number = 100): Promise<AccessLog[]> {
+  await initDB()
+  const db = getDB()
+  return db.prepare("SELECT * FROM access_logs ORDER BY created_at DESC LIMIT ?").all(limit) as AccessLog[]
+}
