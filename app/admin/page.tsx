@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/table" // Assuming table exists now or I will use standard HTML if it fails
 import { BannedIPsManager } from "@/components/admin/banned-ips-manager"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
 export default function AdminPage() {
   const [users, setUsers] = useState<UserPublic[]>([])
