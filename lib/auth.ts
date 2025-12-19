@@ -101,7 +101,7 @@ export async function getCurrentUser(): Promise<UserPublic | null> {
       return null
     }
 
-    return user
+    return toPublicUser(user)
   } catch (error) {
     console.error("获取当前用户失败:", error)
     return null
