@@ -3,6 +3,7 @@ import { generateToken, setAuthCookie } from "@/lib/auth"
 import { registerSchema } from "@/lib/validations/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { NextRequest } from "next/server"
+import { verifyTurnstileToken } from "@/lib/turnstile"
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,17 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     
+    // 验证 Turnstile Token
+    const turnstileToken = body.turnstileToken;
+    if (!turnstileToken) {
+        return Response.json({ error: "请完成验证码验证" }, { status: 400 });
+    }
+
+    const isHuman = await verifyTurnstileToken(turnstileToken);
+    if (!isHuman) {
+        return Response.json({ error: "验证码验证失败" }, { status: 400 });
+    }
+
     // Use Zod to validate input
     const result = registerSchema.safeParse(body)
     

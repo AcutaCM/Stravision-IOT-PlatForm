@@ -14,8 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table" // Assuming table exists now or I will use standard HTML if it fails
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BannedIPsManager } from "@/components/admin/banned-ips-manager"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function AdminPage() {
   const [users, setUsers] = useState<UserPublic[]>([])
@@ -24,6 +24,7 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<UserPublic | null>(null)
   const [currentUser, setCurrentUser] = useState<UserPublic | null>(null)
 
+  // ... existing fetch functions ...
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/admin/users")
@@ -79,92 +80,108 @@ export default function AdminPage() {
 
   return (
     <div className="container mx-auto py-6 md:py-10 space-y-6">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-sm text-muted-foreground hidden md:block">
-            Manage users, roles, and device permissions.
+          <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            System management and security controls.
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
       </div>
 
-      {/* Mobile View: Cards */}
-      <div className="grid gap-4 md:hidden">
-        {users.map((user) => (
-          <Card key={user.id}>
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div className="space-y-1">
-                <CardTitle className="text-base font-medium leading-none">
-                  {user.username}
-                </CardTitle>
-                <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                  {user.email}
-                </p>
-              </div>
-              <Badge variant={user.role === 'super_admin' ? 'default' : user.role === 'admin' ? 'secondary' : 'outline'}>
-                {user.role}
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
-                <span className="font-medium text-foreground">Permissions: </span>
-                {user.permissions?.allowedControls?.length 
-                  ? `${user.permissions.allowedControls.length} devices allowed` 
-                  : 'No device permissions'}
-              </div>
-              <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(user)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit User
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Tabs defaultValue="users" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="security">Security & Bans</TabsTrigger>
+        </TabsList>
 
-      {/* Desktop View: Table */}
-      <div className="hidden md:block rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">ID</TableHead>
-              <TableHead>Username</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <TabsContent value="users" className="space-y-4">
+          <div className="flex justify-end">
+             <Button onClick={handleCreate}>
+               <Plus className="mr-2 h-4 w-4" />
+               Add User
+             </Button>
+          </div>
+
+          {/* Mobile View: Cards */}
+          <div className="grid gap-4 md:hidden">
             {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.id}</TableCell>
-                <TableCell className="font-medium">{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
+              <Card key={user.id}>
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base font-medium leading-none">
+                      {user.username}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                      {user.email}
+                    </p>
+                  </div>
                   <Badge variant={user.role === 'super_admin' ? 'default' : user.role === 'admin' ? 'secondary' : 'outline'}>
                     {user.role}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.permissions?.allowedControls?.length 
-                    ? `${user.permissions.allowedControls.length} controls` 
-                    : 'None'}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
-                    <Pencil className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md">
+                    <span className="font-medium text-foreground">Permissions: </span>
+                    {user.permissions?.allowedControls?.length 
+                      ? `${user.permissions.allowedControls.length} devices allowed` 
+                      : 'No device permissions'}
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => handleEdit(user)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit User
                   </Button>
-                </TableCell>
-              </TableRow>
+                </CardContent>
+              </Card>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+
+          {/* Desktop View: Table */}
+          <div className="hidden md:block rounded-md border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">ID</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Permissions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.id}</TableCell>
+                    <TableCell className="font-medium">{user.username}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={user.role === 'super_admin' ? 'default' : user.role === 'admin' ? 'secondary' : 'outline'}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.permissions?.allowedControls?.length 
+                        ? `${user.permissions.allowedControls.length} controls` 
+                        : 'None'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(user)}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <BannedIPsManager />
+        </TabsContent>
+      </Tabs>
 
       {currentUser && (
         <UserDialog

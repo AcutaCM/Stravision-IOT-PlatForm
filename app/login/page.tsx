@@ -10,6 +10,7 @@ import Image from "next/image";
 import { Facebook, Building2, QrCode } from "lucide-react";
 import SplitText from "@/components/ui/split-text";
 import TextPressure from "@/components/ui/text-pressure";
+import TurnstileWidget from "@/components/ui/turnstile-widget";
 
 function LoginPage() {
   const router = useRouter();
@@ -30,13 +31,18 @@ function LoginPage() {
   }, [router]);
 
   const onSubmit = async () => {
+    if (!turnstileToken) {
+      setError("请完成验证码验证");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -110,6 +116,7 @@ function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              <TurnstileWidget onVerify={setTurnstileToken} />
               <div className="flex justify-end">
                 <Link href="#" className="text-[12px] text-[#1E4AE9]">忘记密码？</Link>
               </div>

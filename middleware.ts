@@ -16,7 +16,17 @@ export function middleware(req: NextRequest) {
   const url = new URL(req.url)
   const pathname = url.pathname
 
-  // 1. Authentication Check (Security)
+  // 1. Admin Protection (Stealth Mode)
+  if (pathname.startsWith("/admin")) {
+    const token = req.cookies.get("auth")?.value
+    // If no token, pretend it doesn't exist (404) or redirect to home to avoid detection
+    if (!token) {
+      return NextResponse.redirect(new URL("/", req.url))
+    }
+    // Note: Role check happens in layout/page server components for security
+  }
+
+  // 2. Authentication Check (Security)
   // 检查是否访问受保护的路由
   const protectedPaths = [
     "/dashboard", 

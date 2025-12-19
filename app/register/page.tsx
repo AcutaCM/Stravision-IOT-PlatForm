@@ -173,6 +173,7 @@ export default function RegisterPage() {
                 />
                 {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
               </div>
+              <TurnstileWidget onVerify={setTurnstileToken} />
               <Button className="w-full h-12 rounded-xl bg-[#162D3A] text-white" onClick={onSubmit} disabled={loading}>
                 {loading ? "注册中…" : "注册"}
               </Button>
