@@ -107,6 +107,9 @@ export default function AdminLoginPage() {
                 required
               />
             </div>
+
+            <TurnstileWidget onVerify={setTurnstileToken} theme="dark" />
+
             <Button 
               type="submit" 
               className="w-full bg-red-950 hover:bg-red-900 text-red-500 border border-red-900/50 font-mono uppercase tracking-wider"
