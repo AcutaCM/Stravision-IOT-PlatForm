@@ -28,11 +28,9 @@ export function ControlBentoGrid() {
       if (success) {
         const newState = currentState === 1 ? 0 : 1
         toast.success(`设备 ${relayId} 已${newState ? '开启' : '关闭'}`)
-      } else {
-        toast.error("操作失败，请重试")
       }
     } catch (error) {
-      toast.error("操作失败，请重试")
+      // toast handled in hook
     } finally {
       setLoading(null)
     }

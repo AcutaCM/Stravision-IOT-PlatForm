@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { toast } from 'sonner'
 
 export interface ControlCommand {
   type: 'relay' | 'led'
@@ -71,6 +72,9 @@ export function useDeviceControl() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('[Control] Failed to send command:', errorMessage)
+      
+      // Auto-show toast for errors, especially permission issues
+      toast.error(errorMessage)
 
       setStatus({
         loading: false,
