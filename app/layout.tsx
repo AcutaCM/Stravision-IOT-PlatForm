@@ -9,7 +9,7 @@ import { SmoothScroll } from "@/components/smooth-scroll";
 import { EnvironmentAlert } from "@/components/environment-alert";
 import { ToasterWrapper } from "@/components/toaster-wrapper";
 import { headers } from "next/headers";
-import { isIPBanned, recordAccessLog } from "@/lib/db/security-service";
+import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-service";
 
 export const metadata: Metadata = {
   title: "stravision莓界 · 登录",
@@ -26,7 +26,8 @@ export default async function RootLayout({
   const forwardedFor = headersList.get("x-forwarded-for");
   const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
   
-  if (await isIPBanned(ip)) {
+  const banDetails = await getBanDetails(ip);
+  if (banDetails) {
      // Record access attempt
      await recordAccessLog({
        ip,
@@ -46,10 +47,29 @@ export default async function RootLayout({
              alignItems: 'center', 
              height: '100vh', 
              flexDirection: 'column',
-             fontFamily: 'system-ui, sans-serif'
+             fontFamily: 'system-ui, sans-serif',
+             padding: '20px',
+             textAlign: 'center'
            }}>
-             <h1 style={{ color: '#e11d48' }}>Access Denied</h1>
-             <p>Your IP address ({ip}) has been banned from accessing this system.</p>
+             <h1 style={{ color: '#e11d48', fontSize: '2rem', marginBottom: '1rem' }}>Access Denied</h1>
+             <p style={{ marginBottom: '1rem' }}>Your IP address ({ip}) has been banned from accessing this system.</p>
+             {banDetails.reason && (
+               <div style={{ 
+                 backgroundColor: '#fef2f2', 
+                 border: '1px solid #fee2e2', 
+                 color: '#b91c1c', 
+                 padding: '1rem', 
+                 borderRadius: '0.5rem',
+                 maxWidth: '400px'
+               }}>
+                 <strong>Reason:</strong> {banDetails.reason}
+               </div>
+             )}
+             {banDetails.expires_at && (
+                <p style={{ marginTop: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
+                  Expires: {new Date(banDetails.expires_at).toLocaleString()}
+                </p>
+             )}
            </div>
          </body>
        </html>

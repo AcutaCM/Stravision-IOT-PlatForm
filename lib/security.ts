@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { isIPBanned, recordAccessLog } from "@/lib/db/security-service"
+import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-service"
 import { headers } from "next/headers"
 
 /**
@@ -41,9 +41,9 @@ export async function checkSecurity(req: NextRequest, userId?: number): Promise<
   const userAgent = req.headers.get("user-agent") || ""
 
   // 1. 检查 IP 是否被封禁
-  const banned = await isIPBanned(ip)
+  const banDetails = await getBanDetails(ip)
   
-  if (banned) {
+  if (banDetails) {
     // 记录被拒绝的访问
     await recordAccessLog({
       ip,
@@ -59,7 +59,10 @@ export async function checkSecurity(req: NextRequest, userId?: number): Promise<
       allowed: false,
       ip,
       response: NextResponse.json(
-        { error: "Access Denied: Your IP has been banned." },
+        { 
+          error: "Access Denied: Your IP has been banned.",
+          reason: banDetails.reason || undefined
+        },
         { status: 403 }
       )
     }

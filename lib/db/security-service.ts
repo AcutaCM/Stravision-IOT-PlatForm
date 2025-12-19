@@ -33,6 +33,11 @@ export async function removeBannedIP(ip: string): Promise<void> {
 }
 
 export async function isIPBanned(ip: string): Promise<boolean> {
+  const details = await getBanDetails(ip)
+  return !!details
+}
+
+export async function getBanDetails(ip: string): Promise<BannedIP | null> {
   await initDB()
   const db = getDB()
   const now = Date.now()
@@ -40,8 +45,7 @@ export async function isIPBanned(ip: string): Promise<boolean> {
   // Clean up expired bans first (lazy cleanup)
   db.prepare("DELETE FROM banned_ips WHERE expires_at IS NOT NULL AND expires_at < ?").run(now)
   
-  const result = db.prepare("SELECT 1 FROM banned_ips WHERE ip = ?").get(ip)
-  return !!result
+  return db.prepare("SELECT * FROM banned_ips WHERE ip = ?").get(ip) as BannedIP | null
 }
 
 export interface AccessLog {
