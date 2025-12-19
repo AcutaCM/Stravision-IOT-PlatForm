@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Facebook, Mail } from "lucide-react";
 import SplitText from "@/components/ui/split-text";
 import TextPressure from "@/components/ui/text-pressure";
+import TurnstileWidget from "@/components/ui/turnstile-widget";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -21,6 +22,7 @@ export default function RegisterPage() {
   const [emailError, setEmailError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const validateEmail = (value: string) => {
     if (!value) {
@@ -71,13 +73,18 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!turnstileToken) {
+      setError("请完成验证码验证");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, password }),
+        body: JSON.stringify({ email, username, password, turnstileToken }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

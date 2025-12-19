@@ -26,8 +26,8 @@ export function EnvironmentAlert() {
   const COOLDOWN = 5 * 60 * 1000
 
   useEffect(() => {
-    // Don't show alerts on landing page or if no data
-    if (pathname === '/' || !deviceData) return
+    // Don't show alerts on landing page, auth pages or if no data
+    if (pathname === '/' || pathname === '/login' || pathname === '/register' || !deviceData) return
 
     const now = Date.now()
     if (now - lastAlertTimeRef.current < COOLDOWN) return
