@@ -42,7 +42,12 @@ export function resetIp(ip: string) {
 /**
  * Basic in-memory rate limiter with Auto-Ban support
  */
-export function rateLimit(req: NextRequest, config: RateLimitConfig = { limit: 10, windowMs: 60 * 1000, autoBan: false }) {
+export interface ExtendedRateLimitConfig extends RateLimitConfig {
+  violationLimit?: number;
+  banDuration?: number;
+}
+
+export function rateLimit(req: NextRequest, config: ExtendedRateLimitConfig = { limit: 10, windowMs: 60 * 1000, autoBan: false }) {
   const ip = getClientIp(req);
   const now = Date.now();
   
@@ -72,9 +77,12 @@ export function rateLimit(req: NextRequest, config: RateLimitConfig = { limit: 1
     // Increment violation count
     record.violationCount++;
     
-    // Auto-ban logic: if violated 5 times continuously, ban for 24h
-    if (config.autoBan && record.violationCount >= 5) {
-      bannedIPs.set(ip, now + BAN_DURATION);
+    // Auto-ban logic
+    const violationLimit = config.violationLimit || 5;
+    const banDuration = config.banDuration || BAN_DURATION;
+
+    if (config.autoBan && record.violationCount >= violationLimit) {
+      bannedIPs.set(ip, now + banDuration);
       return { success: false, banned: true, newBan: true };
     }
 

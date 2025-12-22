@@ -152,6 +152,15 @@ export async function initDB(): Promise<void> {
     )
   `)
 
+  // 创建 system_settings 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `)
+
   // 旧库迁移：检测并补充缺失列
   try {
     const columns = db.prepare(`PRAGMA table_info(users)`).all() as Array<{ name: string }>

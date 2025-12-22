@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table" // Assuming table exists now or I will use standard HTML if it fails
 import { BannedIPsManager } from "@/components/admin/banned-ips-manager"
 import { AccessLogsViewer } from "@/components/admin/access-logs-viewer"
+import { RateLimitSettings } from "@/components/admin/rate-limit-settings"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -185,7 +186,8 @@ export default function AdminPage() {
 
         <TabsContent value="security" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <div className="col-span-4">
+            <div className="col-span-4 space-y-4">
+              <RateLimitSettings />
               <AccessLogsViewer />
             </div>
             <div className="col-span-3">

@@ -22,17 +22,75 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next()
   }
 
+  // Fetch Rate Limit Config (Lazy/Cache)
+  // Note: Middleware in Next.js (Node runtime) shares process memory usually, 
+  // but to be safe and robust, we fetch from internal API periodically or use defaults.
+  // For performance, we'll use hardcoded defaults for now but overridden by logic below if we had a lightweight config store.
+  // In a real high-scale app, this would be a Redis call.
+  // Here, we'll implement a simple "stale-while-revalidate" in-memory cache variable if possible, 
+  // but since middleware scope is tricky, we'll fetch only on specific triggers or just use defaults + DB check for unban.
+  
+  // Wait, user explicitly asked for Admin adjustable thresholds.
+  // We will try to fetch config from internal API asynchronously and update a local variable?
+  // No, we can't easily update a global variable reliably across all isolate instances in Edge (though we are on Node).
+  // Strategy: We will try to fetch config from a global variable if we are in Node.
+  // Actually, we can just fetch it from the internal API with a short timeout? No, adds 10ms+ latency.
+  
+  // Revised Strategy: We use a "Soft Fetch" - we default to standard limits, but if a request comes in, 
+  // we occasionally (e.g. 1% of requests) refresh the config from the DB via internal API and store it in a global.
+  
+  // For now, to ensure it works immediately without complexity, we'll just define the limits here.
+  // If we want dynamic limits, we need to pass them to rateLimit.
+  
+  // Dynamic Configuration Loading (Simulated with Global Cache)
+  // @ts-ignore
+  let dynamicConfig = globalThis.rateLimitConfig
+  const now = Date.now()
+  // @ts-ignore
+  if (!dynamicConfig || (now - (globalThis.lastConfigFetch || 0) > 60000)) {
+     // Trigger background refresh
+     const protocol = req.nextUrl.protocol
+     const host = req.headers.get("host") || 'localhost:3000'
+     // Don't await to avoid blocking response
+     fetch(`${protocol}//${host}/api/internal/security/config`, {
+        headers: { "x-internal-secret": "stravision-internal-secret" }
+     }).then(res => res.json()).then(config => {
+        if (config && !config.error) {
+           // @ts-ignore
+           globalThis.rateLimitConfig = config
+           // @ts-ignore
+           globalThis.lastConfigFetch = Date.now()
+        }
+     }).catch(e => console.error("Config fetch failed", e))
+  }
+
   // 0. Global Rate Limiting & Auto-Ban (API & Auth routes)
   // Protect sensitive endpoints from brute force / DoS
   if (pathname.startsWith("/api") || pathname.startsWith("/login") || pathname.startsWith("/register")) {
     const isAuthApi = pathname.startsWith("/api/auth");
     
-    // Stricter limits for auth endpoints
-    const limit = isAuthApi ? 10 : 60; 
-    const windowMs = 60 * 1000;
+    // Default values if config not loaded yet
+    // @ts-ignore
+    const config = globalThis.rateLimitConfig || {
+       limit: 60,
+       windowMs: 60000,
+       violationLimit: 5,
+       banDuration: 86400000
+    }
+
+    // Stricter limits for auth endpoints (unless configured otherwise, we assume config is for general API)
+    // We can scale auth limits based on general limits (e.g. 1/6th)
+    const limit = isAuthApi ? Math.max(5, Math.floor(config.limit / 6)) : config.limit; 
+    const windowMs = config.windowMs;
     
     // Enable auto-ban for repeated violations
-    const result = rateLimit(req, { limit, windowMs, autoBan: true });
+    const result = rateLimit(req, { 
+       limit, 
+       windowMs, 
+       autoBan: true,
+       violationLimit: config.violationLimit,
+       banDuration: config.banDuration
+    });
     
     if (!result.success) {
       const ip = getClientIp(req);
