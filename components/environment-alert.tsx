@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useDeviceData } from "@/lib/hooks/use-device-data"
 import { useDeviceControl } from "@/lib/hooks/use-device-control"
 import { toast } from "sonner"
@@ -20,14 +20,32 @@ export function EnvironmentAlert() {
   const { deviceData } = useDeviceData()
   const { toggleRelay } = useDeviceControl()
   const pathname = usePathname()
+  const [alertsEnabled, setAlertsEnabled] = useState(true)
   
   // Cooldown to prevent spamming (5 minutes)
   const lastAlertTimeRef = useRef<number>(0)
   const COOLDOWN = 5 * 60 * 1000
 
   useEffect(() => {
-    // Don't show alerts on landing page, auth pages or if no data
-    if (pathname === '/' || pathname === '/login' || pathname === '/register' || !deviceData) return
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/auth/me")
+        if (!res.ok) return
+        const data = await res.json()
+        if (data?.authenticated && data?.user?.notification_settings?.alerts !== undefined) {
+          setAlertsEnabled(!!data.user.notification_settings.alerts)
+        }
+      } catch {
+      }
+    }
+
+    if (pathname === "/" || pathname === "/login" || pathname === "/register") return
+    fetchSettings()
+  }, [pathname])
+
+  useEffect(() => {
+    // Don't show alerts on landing page, auth pages or if no data or if alerts disabled
+    if (pathname === '/' || pathname === '/login' || pathname === '/register' || !deviceData || !alertsEnabled) return
 
     const now = Date.now()
     if (now - lastAlertTimeRef.current < COOLDOWN) return

@@ -54,6 +54,9 @@ export default function ProfilePage() {
         const data = await res.json()
         if (data?.authenticated && data?.user) {
           setUser(data.user)
+          if (data.user.notification_settings) {
+            setNotif(data.user.notification_settings)
+          }
         } else {
           router.replace("/login")
         }
@@ -67,11 +70,10 @@ export default function ProfilePage() {
 
     // Load local storage data
     try {
-      const ns = JSON.parse(localStorage.getItem("profile_notifications") || "{}")
+      // Notification settings are now loaded from DB
       const as = JSON.parse(localStorage.getItem("profile_activity") || "[]")
       const ds = JSON.parse(localStorage.getItem("profile_devices") || "[]")
       
-      setNotif(prev => ({ ...prev, ...ns }))
       if (Array.isArray(as)) setActivityLog(as)
       if (Array.isArray(ds)) setDevices(ds)
     } catch {}

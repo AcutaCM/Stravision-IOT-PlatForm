@@ -27,6 +27,7 @@ export interface User {
   avatar_url: string | null
   role: UserRole
   permissions: string
+  notification_settings: string
   wechat_openid?: string | null
   wechat_unionid?: string | null
   wework_userid?: string | null
@@ -41,6 +42,14 @@ export interface UserPermissions {
   [key: string]: unknown;
 }
 
+export interface NotificationSettings {
+  alerts: boolean;
+  status: boolean;
+  ai: boolean;
+  updates: boolean;
+  [key: string]: boolean;
+}
+
 /**
  * 公开的用户信息(移除敏感字段)
  */
@@ -51,6 +60,7 @@ export interface UserPublic {
   avatar_url: string | null
   role: UserRole
   permissions: UserPermissions
+  notification_settings: NotificationSettings
   created_at: number
 }
 
@@ -63,6 +73,7 @@ export interface CreateUserInput {
   username: string
   role?: UserRole
   permissions?: UserPermissions
+  notification_settings?: NotificationSettings
 }
 
 /**
@@ -74,6 +85,7 @@ export interface UpdateUserInput {
   password?: string
   role?: UserRole
   permissions?: UserPermissions
+  notification_settings?: NotificationSettings
 }
 
 /**
@@ -88,6 +100,19 @@ export function toPublicUser(user: User): UserPublic {
     console.error('Failed to parse permissions:', e);
   }
 
+  let notification_settings: NotificationSettings = {
+    alerts: true,
+    status: true,
+    ai: false,
+    updates: true,
+  }
+  try {
+    const parsed = JSON.parse(user.notification_settings || '{}')
+    notification_settings = { ...notification_settings, ...(parsed || {}) }
+  } catch (e) {
+    console.error('Failed to parse notification_settings:', e);
+  }
+
   // Ensure role is a valid UserRole, default to 'user' if invalid/missing
   const role: UserRole = (['user', 'admin', 'super_admin'].includes(user.role) 
     ? user.role 
@@ -100,6 +125,7 @@ export function toPublicUser(user: User): UserPublic {
     avatar_url: user.avatar_url,
     role: role,
     permissions: permissions,
+    notification_settings,
     created_at: user.created_at,
   }
 }
@@ -136,15 +162,21 @@ export async function createUser(input: CreateUserInput): Promise<UserPublic> {
   const password_hash = await bcrypt.hash(input.password, 10)
   const role = input.role || 'user';
   const permissions = JSON.stringify(input.permissions || {});
+  const notification_settings = JSON.stringify(input.notification_settings || {
+    alerts: true,
+    status: true,
+    ai: false,
+    updates: true,
+  })
 
   // 插入新用户
   const stmt = db.prepare(`
-    INSERT INTO users (email, password_hash, username, role, permissions, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (email, password_hash, username, role, permissions, notification_settings, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
 
   try {
-    const result = stmt.run(input.email, password_hash, input.username, role, permissions, now, now)
+    const result = stmt.run(input.email, password_hash, input.username, role, permissions, notification_settings, now, now)
     const userId = result.lastInsertRowid as number
 
     // 获取创建的用户

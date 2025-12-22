@@ -82,6 +82,7 @@ export async function initDB(): Promise<void> {
       wework_userid TEXT,
       qq_openid TEXT UNIQUE,
       alipay_user_id TEXT UNIQUE,
+      notification_settings TEXT DEFAULT '{}',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )
