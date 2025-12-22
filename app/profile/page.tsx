@@ -162,7 +162,9 @@ export default function ProfilePage() {
                     <span className="text-sm text-muted-foreground flex items-center gap-2">
                       <Shield size={16} /> 角色
                     </span>
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">管理员</Badge>
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                      {user.role === 'super_admin' ? '超级管理员' : user.role === 'admin' ? '管理员' : '普通用户'}
+                    </Badge>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border/50">
                     <span className="text-sm text-muted-foreground flex items-center gap-2">
