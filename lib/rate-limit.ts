@@ -3,32 +3,78 @@ import { NextRequest } from "next/server";
 interface RateLimitConfig {
   limit: number;
   windowMs: number;
+  autoBan?: boolean;
 }
 
-const trackers = new Map<string, { count: number; expiresAt: number }>();
+const trackers = new Map<string, { count: number; expiresAt: number; violationCount: number }>();
+const bannedIPs = new Map<string, number>(); // IP -> ban expires at
+
+// Simple in-memory banned cache to avoid hitting DB on every request in middleware
+// In a real production app, this should be synced with Redis/DB
+const BAN_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
- * Basic in-memory rate limiter
- * Note: In a distributed environment (e.g. Vercel Serverless), this will only work per-instance.
- * For robust distributed rate limiting, use Redis (e.g. @upstash/ratelimit).
+ * Get Client IP from request headers (Cloudflare/CDN compatible)
  */
-export function rateLimit(req: NextRequest, config: RateLimitConfig = { limit: 10, windowMs: 60 * 1000 }) {
-  const ip = req.headers.get("x-forwarded-for") || "unknown-ip";
+export function getClientIp(req: NextRequest): string {
+  // Cloudflare
+  const cfIp = req.headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp;
+
+  // Standard X-Forwarded-For
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0].trim();
+  }
+
+  // Nginx Real IP
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp;
+
+  return "unknown-ip";
+}
+
+/**
+ * Basic in-memory rate limiter with Auto-Ban support
+ */
+export function rateLimit(req: NextRequest, config: RateLimitConfig = { limit: 10, windowMs: 60 * 1000, autoBan: false }) {
+  const ip = getClientIp(req);
   const now = Date.now();
   
-  // Cleanup expired entries periodically (lazy cleanup on request for simplicity)
-  // Ideally this should be a separate interval but for simple use cases this is fine
-  const record = trackers.get(ip);
+  // 1. Check if already banned locally
+  const banExpires = bannedIPs.get(ip);
+  if (banExpires && now < banExpires) {
+    return { success: false, banned: true };
+  } else if (banExpires) {
+    bannedIPs.delete(ip); // Ban expired
+  }
 
+  // 2. Get tracking record
+  let record = trackers.get(ip);
+
+  // 3. Initialize or Reset if window expired
   if (!record || now > record.expiresAt) {
-    trackers.set(ip, { count: 1, expiresAt: now + config.windowMs });
+    record = { count: 1, expiresAt: now + config.windowMs, violationCount: record?.violationCount || 0 };
+    trackers.set(ip, record);
     return { success: true };
   }
 
-  if (record.count >= config.limit) {
+  // 4. Increment count
+  record.count++;
+
+  // 5. Check limit
+  if (record.count > config.limit) {
+    // Increment violation count
+    record.violationCount++;
+    
+    // Auto-ban logic: if violated 5 times continuously, ban for 24h
+    if (config.autoBan && record.violationCount >= 5) {
+      bannedIPs.set(ip, now + BAN_DURATION);
+      return { success: false, banned: true };
+    }
+
     return { success: false };
   }
 
-  record.count++;
   return { success: true };
 }

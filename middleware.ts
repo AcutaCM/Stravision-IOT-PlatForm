@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { rateLimit } from "@/lib/rate-limit"
+import { rateLimit, getClientIp } from "@/lib/rate-limit"
 
 function isMobileUA(ua: string | null, chMobile: string | null) {
   if (chMobile === "?1") return true
@@ -17,15 +17,29 @@ export function middleware(req: NextRequest) {
   const url = new URL(req.url)
   const pathname = url.pathname
 
-  // 0. Global Rate Limiting (API & Auth routes)
+  // 0. Global Rate Limiting & Auto-Ban (API & Auth routes)
   // Protect sensitive endpoints from brute force / DoS
   if (pathname.startsWith("/api") || pathname.startsWith("/login") || pathname.startsWith("/register")) {
     const isAuthApi = pathname.startsWith("/api/auth");
-    const limit = isAuthApi ? 10 : 60; // 10 requests per minute for auth, 60 for others
+    
+    // Stricter limits for auth endpoints
+    const limit = isAuthApi ? 10 : 60; 
     const windowMs = 60 * 1000;
     
-    const result = rateLimit(req, { limit, windowMs });
+    // Enable auto-ban for repeated violations
+    const result = rateLimit(req, { limit, windowMs, autoBan: true });
+    
     if (!result.success) {
+      const ip = getClientIp(req);
+      
+      if (result.banned) {
+        console.warn(`[Security] IP ${ip} blocked due to suspicious behavior (Auto-Ban)`);
+        return new NextResponse(JSON.stringify({ error: "Access Denied: Suspicious activity detected." }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
       return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
         status: 429,
         headers: { "Content-Type": "application/json" }
