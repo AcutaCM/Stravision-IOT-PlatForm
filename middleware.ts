@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server"
-import { rateLimit, getClientIp } from "@/lib/rate-limit"
+import { NextRequest, NextResponse, NextFetchEvent } from "next/server"
+import { rateLimit, getClientIp, resetIp } from "@/lib/rate-limit"
 
 function isMobileUA(ua: string | null, chMobile: string | null) {
   if (chMobile === "?1") return true
@@ -13,9 +13,14 @@ function isMobileUA(ua: string | null, chMobile: string | null) {
   return hasAndroidMobile || hasIphone || hasWindowsPhone || hasGenericMobile
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest, event: NextFetchEvent) {
   const url = new URL(req.url)
   const pathname = url.pathname
+
+  // Skip internal APIs to avoid infinite loops and rate limiting on internal checks
+  if (pathname.startsWith("/api/internal")) {
+    return NextResponse.next()
+  }
 
   // 0. Global Rate Limiting & Auto-Ban (API & Auth routes)
   // Protect sensitive endpoints from brute force / DoS
@@ -33,6 +38,43 @@ export function middleware(req: NextRequest) {
       const ip = getClientIp(req);
       
       if (result.banned) {
+        // @ts-ignore
+        if (result.newBan) {
+          // Persist ban to DB asynchronously
+          const protocol = req.nextUrl.protocol
+          const host = req.headers.get("host") || 'localhost:3000'
+          event.waitUntil(
+            fetch(`${protocol}//${host}/api/internal/security/ban`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'x-internal-secret': 'stravision-internal-secret'
+              },
+              body: JSON.stringify({ ip, reason: "Auto-ban: Frequent suspicious activity" })
+            }).catch(e => console.error("Failed to persist ban:", e))
+          )
+        }
+
+        // Check if unbanned in DB (Allowlist Check)
+        try {
+           const protocol = req.nextUrl.protocol
+           const host = req.headers.get("host") || 'localhost:3000'
+           const checkRes = await fetch(`${protocol}//${host}/api/internal/security/check?ip=${ip}`, {
+              headers: { "x-internal-secret": "stravision-internal-secret" }
+           })
+           
+           if (checkRes.ok) {
+             const { banned } = await checkRes.json()
+             if (!banned) {
+               // Unbanned in DB -> Unban locally
+               resetIp(ip)
+               return NextResponse.next()
+             }
+           }
+        } catch (e) {
+           console.error("Security check failed:", e)
+        }
+
         console.warn(`[Security] IP ${ip} blocked due to suspicious behavior (Auto-Ban)`);
         
         // For API requests, return JSON error

@@ -34,6 +34,11 @@ export function getClientIp(req: NextRequest): string {
   return "unknown-ip";
 }
 
+export function resetIp(ip: string) {
+  bannedIPs.delete(ip);
+  trackers.delete(ip);
+}
+
 /**
  * Basic in-memory rate limiter with Auto-Ban support
  */
@@ -44,7 +49,7 @@ export function rateLimit(req: NextRequest, config: RateLimitConfig = { limit: 1
   // 1. Check if already banned locally
   const banExpires = bannedIPs.get(ip);
   if (banExpires && now < banExpires) {
-    return { success: false, banned: true };
+    return { success: false, banned: true, newBan: false };
   } else if (banExpires) {
     bannedIPs.delete(ip); // Ban expired
   }
@@ -70,7 +75,7 @@ export function rateLimit(req: NextRequest, config: RateLimitConfig = { limit: 1
     // Auto-ban logic: if violated 5 times continuously, ban for 24h
     if (config.autoBan && record.violationCount >= 5) {
       bannedIPs.set(ip, now + BAN_DURATION);
-      return { success: false, banned: true };
+      return { success: false, banned: true, newBan: true };
     }
 
     return { success: false };
