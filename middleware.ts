@@ -34,10 +34,17 @@ export function middleware(req: NextRequest) {
       
       if (result.banned) {
         console.warn(`[Security] IP ${ip} blocked due to suspicious behavior (Auto-Ban)`);
-        return new NextResponse(JSON.stringify({ error: "Access Denied: Suspicious activity detected." }), {
-          status: 403,
-          headers: { "Content-Type": "application/json" }
-        });
+        
+        // For API requests, return JSON error
+        if (pathname.startsWith("/api")) {
+          return new NextResponse(JSON.stringify({ error: "Access Denied: Suspicious activity detected." }), {
+            status: 403,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        
+        // For page requests (login/register), redirect to Access Denied page
+        return NextResponse.redirect(new URL("/access-denied", req.url));
       }
 
       return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
