@@ -22,8 +22,10 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next()
   }
 
-  // Exempt Alipay login from rate limiting
-  if (pathname.startsWith("/api/auth/alipay/login")) {
+  // Exempt Alipay login and callback from rate limiting
+  if (pathname.startsWith("/api/auth/alipay/login") || 
+      pathname.startsWith("/api/auth/alipay/callback") || 
+      pathname.startsWith("/api/auth/ticket/check")) {
     return NextResponse.next()
   }
 
@@ -72,7 +74,8 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
   // 0. Global Rate Limiting & Auto-Ban (API & Auth routes)
   // Protect sensitive endpoints from brute force / DoS
   if (pathname.startsWith("/api") || pathname.startsWith("/login") || pathname.startsWith("/register")) {
-    const isAuthApi = pathname.startsWith("/api/auth");
+    // Exempt /api/auth/me from strict limits as it's a frequent session check
+    const isStrictAuthApi = pathname.startsWith("/api/auth") && !pathname.startsWith("/api/auth/me");
     
     // Default values if config not loaded yet
     // @ts-ignore
@@ -85,7 +88,7 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
 
     // Stricter limits for auth endpoints (unless configured otherwise, we assume config is for general API)
     // We can scale auth limits based on general limits (e.g. 1/6th)
-    const limit = isAuthApi ? Math.max(5, Math.floor(config.limit / 6)) : config.limit; 
+    const limit = isStrictAuthApi ? Math.max(5, Math.floor(config.limit / 6)) : config.limit; 
     const windowMs = config.windowMs;
     
     // Enable auto-ban for repeated violations
@@ -152,10 +155,16 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
         return NextResponse.redirect(new URL("/access-denied", req.url));
       }
 
-      return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
-        status: 429,
-        headers: { "Content-Type": "application/json" }
-      });
+      // For API requests, return JSON error
+      if (pathname.startsWith("/api")) {
+        return new NextResponse(JSON.stringify({ error: "Too many requests" }), {
+          status: 429,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      // For page requests, redirect to Too Many Requests page
+      return NextResponse.redirect(new URL("/too-many-requests", req.url));
     }
   }
 
