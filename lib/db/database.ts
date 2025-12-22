@@ -142,18 +142,6 @@ export async function initDB(): Promise<void> {
     )
   `)
 
-  // 创建 banned_ips 表
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS banned_ips (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ip TEXT UNIQUE NOT NULL,
-      reason TEXT,
-      banned_by TEXT,
-      expires_at INTEGER,
-      created_at INTEGER NOT NULL
-    )
-  `)
-
   // 创建 login_tickets 表 (用于移动端唤起APP后的跨浏览器登录)
   db.exec(`
     CREATE TABLE IF NOT EXISTS login_tickets (

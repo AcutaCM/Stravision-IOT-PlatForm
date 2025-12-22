@@ -1,59 +1,33 @@
-import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 import { getUserById, type UserPublic, toPublicUser } from "./db/user-service"
+import { signToken, verifyToken as verifyTokenJose, type JWTPayload } from "./token"
+
+export type { JWTPayload };
 
 /**
- * JWT 令牌 Payload 接口
- */
-export interface JWTPayload {
-  id: number
-  email: string
-  username: string
-}
-
-/**
- * 获取 JWT 密钥
- * @returns JWT 签名密钥
+ * Get JWT Secret (Re-export for compatibility if needed, though mostly internal)
  */
 export function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET
-  if (!secret && process.env.NODE_ENV === "development") {
-    console.warn("警告: 未设置 JWT_SECRET 环境变量,使用默认密钥")
-  }
-  return secret || "dev-secret-change-in-production"
+   const secret = process.env.JWT_SECRET;
+   return secret || "dev-secret-change-in-production";
 }
 
 /**
- * 生成 JWT 令牌
- * @param payload 令牌载荷(包含用户 id, email, username)
- * @returns JWT 令牌字符串
+ * Generate JWT Token
  */
-export function generateToken(payload: JWTPayload): string {
-  const secret = getJwtSecret()
-  return jwt.sign(payload, secret, {
-    expiresIn: "7d", // 令牌有效期 7 天
-  })
+export async function generateToken(payload: Omit<JWTPayload, "exp" | "iat">): Promise<string> {
+  return signToken(payload);
 }
 
 /**
- * 验证 JWT 令牌
- * @param token JWT 令牌字符串
- * @returns 验证成功返回 payload,失败返回 null
+ * Verify JWT Token
  */
-export function verifyToken(token: string): JWTPayload | null {
-  try {
-    const secret = getJwtSecret()
-    const decoded = jwt.verify(token, secret) as JWTPayload
-    return decoded
-  } catch (error) {
-    // 令牌无效或过期
-    return null
-  }
+export async function verifyToken(token: string): Promise<JWTPayload | null> {
+  return verifyTokenJose(token);
 }
 
 /**
- * 设置认证 Cookie
- * @param token JWT 令牌
+ * Set Auth Cookie
  */
 export async function setAuthCookie(token: string): Promise<void> {
   const cookieStore = await cookies()
@@ -69,7 +43,7 @@ export async function setAuthCookie(token: string): Promise<void> {
 }
 
 /**
- * 清除认证 Cookie
+ * Clear Auth Cookie
  */
 export async function clearAuthCookie(): Promise<void> {
   const cookieStore = await cookies()
@@ -77,8 +51,7 @@ export async function clearAuthCookie(): Promise<void> {
 }
 
 /**
- * 从请求中获取当前用户
- * @returns 当前登录用户的公开信息,未登录返回 null
+ * Get Current User
  */
 export async function getCurrentUser(): Promise<UserPublic | null> {
   try {
@@ -89,13 +62,13 @@ export async function getCurrentUser(): Promise<UserPublic | null> {
       return null
     }
 
-    // 验证令牌
-    const payload = verifyToken(token)
+    // Verify token (async now)
+    const payload = await verifyToken(token)
     if (!payload) {
       return null
     }
 
-    // 从数据库获取完整用户信息
+    // Get user from DB
     const user = await getUserById(payload.id)
     if (!user) {
       return null

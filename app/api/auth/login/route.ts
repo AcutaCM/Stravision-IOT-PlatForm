@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 生成包含 id, email, username 的 JWT 令牌
-    const token = generateToken({
+    const token = await generateToken({
       id: user.id,
       email: user.email,
       username: user.username,

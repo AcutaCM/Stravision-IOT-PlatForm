@@ -106,7 +106,7 @@ export async function GET(req: Request) {
     })
 
     // 4. 登录
-    const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
+    const jwt = await generateToken({ id: user.id, email: user.email, username: user.username })
     
     // 如果是 ticket 模式 (移动端跨浏览器登录)
     if (ticket) {

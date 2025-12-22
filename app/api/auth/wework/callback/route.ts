@@ -83,7 +83,7 @@ export async function GET(req: Request) {
     })
 
     // 5. 生成 Token 并登录
-    const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
+    const jwt = await generateToken({ id: user.id, email: user.email, username: user.username })
     await setAuthCookie(jwt)
 
     // 6. 清除 state cookie 并重定向

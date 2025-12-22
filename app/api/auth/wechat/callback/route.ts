@@ -62,7 +62,7 @@ export async function GET(req: Request) {
       avatar,
     })
 
-    const jwt = generateToken({ id: user.id, email: user.email, username: user.username })
+    const jwt = await generateToken({ id: user.id, email: user.email, username: user.username })
     await setAuthCookie(jwt)
 
     const res = NextResponse.redirect(new URL("/monitor", req.url))
