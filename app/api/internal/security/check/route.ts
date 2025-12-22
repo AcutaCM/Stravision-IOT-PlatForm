@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { isIPBanned } from "@/lib/db/security-service"
+import { getInternalApiSecret } from "@/lib/constants"
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const secret = req.headers.get("x-internal-secret")
-  if (secret !== "stravision-internal-secret") {
+  if (secret !== getInternalApiSecret()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

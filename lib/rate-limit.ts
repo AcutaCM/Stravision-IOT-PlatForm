@@ -12,6 +12,8 @@ const bannedIPs = new Map<string, number>(); // IP -> ban expires at
 // Simple in-memory banned cache to avoid hitting DB on every request in middleware
 // In a real production app, this should be synced with Redis/DB
 const BAN_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let lastCleanup = Date.now();
 
 /**
  * Get Client IP from request headers (Cloudflare/CDN compatible)
@@ -48,8 +50,26 @@ export interface ExtendedRateLimitConfig extends RateLimitConfig {
 }
 
 export function rateLimit(req: NextRequest, config: ExtendedRateLimitConfig = { limit: 300, windowMs: 60 * 1000, autoBan: false }) {
-  const ip = getClientIp(req);
   const now = Date.now();
+  
+  // Lazy Cleanup: Run cleanup periodically to prevent memory leaks
+  if (now - lastCleanup > CLEANUP_INTERVAL) {
+    lastCleanup = now;
+    // Cleanup expired trackers
+    for (const [key, record] of trackers.entries()) {
+      if (now > record.expiresAt) {
+        trackers.delete(key);
+      }
+    }
+    // Cleanup expired bans
+    for (const [key, expiresAt] of bannedIPs.entries()) {
+      if (now > expiresAt) {
+        bannedIPs.delete(key);
+      }
+    }
+  }
+
+  const ip = getClientIp(req);
   
   // 1. Check if already banned locally
   const banExpires = bannedIPs.get(ip);

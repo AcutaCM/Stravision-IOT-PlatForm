@@ -15,9 +15,14 @@ export interface JWTPayload {
  */
 export function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
-  if (!secret && process.env.NODE_ENV === "development") {
+  
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+       throw new Error("FATAL: JWT_SECRET is not defined in production environment!");
+    }
     // console.warn("Warning: JWT_SECRET not set, using default dev secret");
   }
+  
   const secretStr = secret || "dev-secret-change-in-production";
   return new TextEncoder().encode(secretStr);
 }

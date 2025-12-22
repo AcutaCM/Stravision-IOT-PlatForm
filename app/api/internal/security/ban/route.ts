@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { addBannedIP } from "@/lib/db/security-service"
+import { getInternalApiSecret } from "@/lib/constants"
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-internal-secret")
-  if (secret !== "stravision-internal-secret") {
+  if (secret !== getInternalApiSecret()) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

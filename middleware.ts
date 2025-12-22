@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, NextFetchEvent } from "next/server"
 import { rateLimit, getClientIp, resetIp } from "@/lib/rate-limit"
+import { getInternalApiSecret } from "@/lib/constants"
 
 function isMobileUA(ua: string | null, chMobile: string | null) {
   if (chMobile === "?1") return true
@@ -60,7 +61,7 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
      const host = req.headers.get("host") || 'localhost:3000'
      // Don't await to avoid blocking response
      fetch(`${protocol}//${host}/api/internal/security/config`, {
-        headers: { "x-internal-secret": "stravision-internal-secret" }
+        headers: { "x-internal-secret": getInternalApiSecret() }
      }).then(res => res.json()).then(config => {
         if (config && !config.error) {
            // @ts-ignore
@@ -114,7 +115,7 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'x-internal-secret': 'stravision-internal-secret'
+                'x-internal-secret': getInternalApiSecret()
               },
               body: JSON.stringify({ ip, reason: "Auto-ban: Frequent suspicious activity" })
             }).catch(e => console.error("Failed to persist ban:", e))
