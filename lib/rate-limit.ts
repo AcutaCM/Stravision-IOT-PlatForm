@@ -47,7 +47,7 @@ export interface ExtendedRateLimitConfig extends RateLimitConfig {
   banDuration?: number;
 }
 
-export function rateLimit(req: NextRequest, config: ExtendedRateLimitConfig = { limit: 10, windowMs: 60 * 1000, autoBan: false }) {
+export function rateLimit(req: NextRequest, config: ExtendedRateLimitConfig = { limit: 300, windowMs: 60 * 1000, autoBan: false }) {
   const ip = getClientIp(req);
   const now = Date.now();
   

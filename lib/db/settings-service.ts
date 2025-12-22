@@ -8,10 +8,10 @@ export interface RateLimitConfig {
 }
 
 export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
-  limit: 60,
+  limit: 300,
   windowMs: 60 * 1000,
-  violationLimit: 5,
-  banDuration: 24 * 60 * 60 * 1000
+  violationLimit: 20,
+  banDuration: 15 * 60 * 1000 // 15 minutes
 }
 
 export async function getRateLimitConfig(): Promise<RateLimitConfig> {

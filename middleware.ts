@@ -22,6 +22,11 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next()
   }
 
+  // Exempt Alipay login from rate limiting
+  if (pathname.startsWith("/api/auth/alipay/login")) {
+    return NextResponse.next()
+  }
+
   // Fetch Rate Limit Config (Lazy/Cache)
   // Note: Middleware in Next.js (Node runtime) shares process memory usually, 
   // but to be safe and robust, we fetch from internal API periodically or use defaults.
@@ -72,10 +77,10 @@ export async function middleware(req: NextRequest, event: NextFetchEvent) {
     // Default values if config not loaded yet
     // @ts-ignore
     const config = globalThis.rateLimitConfig || {
-       limit: 60,
+       limit: 300,
        windowMs: 60000,
-       violationLimit: 5,
-       banDuration: 86400000
+       violationLimit: 20,
+       banDuration: 900000
     }
 
     // Stricter limits for auth endpoints (unless configured otherwise, we assume config is for general API)
