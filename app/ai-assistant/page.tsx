@@ -1243,7 +1243,7 @@ export default function AIAssistantPage() {
               </div>
 
               {/* Input Bar in Center for Empty State */}
-              <div className="w-full max-w-3xl relative mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+              <div className="w-full max-w-4xl relative mb-10 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
                 <div className="bg-white dark:bg-zinc-900 rounded-[24px] px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] transition-all duration-300 border border-gray-100 dark:border-gray-800 group">
                   {attachments.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto py-2 mb-2">
@@ -1472,7 +1472,7 @@ export default function AIAssistantPage() {
           ) : (
             <>
               <Conversation className="flex-1 h-full">
-                <ConversationContent id="ai-chat-area" ref={scrollAreaRef} className="p-0 max-w-3xl mx-auto w-full">
+                <ConversationContent id="ai-chat-area" ref={scrollAreaRef} className="p-0 max-w-5xl mx-auto w-full">
                   <div className="flex flex-col pb-40 pt-4 space-y-6">
                     {messages.map((msg, i) => (
                       <div key={i} className={cn(
@@ -1506,7 +1506,7 @@ export default function AIAssistantPage() {
                       </div>
                     ))}
                     {isLoading && (
-                      <div className="flex gap-4 px-4 md:px-0 max-w-3xl mx-auto w-full">
+                      <div className="flex gap-4 px-4 md:px-0 max-w-5xl mx-auto w-full">
                         <div className="size-10 flex items-center justify-center shrink-0 mt-1 rounded-full overflow-hidden bg-white dark:bg-zinc-800 border border-gray-100 dark:border-gray-700">
                           <Image src="/logo.gif" alt="AI" width={40} height={40} className="object-cover" unoptimized />
                         </div>
@@ -1524,7 +1524,7 @@ export default function AIAssistantPage() {
 
               {/* Floating Input Bar for Chat State */}
               <div id="ai-input-area" className="absolute bottom-0 left-0 w-full bg-transparent pt-4 pb-6 px-4">
-                <div className="max-w-3xl mx-auto w-full relative">
+                <div className="max-w-5xl mx-auto w-full relative">
                   <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-[26px] px-4 py-3 flex flex-col gap-1 focus-within:bg-white dark:focus-within:bg-zinc-900 focus-within:ring-2 focus-within:ring-[#6366f1]/20 focus-within:border-[#6366f1]/30 transition-all duration-300 border border-gray-200/60 dark:border-gray-800/60 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_40px_-8px_rgba(0,0,0,0.15)] hover:border-gray-300/80 dark:hover:border-gray-700/80">
                     {/* Attachment Preview */}
                     {attachments.length > 0 && (
