@@ -1,6 +1,6 @@
 "use client"
 
-import { CloudIcon, Cog6ToothIcon, ChartBarIcon, SparklesIcon } from "@heroicons/react/24/outline"
+import { CloudIcon, Cog6ToothIcon, ChartBarIcon, SparklesIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
@@ -16,6 +16,7 @@ export function PageNavigation() {
     { href: "/device-control", icon: Cog6ToothIcon, label: "硬件设备控制", id: "nav-device-control" },
     { href: "/dashboard", icon: ChartBarIcon, label: "数据看板", id: "nav-dashboard" },
     { href: "/ai-assistant", icon: SparklesIcon, label: "AI 助手", id: "nav-ai-assistant" },
+    { href: "/chat", icon: ChatBubbleLeftRightIcon, label: "聊天", id: "nav-chat" },
   ]
 
   const activeIndex = navItems.findIndex((item) => pathname === item.href)

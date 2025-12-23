@@ -8,14 +8,16 @@ import {
   Cog6ToothIcon,
   Squares2X2Icon,
   UserIcon,
-  SparklesIcon
+  SparklesIcon,
+  ChatBubbleLeftRightIcon
 } from "@heroicons/react/24/outline"
 import {
   HomeIcon as HomeIconSolid,
   Cog6ToothIcon as Cog6ToothIconSolid,
   Squares2X2Icon as Squares2X2IconSolid,
   UserIcon as UserIconSolid,
-  SparklesIcon as SparklesIconSolid
+  SparklesIcon as SparklesIconSolid,
+  ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid
 } from "@heroicons/react/24/solid"
 
 interface NavItem {
@@ -31,6 +33,7 @@ const navItems: NavItem[] = [
   { href: "/device-control-ios", label: "设备", icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, id: "nav-device-control-ios" },
   { href: "/dashboard-ios", label: "看板", icon: Squares2X2Icon, iconSolid: Squares2X2IconSolid, id: "nav-dashboard-ios" },
   { href: "/ai-assistant-ios", label: "AI助手", icon: SparklesIcon, iconSolid: SparklesIconSolid, id: "nav-ai-assistant-ios" },
+  { href: "/chat", label: "聊天", icon: ChatBubbleLeftRightIcon, iconSolid: ChatBubbleLeftRightIconSolid, id: "nav-chat" },
   { href: "/profile-ios", label: "我的", icon: UserIcon, iconSolid: UserIconSolid, id: "nav-profile-ios" },
 ]
 

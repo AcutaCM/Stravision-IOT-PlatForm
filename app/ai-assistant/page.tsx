@@ -1472,7 +1472,7 @@ export default function AIAssistantPage() {
           ) : (
             <>
               <Conversation className="flex-1 h-full">
-                <ConversationContent id="ai-chat-area" ref={scrollAreaRef} className="p-0 max-w-5xl mx-auto w-full">
+                <ConversationContent id="ai-chat-area" ref={scrollAreaRef} className="p-0 max-w-7xl mx-auto w-full">
                   <div className="flex flex-col pb-40 pt-4 space-y-6">
                     {messages.map((msg, i) => (
                       <div key={i} className={cn(

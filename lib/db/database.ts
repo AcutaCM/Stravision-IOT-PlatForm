@@ -192,6 +192,61 @@ export async function initDB(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_users_wechat_openid ON users(wechat_openid);
   `)
 
+  // ----------------------------------------------------------------------
+  // 聊天系统相关表 (Friends, Friend Requests, Messages)
+  // ----------------------------------------------------------------------
+
+  // friend_requests 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS friend_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      requester_id INTEGER NOT NULL,
+      addressee_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'pending', -- pending, accepted, rejected
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY(requester_id) REFERENCES users(id),
+      FOREIGN KEY(addressee_id) REFERENCES users(id),
+      UNIQUE(requester_id, addressee_id)
+    )
+  `)
+
+  // friends 表 (双向关系，存储两条记录或查询时处理，这里选择存储唯一关系通常用 id1 < id2 约束，或者简单存两条)
+  // 为了查询方便，通常存两条: (A, B) 和 (B, A) 当 A 和 B 成为朋友时。
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS friends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      friend_id INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(friend_id) REFERENCES users(id),
+      UNIQUE(user_id, friend_id)
+    )
+  `)
+
+  // messages 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER NOT NULL,
+      receiver_id INTEGER NOT NULL,
+      content TEXT,
+      type TEXT DEFAULT 'text', -- text, image, file
+      file_url TEXT,
+      read_at INTEGER,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY(sender_id) REFERENCES users(id),
+      FOREIGN KEY(receiver_id) REFERENCES users(id)
+    )
+  `)
+
+  // 消息索引
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_messages_sender_receiver ON messages(sender_id, receiver_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, read_at);
+  `)
+
   console.log("Database initialized successfully at:", dbPath)
 
   // 执行数据迁移
