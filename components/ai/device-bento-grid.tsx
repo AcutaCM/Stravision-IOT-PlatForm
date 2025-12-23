@@ -69,7 +69,11 @@ const MetricCard = ({
               <Icon size={20} className={cn(color.text)} />
             </div>
             {trend && (
-              <div className={cn("flex items-center text-xs font-bold px-2 py-1 rounded-full bg-slate-50 dark:bg-slate-900", trendUp ? "text-green-500" : "text-red-500")}>
+              <div className={cn("flex items-center text-xs font-medium px-2 py-0.5 rounded-full", 
+                trendUp 
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400" 
+                  : "bg-red-500/10 text-red-600 dark:text-red-400"
+              )}>
                 {trendUp ? <TrendingUp size={12} className="mr-1" /> : <TrendingDown size={12} className="mr-1" />}
                 {trend}
               </div>
@@ -136,12 +140,15 @@ export function DeviceBentoGrid() {
             <Activity className="size-5 text-blue-500" />
             实时环境监测
         </h2>
-        <div className={cn("flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border", 
+        <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors", 
             connectionStatus.connected 
-                ? "bg-green-500/10 text-green-600 border-green-500/20" 
-                : "bg-red-500/10 text-red-600 border-red-500/20"
+                ? "bg-green-500/10 text-green-600 dark:text-green-400" 
+                : "bg-red-500/10 text-red-600 dark:text-red-400"
         )}>
-            <div className={cn("size-2 rounded-full animate-pulse", connectionStatus.connected ? "bg-green-500" : "bg-red-500")} />
+            <span className="relative flex h-2 w-2">
+              <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", connectionStatus.connected ? "bg-green-500" : "bg-red-500")}></span>
+              <span className={cn("relative inline-flex rounded-full h-2 w-2", connectionStatus.connected ? "bg-green-500" : "bg-red-500")}></span>
+            </span>
             {connectionStatus.connected ? "设备在线" : "设备离线"}
         </div>
       </div>
