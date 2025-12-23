@@ -137,7 +137,7 @@ export function SpectralCard({ data }: SpectralCardProps) {
   }
 
   return (
-    <Card className="h-full rounded-3xl border border-border overflow-hidden shadow-2xl glass hover:shadow-3xl transition-all cursor-move flex flex-col">
+    <Card className="h-full border-none shadow-sm hover:shadow-md transition-all duration-200 cursor-move flex flex-col">
       <CardContent className="p-6 flex-1 flex flex-col justify-between">
         <div className="flex items-start justify-between mb-4">
           <div>

@@ -8,6 +8,7 @@ import { LiveStreamPlayer } from "@/components/live-stream-player"
 import type { UserPublic } from "@/lib/db/user-service"
 import { useWeatherContext } from "@/lib/contexts/weather-context"
 import { FireIcon, BeakerIcon, BoltIcon, SunIcon, CloudIcon, Bars3Icon } from "@heroicons/react/24/outline"
+import { CloudRain, Activity, Sprout } from "lucide-react"
 
  
 
@@ -62,6 +63,39 @@ export default function DashboardIOSPage() {
   const { weatherData } = useWeatherContext()
   const [user, setUser] = useState<UserPublic | null>(null)
   const [selectedRoom, setSelectedRoom] = useState("常用")
+
+  // Spectral Analysis Logic
+  const channels = [
+    { id: 'channel1', name: '415', label: 'Violet' },
+    { id: 'channel2', name: '445', label: 'Blue' },
+    { id: 'channel3', name: '480', label: 'Cyan' },
+    { id: 'channel4', name: '515', label: 'Green' },
+    { id: 'channel5', name: '555', label: 'Y-G' },
+    { id: 'channel6', name: '590', label: 'Yellow' },
+    { id: 'channel7', name: '630', label: 'Orange' },
+    { id: 'channel8', name: '680', label: 'Red' },
+    { id: 'channel9', name: 'NIR', label: 'NIR' },
+    { id: 'channel10', name: 'Clr', label: 'Clear' },
+    { id: 'channel11', name: 'Fli', label: 'Flicker' },
+  ]
+
+  let maxChannel = channels[0]
+  let spectralValue = 0
+
+  if (deviceData) {
+    maxChannel = channels.reduce((prev, current) => {
+      // @ts-ignore
+      const prevVal = (deviceData[prev.id] as number) || 0
+      // @ts-ignore
+      const currVal = (deviceData[current.id] as number) || 0
+      return currVal > prevVal ? current : prev
+    }, channels[0])
+    // @ts-ignore
+    spectralValue = deviceData[maxChannel.id] || 0
+  }
+
+  // Rainfall
+  const todayPrecip = weatherData?.forecast?.forecastday?.[0]?.day?.totalprecip_mm || 0
 
   useEffect(() => {
     ;(async () => {
@@ -147,6 +181,29 @@ export default function DashboardIOSPage() {
             <StatCard icon={BoltIcon} label="土壤电导" value={deviceData ? deviceData.earth_ec : '--'} unit="μS/cm" color="text-purple-500" bg="bg-purple-500/10" />
             <StatCard icon={BeakerIcon} label="土壤水分" value={deviceData ? deviceData.earth_water.toFixed(1) : '--'} unit="%" color="text-green-500" bg="bg-green-500/10" />
             <StatCard icon={FireIcon} label="土壤温度" value={deviceData ? deviceData.earth_temp.toFixed(1) : '--'} unit="°C" color="text-rose-500" bg="bg-rose-500/10" />
+            
+            {/* New Dimensions to match PC */}
+            <StatCard icon={Sprout} label="氮含量 (N)" value={deviceData ? deviceData.earth_n : '--'} unit="mg/kg" color="text-purple-500" bg="bg-purple-500/10" />
+            <StatCard icon={Sprout} label="磷含量 (P)" value={deviceData ? deviceData.earth_p : '--'} unit="mg/kg" color="text-pink-500" bg="bg-pink-500/10" />
+            <StatCard icon={Sprout} label="钾含量 (K)" value={deviceData ? deviceData.earth_k : '--'} unit="mg/kg" color="text-amber-500" bg="bg-amber-500/10" />
+            
+            <StatCard 
+              icon={Activity} 
+              label="光谱峰值" 
+              value={deviceData ? `${maxChannel.label}` : '--'} 
+              unit={deviceData ? `${spectralValue.toFixed(0)}` : ''} 
+              color="text-indigo-500" 
+              bg="bg-indigo-500/10" 
+            />
+            
+            <StatCard 
+              icon={CloudRain} 
+              label="今日降雨" 
+              value={todayPrecip.toFixed(1)} 
+              unit="mm" 
+              color="text-cyan-500" 
+              bg="bg-cyan-500/10" 
+            />
           </div>
         </div>
       </div>

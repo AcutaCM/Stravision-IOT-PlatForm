@@ -134,11 +134,11 @@ export function DashboardChartCard({
     }
 
     return (
-        <Card className="h-full shadow-lg border-l-4" style={{ borderLeftColor: gradientColor }}>
-            <CardContent className="p-4 h-full flex flex-col">
+        <Card className="h-full border-none shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-6 h-full flex flex-col">
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                        <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400`}>
+                        <div className={`p-2 rounded-2xl bg-${color}-100 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400`}>
                             {icon}
                         </div>
                         <div>
