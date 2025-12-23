@@ -10,7 +10,8 @@ const pageOrder = [
     "/dashboard",
     "/monitor",
     "/device-control",
-    "/ai-assistant"
+    "/ai-assistant",
+    "/chat"
 ]
 
 function FrozenRouter(props: { children: React.ReactNode }) {

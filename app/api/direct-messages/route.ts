@@ -35,8 +35,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Friend ID and content are required" }, { status: 400 })
     }
 
-    const message = await ChatService.sendMessage(user.id, friendId, content, type || 'text', fileUrl)
-    return NextResponse.json({ message })
+    const result = await ChatService.sendMessage(user.id, friendId, content, type || 'text', fileUrl)
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || "Failed to send message" }, { status: 400 })
+    }
+
+    return NextResponse.json({ message: result.message })
   } catch (error) {
     return NextResponse.json({ error: "Failed to send message" }, { status: 500 })
   }

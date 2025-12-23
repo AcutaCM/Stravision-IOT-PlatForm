@@ -49,8 +49,6 @@ export interface GroupMember {
 }
 
 export class ChatService {
-  // ... existing methods ...
-
   /**
    * Block or Unblock a user
    */
@@ -289,7 +287,7 @@ export class ChatService {
           return { success: false, message: 'Failed to add member' }
       }
   }
-}
+
   static async sendFriendRequest(requesterId: number, addresseeEmail: string): Promise<{ success: boolean; message: string }> {
     await ensureDB()
     const db = getDB()
@@ -451,45 +449,5 @@ export class ChatService {
     `).all(userId) as User[]
 
     return friends.map(toPublicUser)
-  }
-
-  /**
-   * Send message
-   */
-  static async sendMessage(senderId: number, receiverId: number, content: string, type: 'text' | 'image' | 'file' = 'text', fileUrl?: string): Promise<Message> {
-    await ensureDB()
-    const db = getDB()
-
-    const result = db.prepare(`
-      INSERT INTO messages (sender_id, receiver_id, content, type, file_url, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(senderId, receiverId, content, type, fileUrl, Date.now())
-
-    return {
-      id: result.lastInsertRowid as number,
-      sender_id: senderId,
-      receiver_id: receiverId,
-      content,
-      type,
-      file_url: fileUrl,
-      created_at: Date.now()
-    }
-  }
-
-  /**
-   * Get messages between two users
-   */
-  static async getMessages(userId: number, friendId: number, limit = 50, offset = 0): Promise<Message[]> {
-    await ensureDB()
-    const db = getDB()
-
-    const messages = db.prepare(`
-      SELECT * FROM messages
-      WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `).all(userId, friendId, friendId, userId, limit, offset) as Message[]
-
-    return messages.reverse() // Return oldest to newest
   }
 }
