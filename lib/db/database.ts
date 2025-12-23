@@ -247,6 +247,60 @@ export async function initDB(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_messages_receiver_read ON messages(receiver_id, read_at);
   `)
 
+  // ----------------------------------------------------------------------
+  // 群聊与屏蔽功能扩展
+  // ----------------------------------------------------------------------
+
+  // 1. friends 表增加 is_blocked 字段
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(friends)").all() as any[];
+    const hasBlocked = tableInfo.some(col => col.name === 'is_blocked');
+    if (!hasBlocked) {
+      db.exec("ALTER TABLE friends ADD COLUMN is_blocked INTEGER DEFAULT 0");
+    }
+  } catch (e) {
+    console.error("Failed to migrate friends table:", e);
+  }
+
+  // 2. messages 表增加 group_id 字段
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(messages)").all() as any[];
+    const hasGroupId = tableInfo.some(col => col.name === 'group_id');
+    if (!hasGroupId) {
+      db.exec("ALTER TABLE messages ADD COLUMN group_id INTEGER");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_messages_group_id ON messages(group_id)");
+    }
+  } catch (e) {
+    console.error("Failed to migrate messages table:", e);
+  }
+
+  // 3. groups 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      owner_id INTEGER NOT NULL,
+      avatar_url TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY(owner_id) REFERENCES users(id)
+    )
+  `)
+
+  // 4. group_members 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS group_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      group_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      role TEXT DEFAULT 'member', -- owner, admin, member
+      is_muted INTEGER DEFAULT 0, -- 在群内是否被禁言
+      joined_at INTEGER NOT NULL,
+      FOREIGN KEY(group_id) REFERENCES groups(id),
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      UNIQUE(group_id, user_id)
+    )
+  `)
+
   console.log("Database initialized successfully at:", dbPath)
 
   // 执行数据迁移

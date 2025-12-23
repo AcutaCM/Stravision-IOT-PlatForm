@@ -31,10 +31,265 @@ export interface Message {
   created_at: number
 }
 
+export interface Group {
+  id: number
+  name: string
+  owner_id: number
+  avatar_url?: string
+  created_at: number
+}
+
+export interface GroupMember {
+  group_id: number
+  user_id: number
+  role: 'owner' | 'admin' | 'member'
+  is_muted: boolean // 0 or 1 in DB
+  joined_at: number
+  user?: UserPublic
+}
+
 export class ChatService {
+  // ... existing methods ...
+
   /**
-   * Send a friend request
+   * Block or Unblock a user
    */
+  static async toggleBlockUser(userId: number, friendId: number, block: boolean): Promise<{ success: boolean; message: string }> {
+    await ensureDB()
+    const db = getDB()
+
+    if (block) {
+      // Check if target is an admin
+      const friend = db.prepare("SELECT role FROM users WHERE id = ?").get(friendId) as { role: string } | undefined
+      if (friend && (friend.role === 'admin' || friend.role === 'super_admin')) {
+        return { success: false, message: 'Cannot block an administrator' }
+      }
+    }
+
+    try {
+      db.prepare("UPDATE friends SET is_blocked = ? WHERE user_id = ? AND friend_id = ?")
+        .run(block ? 1 : 0, userId, friendId)
+      return { success: true, message: block ? 'User blocked' : 'User unblocked' }
+    } catch (error) {
+      console.error("Failed to toggle block:", error)
+      return { success: false, message: 'Internal error' }
+    }
+  }
+
+  /**
+   * Check if blocked
+   */
+  static async isBlocked(userId: number, friendId: number): Promise<boolean> {
+    await ensureDB()
+    const db = getDB()
+    const result = db.prepare("SELECT is_blocked FROM friends WHERE user_id = ? AND friend_id = ?").get(userId, friendId) as { is_blocked: number } | undefined
+    return result ? !!result.is_blocked : false
+  }
+
+  /**
+   * Create a group
+   */
+  static async createGroup(ownerId: number, name: string, initialMemberIds: number[] = []): Promise<{ success: boolean; groupId?: number; message: string }> {
+    await ensureDB()
+    const db = getDB()
+
+    const transaction = db.transaction(() => {
+      const result = db.prepare("INSERT INTO groups (name, owner_id, created_at) VALUES (?, ?, ?)").run(name, ownerId, Date.now())
+      const groupId = result.lastInsertRowid as number
+
+      // Add owner
+      db.prepare("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'owner', ?)").run(groupId, ownerId, Date.now())
+
+      // Add members
+      const stmt = db.prepare("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'member', ?)")
+      for (const memberId of initialMemberIds) {
+        if (memberId !== ownerId) {
+           stmt.run(groupId, memberId, Date.now())
+        }
+      }
+      return groupId
+    })
+
+    try {
+      const groupId = transaction()
+      return { success: true, groupId, message: 'Group created' }
+    } catch (error) {
+      console.error("Failed to create group:", error)
+      return { success: false, message: 'Internal error' }
+    }
+  }
+
+  /**
+   * Get user groups
+   */
+  static async getUserGroups(userId: number): Promise<Group[]> {
+    await ensureDB()
+    const db = getDB()
+    return db.prepare(`
+      SELECT g.* FROM groups g
+      JOIN group_members gm ON g.id = gm.group_id
+      WHERE gm.user_id = ?
+    `).all(userId) as Group[]
+  }
+
+  /**
+   * Get group members
+   */
+  static async getGroupMembers(groupId: number): Promise<GroupMember[]> {
+    await ensureDB()
+    const db = getDB()
+    
+    const members = db.prepare(`
+      SELECT gm.*, u.id as u_id, u.email as u_email, u.username as u_username, u.avatar_url as u_avatar_url, u.role as u_role
+      FROM group_members gm
+      JOIN users u ON gm.user_id = u.id
+      WHERE gm.group_id = ?
+    `).all(groupId) as any[]
+
+    return members.map(m => ({
+      group_id: m.group_id,
+      user_id: m.user_id,
+      role: m.role,
+      is_muted: !!m.is_muted,
+      joined_at: m.joined_at,
+      user: {
+        id: m.u_id,
+        email: m.u_email,
+        username: m.u_username,
+        avatar_url: m.u_avatar_url,
+        role: m.u_role || 'user',
+        permissions: {},
+        notification_settings: { alerts: false, status: false, ai: false, updates: false },
+        created_at: 0
+      }
+    }))
+  }
+
+  /**
+   * Send message (updated for group support)
+   */
+  static async sendMessage(senderId: number, receiverId: number | null, content: string, type: 'text' | 'image' | 'file' = 'text', fileUrl?: string, groupId?: number): Promise<{ success: boolean; message?: Message; error?: string }> {
+    await ensureDB()
+    const db = getDB()
+
+    // Check block status for 1-on-1
+    if (!groupId && receiverId) {
+      const isBlockedByReceiver = await this.isBlocked(receiverId, senderId)
+      if (isBlockedByReceiver) {
+        return { success: false, error: 'You are blocked by this user' }
+      }
+    }
+
+    // Check mute status for Group
+    if (groupId) {
+       const member = db.prepare("SELECT is_muted FROM group_members WHERE group_id = ? AND user_id = ?").get(groupId, senderId) as { is_muted: number } | undefined
+       if (!member) return { success: false, error: 'Not a member' }
+       if (member.is_muted) return { success: false, error: 'You are muted in this group' }
+    }
+
+    try {
+      const result = db.prepare(`
+        INSERT INTO messages (sender_id, receiver_id, group_id, content, type, file_url, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(senderId, receiverId || null, groupId || null, content, type, fileUrl, Date.now())
+
+      return {
+        success: true,
+        message: {
+          id: result.lastInsertRowid as number,
+          sender_id: senderId,
+          receiver_id: receiverId || 0,
+          content,
+          type,
+          file_url: fileUrl,
+          created_at: Date.now()
+        }
+      }
+    } catch (e) {
+      return { success: false, error: 'Failed to send' }
+    }
+  }
+
+  /**
+   * Get messages (updated for group support)
+   */
+  static async getMessages(userId: number, targetId: number, isGroup: boolean = false, limit = 50, offset = 0): Promise<Message[]> {
+    await ensureDB()
+    const db = getDB()
+
+    let messages;
+    if (isGroup) {
+      messages = db.prepare(`
+        SELECT * FROM messages
+        WHERE group_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `).all(targetId, limit, offset) as Message[]
+    } else {
+      messages = db.prepare(`
+        SELECT * FROM messages
+        WHERE group_id IS NULL AND ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+      `).all(userId, targetId, targetId, userId, limit, offset) as Message[]
+    }
+
+    return messages.reverse()
+  }
+
+  /**
+   * Toggle mute member in group
+   */
+  static async toggleGroupMute(groupId: number, adminId: number, targetUserId: number, mute: boolean): Promise<{ success: boolean; message: string }> {
+    await ensureDB()
+    const db = getDB()
+
+    // Check if operator is System Admin
+    const operatorUser = db.prepare("SELECT role FROM users WHERE id = ?").get(adminId) as { role: string } | undefined
+    const isSystemAdmin = operatorUser && (operatorUser.role === 'admin' || operatorUser.role === 'super_admin')
+
+    // Check group admin rights
+    const admin = db.prepare("SELECT role FROM group_members WHERE group_id = ? AND user_id = ?").get(groupId, adminId) as { role: string } | undefined
+    const isGroupAdmin = admin && (admin.role === 'owner' || admin.role === 'admin')
+
+    if (!isSystemAdmin && !isGroupAdmin) {
+        return { success: false, message: 'Unauthorized' }
+    }
+
+    // Check if target is System Admin (cannot be muted)
+    if (mute) {
+        const targetUser = db.prepare("SELECT role FROM users WHERE id = ?").get(targetUserId) as { role: string } | undefined
+        if (targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin')) {
+             return { success: false, message: 'Cannot mute an administrator' }
+        }
+    }
+
+    db.prepare("UPDATE group_members SET is_muted = ? WHERE group_id = ? AND user_id = ?").run(mute ? 1 : 0, groupId, targetUserId)
+    return { success: true, message: mute ? 'User muted' : 'User unmuted' }
+  }
+
+  /**
+   * Add member to group
+   */
+  static async addGroupMember(groupId: number, adminId: number, targetUserId: number): Promise<{ success: boolean; message: string }> {
+      await ensureDB()
+      const db = getDB()
+
+      // Check admin rights (optional: currently allow any member to add? No, let's restrict to admin/owner for safety, or allow all)
+      // Usually inviting is allowed by everyone, but adding directly might need permission.
+      // Let's allow any member to invite for now to keep it simple, OR strictly owner.
+      // Let's check if inviter is in group.
+      const inviter = db.prepare("SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?").get(groupId, adminId)
+      if (!inviter) return { success: false, message: 'Not a member' }
+
+      try {
+          db.prepare("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'member', ?)").run(groupId, targetUserId, Date.now())
+          return { success: true, message: 'Member added' }
+      } catch (e) {
+          return { success: false, message: 'Failed to add member' }
+      }
+  }
+}
   static async sendFriendRequest(requesterId: number, addresseeEmail: string): Promise<{ success: boolean; message: string }> {
     await ensureDB()
     const db = getDB()

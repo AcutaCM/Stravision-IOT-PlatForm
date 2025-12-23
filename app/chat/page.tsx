@@ -7,10 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, UserPlus, Check, X, MessageSquare, User as UserIcon } from "lucide-react"
+import { Send, UserPlus, Check, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface User {
@@ -18,6 +21,8 @@ interface User {
   username: string
   email: string
   avatar_url: string | null
+  role?: string
+  is_blocked?: boolean // Added for UI state, though backend manages it
 }
 
 interface FriendRequest {
@@ -27,10 +32,27 @@ interface FriendRequest {
   created_at: number
 }
 
+interface Group {
+  id: number
+  name: string
+  owner_id: number
+  avatar_url: string | null
+  created_at: number
+}
+
+interface GroupMember {
+  group_id: number
+  user_id: number
+  role: 'owner' | 'admin' | 'member'
+  is_muted: boolean
+  user: User
+}
+
 interface Message {
   id: number
   sender_id: number
-  receiver_id: number
+  receiver_id: number // For direct messages
+  group_id?: number // For group messages
   content: string
   created_at: number
   type: 'text' | 'image' | 'file'
@@ -38,35 +60,61 @@ interface Message {
 
 export default function ChatPage() {
   const [friends, setFriends] = useState<User[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
   const [requests, setRequests] = useState<FriendRequest[]>([])
+  
   const [activeFriend, setActiveFriend] = useState<User | null>(null)
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null)
+  
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [addFriendEmail, setAddFriendEmail] = useState("")
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false)
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
+  const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false)
+  
+  // Group creation state
+  const [newGroupName, setNewGroupName] = useState("")
+  const [selectedFriends, setSelectedFriends] = useState<number[]>([])
+
+  // Group info state
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([])
+
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Fetch current user
   useEffect(() => {
     fetch('/api/auth/me').then(res => res.json()).then(data => {
-      if (data.user) setCurrentUserId(data.user.id)
+      if (data.user) setCurrentUser(data.user)
     })
   }, [])
 
-  // Fetch friends and requests
+  // Fetch friends, requests, and groups
   const fetchData = async () => {
     try {
-      const [friendsRes, requestsRes] = await Promise.all([
+      const [friendsRes, requestsRes, groupsRes] = await Promise.all([
         fetch('/api/friends'),
-        fetch('/api/friends/requests')
+        fetch('/api/friends/requests'),
+        fetch('/api/groups')
       ])
       
       const friendsData = await friendsRes.json()
       const requestsData = await requestsRes.json()
+      const groupsData = await groupsRes.json()
 
       if (friendsData.friends) setFriends(friendsData.friends)
       if (requestsData.requests) setRequests(requestsData.requests)
+      if (groupsData.groups) setGroups(groupsData.groups)
     } catch (error) {
       console.error("Failed to fetch data", error)
     }
@@ -78,13 +126,20 @@ export default function ChatPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch messages when active friend changes
+  // Fetch messages when active chat changes
   useEffect(() => {
-    if (!activeFriend) return
+    if (!activeFriend && !activeGroup) return
 
     const fetchMessages = async () => {
       try {
-        const res = await fetch(`/api/direct-messages?friendId=${activeFriend.id}`)
+        let url = ''
+        if (activeFriend) {
+          url = `/api/direct-messages?friendId=${activeFriend.id}`
+        } else if (activeGroup) {
+          url = `/api/groups/messages?groupId=${activeGroup.id}`
+        }
+
+        const res = await fetch(url)
         const data = await res.json()
         if (data.messages) setMessages(data.messages)
       } catch (error) {
@@ -95,7 +150,18 @@ export default function ChatPage() {
     fetchMessages()
     const interval = setInterval(fetchMessages, 3000) // Poll messages every 3s
     return () => clearInterval(interval)
-  }, [activeFriend])
+  }, [activeFriend, activeGroup])
+
+  // Fetch group members when viewing group info
+  useEffect(() => {
+    if (activeGroup && isGroupInfoOpen) {
+      fetch(`/api/groups/members?groupId=${activeGroup.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.members) setGroupMembers(data.members)
+        })
+    }
+  }, [activeGroup, isGroupInfoOpen])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -143,64 +209,223 @@ export default function ChatPage() {
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || !activeFriend) return
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      toast.error("Group name is required")
+      return
+    }
 
     try {
-      const res = await fetch('/api/direct-messages', {
+      const res = await fetch('/api/groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          friendId: activeFriend.id,
-          content: inputValue
+        body: JSON.stringify({ 
+          name: newGroupName,
+          members: selectedFriends
         })
+      })
+      const data = await res.json()
+
+      if (res.ok) {
+        toast.success("Group created")
+        setNewGroupName("")
+        setSelectedFriends([])
+        setIsCreateGroupOpen(false)
+        fetchData()
+      } else {
+        toast.error(data.error || "Failed to create group")
+      }
+    } catch (error) {
+      toast.error("Failed to create group")
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim()) return
+    if (!activeFriend && !activeGroup) return
+
+    try {
+      let url = ''
+      let body = {}
+
+      if (activeFriend) {
+        url = '/api/direct-messages'
+        body = { friendId: activeFriend.id, content: inputValue }
+      } else if (activeGroup) {
+        url = '/api/groups/messages'
+        body = { groupId: activeGroup.id, content: inputValue }
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       
       if (res.ok) {
         setMessages([...messages, data.message])
         setInputValue("")
+      } else {
+        toast.error(data.error || "Failed to send message")
       }
     } catch (error) {
       console.error("Failed to send message", error)
     }
   }
 
+  const handleBlockUser = async (userId: number, block: boolean) => {
+    try {
+      const res = await fetch('/api/users/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId: userId, block })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message)
+        // Refresh friends list to update blocked status if we tracked it there
+        // For now, we just rely on the toast
+      } else {
+        toast.error(data.error || "Failed to update block status")
+      }
+    } catch (error) {
+      toast.error("Failed to block/unblock user")
+    }
+  }
+
+  const handleToggleMute = async (groupId: number, userId: number, mute: boolean) => {
+    try {
+      const res = await fetch('/api/groups/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          groupId, 
+          userId, 
+          action: mute ? 'mute' : 'unmute' 
+        })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message)
+        // Refresh members
+        const membersRes = await fetch(`/api/groups/members?groupId=${groupId}`)
+        const membersData = await membersRes.json()
+        if (membersData.members) setGroupMembers(membersData.members)
+      } else {
+        toast.error(data.error || "Failed to update mute status")
+      }
+    } catch (error) {
+      toast.error("Failed to update mute status")
+    }
+  }
+
+  const toggleFriendSelection = (friendId: number) => {
+    setSelectedFriends(prev => 
+      prev.includes(friendId) 
+        ? prev.filter(id => id !== friendId)
+        : [...prev, friendId]
+    )
+  }
+
+  const switchToFriend = (friend: User) => {
+    setActiveFriend(friend)
+    setActiveGroup(null)
+  }
+
+  const switchToGroup = (group: Group) => {
+    setActiveGroup(group)
+    setActiveFriend(null)
+  }
+
   return (
     <div className="flex h-[calc(100vh-80px)] w-full gap-4 p-4 md:p-6 bg-slate-50 dark:bg-black/20">
       {/* Sidebar */}
-      <Card className="w-80 flex flex-col h-full border-none shadow-md bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
+      <Card className={cn(
+        "w-full md:w-80 flex flex-col h-full border-none shadow-md bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl transition-all duration-300",
+        isMobile && (activeFriend || activeGroup) ? "hidden" : "flex"
+      )}>
         <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-medium">Chat</CardTitle>
-          <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-8 w-8">
-                <UserPlus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Friend</DialogTitle>
-              </DialogHeader>
-              <div className="flex gap-2 mt-4">
-                <Input 
-                  placeholder="Enter email..." 
-                  value={addFriendEmail}
-                  onChange={(e) => setAddFriendEmail(e.target.value)}
-                />
-                <Button onClick={handleSendRequest}>Add</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-1">
+            <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Create Group">
+                  <Users className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Group</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Group Name</Label>
+                    <Input 
+                      placeholder="Enter group name..." 
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Select Members</Label>
+                    <ScrollArea className="h-48 border rounded-md p-2">
+                      <div className="space-y-2">
+                        {friends.map(friend => (
+                          <div key={friend.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`friend-${friend.id}`} 
+                              checked={selectedFriends.includes(friend.id)}
+                              onCheckedChange={() => toggleFriendSelection(friend.id)}
+                            />
+                            <Label htmlFor={`friend-${friend.id}`} className="flex-1 cursor-pointer flex items-center gap-2">
+                               <Avatar className="h-6 w-6">
+                                <AvatarImage src={friend.avatar_url || undefined} />
+                                <AvatarFallback>{friend.username[0]}</AvatarFallback>
+                              </Avatar>
+                              {friend.username}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                  <Button onClick={handleCreateGroup}>Create Group</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Add Friend">
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Friend</DialogTitle>
+                </DialogHeader>
+                <div className="flex gap-2 mt-4">
+                  <Input 
+                    placeholder="Enter email..." 
+                    value={addFriendEmail}
+                    onChange={(e) => setAddFriendEmail(e.target.value)}
+                  />
+                  <Button onClick={handleSendRequest}>Add</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <Tabs defaultValue="friends" className="flex-1 flex flex-col">
           <div className="px-4 py-2">
             <TabsList className="w-full">
               <TabsTrigger value="friends" className="flex-1">Friends</TabsTrigger>
+              <TabsTrigger value="groups" className="flex-1">Groups</TabsTrigger>
               <TabsTrigger value="requests" className="flex-1 relative">
-                Requests
+                Reqs
                 {requests.length > 0 && (
-                  <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                  <Badge variant="destructive" className="ml-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[8px]">
                     {requests.length}
                   </Badge>
                 )}
@@ -214,7 +439,7 @@ export default function ChatPage() {
                 {friends.map(friend => (
                   <button
                     key={friend.id}
-                    onClick={() => setActiveFriend(friend)}
+                    onClick={() => switchToFriend(friend)}
                     className={cn(
                       "flex items-center gap-3 p-3 rounded-lg text-left transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800",
                       activeFriend?.id === friend.id && "bg-slate-100 dark:bg-zinc-800"
@@ -233,6 +458,39 @@ export default function ChatPage() {
                 {friends.length === 0 && (
                   <div className="text-center text-sm text-muted-foreground py-8">
                     No friends yet
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="groups" className="flex-1 mt-0">
+             <ScrollArea className="h-[calc(100vh-220px)]">
+              <div className="flex flex-col gap-1 p-2">
+                {groups.map(group => (
+                  <button
+                    key={group.id}
+                    onClick={() => switchToGroup(group)}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg text-left transition-colors hover:bg-slate-100 dark:hover:bg-zinc-800",
+                      activeGroup?.id === group.id && "bg-slate-100 dark:bg-zinc-800"
+                    )}
+                  >
+                    <Avatar>
+                      <AvatarImage src={group.avatar_url || undefined} />
+                      <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
+                        {group.name[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="font-medium truncate">{group.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">Group Chat</div>
+                    </div>
+                  </button>
+                ))}
+                {groups.length === 0 && (
+                  <div className="text-center text-sm text-muted-foreground py-8">
+                    No groups yet
                   </div>
                 )}
               </div>
@@ -275,18 +533,126 @@ export default function ChatPage() {
       </Card>
 
       {/* Chat Area */}
-      <Card className="flex-1 flex flex-col border-none shadow-md bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl">
-        {activeFriend ? (
+      <Card className={cn(
+        "flex-1 flex flex-col border-none shadow-md bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl transition-all duration-300",
+        isMobile && (!activeFriend && !activeGroup) ? "hidden" : "flex"
+      )}>
+        {(activeFriend || activeGroup) ? (
           <>
             <CardHeader className="px-6 py-4 border-b">
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={activeFriend.avatar_url || undefined} />
-                  <AvatarFallback>{activeFriend.username[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="text-base">{activeFriend.username}</CardTitle>
-                  <div className="text-xs text-muted-foreground">{activeFriend.email}</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {isMobile && (
+                    <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8" onClick={() => { setActiveFriend(null); setActiveGroup(null); }}>
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                  )}
+                  <Avatar>
+                    <AvatarImage src={activeFriend ? activeFriend.avatar_url || undefined : activeGroup?.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {activeFriend ? activeFriend.username[0] : activeGroup?.name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-base">
+                      {activeFriend ? activeFriend.username : activeGroup?.name}
+                    </CardTitle>
+                    <div className="text-xs text-muted-foreground">
+                      {activeFriend ? activeFriend.email : 'Group Chat'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions Menu */}
+                <div className="flex gap-2">
+                  {activeGroup && (
+                    <Dialog open={isGroupInfoOpen} onOpenChange={setIsGroupInfoOpen}>
+                      <DialogTrigger asChild>
+                         <Button variant="ghost" size="icon" title="Group Info">
+                          <Users className="h-5 w-5" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Group Members</DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="h-64 mt-4">
+                           <div className="space-y-4">
+                            {groupMembers.map(member => {
+                              const isMe = member.user_id === currentUser?.id
+                              const isSystemAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+                              const myMemberRecord = groupMembers.find(m => m.user_id === currentUser?.id)
+                              const isGroupAdmin = myMemberRecord?.role === 'owner' || myMemberRecord?.role === 'admin'
+                              const canManage = isSystemAdmin || isGroupAdmin
+                              const targetIsAdmin = member.user.role === 'admin' || member.user.role === 'super_admin'
+                              const showMuteButton = canManage && !isMe && !targetIsAdmin
+
+                              return (
+                                <div key={member.user_id} className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarImage src={member.user.avatar_url || undefined} />
+                                      <AvatarFallback>{member.user.username[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="text-sm font-medium">
+                                        {member.user.username}
+                                        {member.role === 'owner' && <Badge variant="secondary" className="ml-2 text-[10px]">Owner</Badge>}
+                                        {member.role === 'admin' && <Badge variant="secondary" className="ml-2 text-[10px]">Admin</Badge>}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">{member.user.email}</div>
+                                    </div>
+                                  </div>
+                                  {showMuteButton && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className={cn("h-8 w-8", member.is_muted ? "text-red-500" : "text-slate-500")}
+                                      onClick={() => handleToggleMute(activeGroup.id, member.user_id, !member.is_muted)}
+                                      title={member.is_muted ? "Unmute" : "Mute"}
+                                    >
+                                      {member.is_muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                                    </Button>
+                                  )}
+                                </div>
+                              )
+                            })}
+                           </div>
+                        </ScrollArea>
+                        <DialogFooter>
+                          <Button variant="outline" className="w-full" onClick={() => setIsGroupInfoOpen(false)}>Close</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {activeFriend && (
+                        <DropdownMenuItem onClick={() => handleBlockUser(activeFriend.id, true)} className="text-red-600">
+                          <Shield className="h-4 w-4 mr-2" />
+                          Block User
+                        </DropdownMenuItem>
+                      )}
+                      {activeFriend && (
+                         <DropdownMenuItem onClick={() => handleBlockUser(activeFriend.id, false)}>
+                          <ShieldOff className="h-4 w-4 mr-2" />
+                          Unblock User
+                        </DropdownMenuItem>
+                      )}
+                      {activeGroup && (
+                        <DropdownMenuItem className="text-red-600">
+                          <LogOut className="h-4 w-4 mr-2" />
+                          Leave Group
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardHeader>
@@ -294,9 +660,22 @@ export default function ChatPage() {
               <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
                 <div className="flex flex-col gap-4 min-h-0" ref={scrollRef}>
                    {messages.map((msg) => {
-                     const isMe = msg.sender_id === currentUserId
+                     const isMe = msg.sender_id === currentUser?.id
+                     const getSenderName = (id: number) => {
+                       const friend = friends.find(f => f.id === id)
+                       if (friend) return friend.username
+                       const member = groupMembers.find(m => m.user_id === id)
+                       if (member) return member.user.username
+                       return `User ${id}`
+                     }
+                     
                      return (
-                       <div key={msg.id} className={cn("flex w-full", isMe ? "justify-end" : "justify-start")}>
+                       <div key={msg.id} className={cn("flex w-full flex-col", isMe ? "items-end" : "items-start")}>
+                         {!isMe && activeGroup && (
+                           <span className="text-[10px] text-muted-foreground mb-1 ml-1">
+                             {getSenderName(msg.sender_id)}
+                           </span>
+                         )}
                          <div className={cn(
                            "max-w-[70%] px-4 py-2 rounded-2xl text-sm",
                            isMe 
@@ -333,7 +712,7 @@ export default function ChatPage() {
             <div className="h-16 w-16 bg-slate-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
               <MessageSquare className="h-8 w-8 text-slate-400" />
             </div>
-            <p>Select a friend to start chatting</p>
+            <p>Select a friend or group to start chatting</p>
           </div>
         )}
       </Card>
