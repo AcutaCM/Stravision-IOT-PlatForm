@@ -8,6 +8,7 @@ import { PageTransition } from "@/components/page-transition";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { EnvironmentAlert } from "@/components/environment-alert";
 import { ToasterWrapper } from "@/components/toaster-wrapper";
+import { MessageNotificationListener } from "@/components/message-notification-listener";
 import { headers } from "next/headers";
 import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-service";
 
@@ -108,6 +109,7 @@ export default async function RootLayout({
                   {children}
                 </PageTransition>
                 <ToasterWrapper />
+                <MessageNotificationListener />
               </SmoothScroll>
             </DeviceProvider>
           </WeatherProvider>

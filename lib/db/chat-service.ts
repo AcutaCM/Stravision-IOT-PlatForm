@@ -450,4 +450,36 @@ export class ChatService {
 
     return friends.map(toPublicUser)
   }
+
+  /**
+   * Get new messages for user (for notifications)
+   */
+  static async getNewMessagesForUser(userId: number, since: number): Promise<(Message & { sender_name: string; group_name?: string; sender_avatar?: string })[]> {
+    await ensureDB()
+    const db = getDB()
+    
+    // Get direct messages
+    const directMessages = db.prepare(`
+      SELECT m.*, u.username as sender_name, u.avatar_url as sender_avatar
+      FROM messages m
+      JOIN users u ON m.sender_id = u.id
+      WHERE m.receiver_id = ? AND m.created_at > ?
+    `).all(userId, since) as (Message & { sender_name: string; sender_avatar?: string })[]
+
+    // Get group messages (excluding muted groups and self-sent messages)
+    const groupMessages = db.prepare(`
+      SELECT m.*, u.username as sender_name, u.avatar_url as sender_avatar, g.name as group_name
+      FROM messages m
+      JOIN group_members gm ON m.group_id = gm.group_id
+      JOIN users u ON m.sender_id = u.id
+      JOIN groups g ON m.group_id = g.id
+      WHERE gm.user_id = ? 
+      AND m.sender_id != ?
+      AND m.created_at > ?
+      AND m.group_id IS NOT NULL
+      AND gm.is_muted = 0
+    `).all(userId, userId, since) as (Message & { sender_name: string; group_name: string; sender_avatar?: string })[]
+
+    return [...directMessages, ...groupMessages].sort((a, b) => b.created_at - a.created_at)
+  }
 }
