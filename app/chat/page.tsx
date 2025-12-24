@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -27,6 +28,8 @@ interface User {
   avatar_url: string | null
   role?: string
   is_blocked?: boolean
+  last_message?: Message
+  unread_count?: number
 }
 
 interface FriendRequest {
@@ -42,6 +45,8 @@ interface Group {
   owner_id: number
   avatar_url: string | null
   created_at: number
+  last_message?: Message
+  unread_count?: number
 }
 
 interface GroupMember {
@@ -55,11 +60,24 @@ interface GroupMember {
 interface Message {
   id: number
   sender_id: number
-  receiver_id: number
-  group_id?: number
+  receiver_id: number | null
+  group_id: number | null
   content: string
+  type?: string
+  file_url?: string | null
   created_at: number
-  type: 'text' | 'image' | 'file'
+  read_at: number | null
+}
+
+const formatTime = (timestamp: number) => {
+  if (!timestamp) return ""
+  const date = new Date(timestamp)
+  const now = new Date()
+  
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+  return date.toLocaleDateString()
 }
 
 export default function ChatPage() {
@@ -72,6 +90,87 @@ export default function ChatPage() {
   
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isRecording, setIsRecording] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const emojis = ["👍", "❤️", "😂", "😮", "😢", "😡", "🎉", "🔥", "🤝", "👀"]
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+        const res = await fetch('/api/chat/upload', {
+            method: 'POST',
+            body: formData
+        })
+        const data = await res.json()
+        if (data.success) {
+             await handleSendMessage('[图片]', 'image', data.url)
+        } else {
+            toast.error(data.error || "Upload failed")
+        }
+    } catch (error) {
+        toast.error("Upload failed")
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const startRecording = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        const recorder = new MediaRecorder(stream)
+        const chunks: Blob[] = []
+        
+        recorder.ondataavailable = (e) => chunks.push(e.data)
+        recorder.onstop = async () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' })
+            const file = new File([blob], "recording.webm", { type: 'audio/webm' })
+            
+            const formData = new FormData()
+            formData.append('file', file)
+            
+            try {
+                const res = await fetch('/api/chat/upload', { method: 'POST', body: formData })
+                const data = await res.json()
+                if (data.success) {
+                    await handleSendMessage('[语音]', 'audio', data.url)
+                }
+            } catch (e) {
+                toast.error("Audio upload failed")
+            }
+        }
+        
+        recorder.start()
+        setMediaRecorder(recorder)
+        setIsRecording(true)
+    } catch (err) {
+        console.error(err)
+        toast.error("Could not access microphone")
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop()
+        mediaRecorder.stream.getTracks().forEach(track => track.stop())
+        setIsRecording(false)
+        setMediaRecorder(null)
+    }
+  }
+
+  const filteredFriends = friends.filter(f => 
+    f.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    f.email.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  const filteredGroups = groups.filter(g => 
+    g.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
   const [addFriendEmail, setAddFriendEmail] = useState("")
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false)
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
@@ -103,25 +202,36 @@ export default function ChatPage() {
     })
   }, [])
 
-  // Fetch friends, requests, and groups
-  const fetchData = async () => {
-    try {
-      const [friendsRes, requestsRes, groupsRes] = await Promise.all([
-        fetch('/api/friends'),
-        fetch('/api/friends/requests'),
-        fetch('/api/groups')
-      ])
-      
-      const friendsData = await friendsRes.json()
-      const requestsData = await requestsRes.json()
-      const groupsData = await groupsRes.json()
+  // Fetch friends
+  const fetchFriends = async () => {
+      try {
+        const res = await fetch('/api/friends')
+        const data = await res.json()
+        if (data.friends) setFriends(data.friends)
+      } catch (error) { console.error(error) }
+  }
 
-      if (friendsData.friends) setFriends(friendsData.friends)
-      if (requestsData.requests) setRequests(requestsData.requests)
-      if (groupsData.groups) setGroups(groupsData.groups)
-    } catch (error) {
-      console.error("Failed to fetch data", error)
-    }
+  // Fetch groups
+  const fetchUserGroups = async () => {
+      try {
+        const res = await fetch('/api/groups')
+        const data = await res.json()
+        if (data.groups) setGroups(data.groups)
+      } catch (error) { console.error(error) }
+  }
+
+  // Fetch requests
+  const fetchRequests = async () => {
+      try {
+          const res = await fetch('/api/friends/requests')
+          const data = await res.json()
+          if (data.requests) setRequests(data.requests)
+      } catch (error) { console.error(error) }
+  }
+
+  // Fetch all data
+  const fetchData = async () => {
+    await Promise.all([fetchFriends(), fetchRequests(), fetchUserGroups()])
   }
 
   useEffect(() => {
@@ -131,30 +241,30 @@ export default function ChatPage() {
   }, [])
 
   // Fetch messages when active chat changes
-  useEffect(() => {
+  const fetchMessages = useCallback(async () => {
     if (!activeFriend && !activeGroup) return
 
-    const fetchMessages = async () => {
-      try {
-        let url = ''
-        if (activeFriend) {
-          url = `/api/direct-messages?friendId=${activeFriend.id}`
-        } else if (activeGroup) {
-          url = `/api/groups/messages?groupId=${activeGroup.id}`
-        }
-
-        const res = await fetch(url)
-        const data = await res.json()
-        if (data.messages) setMessages(data.messages)
-      } catch (error) {
-        console.error("Failed to fetch messages", error)
+    try {
+      let url = ''
+      if (activeFriend) {
+        url = `/api/direct-messages?friendId=${activeFriend.id}`
+      } else if (activeGroup) {
+        url = `/api/groups/messages?groupId=${activeGroup.id}`
       }
-    }
 
+      const res = await fetch(url)
+      const data = await res.json()
+      if (data.messages) setMessages(data.messages)
+    } catch (error) {
+      console.error("Failed to fetch messages", error)
+    }
+  }, [activeFriend, activeGroup])
+
+  useEffect(() => {
     fetchMessages()
     const interval = setInterval(fetchMessages, 3000) // Poll messages every 3s
     return () => clearInterval(interval)
-  }, [activeFriend, activeGroup])
+  }, [fetchMessages])
 
   // Fetch group members when viewing group info
   useEffect(() => {
@@ -244,20 +354,21 @@ export default function ChatPage() {
     }
   }
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return
+  const handleSendMessage = async (contentOverride?: string, type: 'text' | 'image' | 'audio' | 'file' = 'text', fileUrl?: string) => {
+    const contentToSend = contentOverride || inputValue
+    if (!contentToSend.trim() && type === 'text') return
     if (!activeFriend && !activeGroup) return
 
     try {
       let url = ''
-      let body = {}
+      let body: any = {}
 
       if (activeFriend) {
         url = '/api/direct-messages'
-        body = { friendId: activeFriend.id, content: inputValue }
+        body = { friendId: activeFriend.id, content: contentToSend, type, fileUrl }
       } else if (activeGroup) {
         url = '/api/groups/messages'
-        body = { groupId: activeGroup.id, content: inputValue }
+        body = { groupId: activeGroup.id, content: contentToSend, type, fileUrl }
       }
 
       const res = await fetch(url, {
@@ -265,16 +376,18 @@ export default function ChatPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
-      const data = await res.json()
-      
+
       if (res.ok) {
-        setMessages([...messages, data.message])
-        setInputValue("")
+        if (type === 'text') setInputValue("")
+        await fetchMessages()
+        // Refresh lists to show new message in sidebar
+        fetchFriends()
+        fetchUserGroups()
       } else {
-        toast.error(data.error || "发送消息失败")
+        toast.error("Failed to send message")
       }
     } catch (error) {
-      console.error("Failed to send message", error)
+      toast.error("Error sending message")
     }
   }
 
@@ -426,7 +539,7 @@ export default function ChatPage() {
                                 </div>
                             </DialogContent>
                         </Dialog>
-                        <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                        <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500" onClick={() => document.getElementById('search-input')?.focus()}>
                             <Search className="h-5 w-5" />
                         </Button>
                         <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
@@ -454,20 +567,26 @@ export default function ChatPage() {
 
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input placeholder="搜索" className="pl-9 bg-slate-100 dark:bg-slate-800 border-none rounded-full" />
+                    <Input 
+                        id="search-input"
+                        placeholder="搜索好友或群组" 
+                        className="pl-9 bg-slate-100 dark:bg-slate-800 border-none rounded-full" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
               </div>
 
               <ScrollArea className="flex-1 px-4">
                 <div className="space-y-6 pb-4">
                     {/* Pinned Section (Using Groups as Pinned for now) */}
-                    {groups.length > 0 && (
+                    {filteredGroups.length > 0 && (
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
-                                <MapPin className="h-3 w-3" /> 置顶消息
+                                <MapPin className="h-3 w-3" /> 群组
                             </div>
                             <div className="space-y-1">
-                                {groups.map(group => (
+                                {filteredGroups.map(group => (
                                     <button
                                         key={group.id}
                                         onClick={() => switchToGroup(group)}
@@ -483,20 +602,25 @@ export default function ChatPage() {
                                                     {group.name[0].toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            {/* Online Indicator simulation */}
-                                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span>
+                                            {/* Online Indicator simulation - Groups don't usually have online status, maybe just show if unread? */}
+                                            {/* <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span> */}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-baseline mb-1">
                                                 <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{group.name}</span>
-                                                <span className="text-xs text-slate-400">12:30 PM</span>
+                                                <span className="text-xs text-slate-400">
+                                                    {group.last_message ? formatTime(group.last_message.created_at) : ''}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm text-slate-500 truncate block max-w-[180px]">
-                                                    点击查看群组消息...
+                                                    {group.last_message ? group.last_message.content : "暂无消息"}
                                                 </span>
-                                                {/* Unread Badge Simulation */}
-                                                <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">2</Badge>
+                                                {group.unread_count ? (
+                                                    <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                                                        {group.unread_count}
+                                                    </Badge>
+                                                ) : null}
                                             </div>
                                         </div>
                                     </button>
@@ -542,7 +666,7 @@ export default function ChatPage() {
                             <MessageSquare className="h-3 w-3" /> 全部消息
                         </div>
                         <div className="space-y-1">
-                            {friends.map(friend => (
+                            {filteredFriends.map(friend => (
                                 <button
                                     key={friend.id}
                                     onClick={() => switchToFriend(friend)}
@@ -558,22 +682,29 @@ export default function ChatPage() {
                                                 {friend.username[0].toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span>
+                                        {/* <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span> */}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-baseline mb-1">
                                             <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{friend.username}</span>
-                                            <span className="text-xs text-slate-400">刚刚</span>
+                                            <span className="text-xs text-slate-400">
+                                                {friend.last_message ? formatTime(friend.last_message.created_at) : ''}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm text-slate-500 truncate block max-w-[180px]">
-                                                {friend.email}
+                                                {friend.last_message ? friend.last_message.content : friend.email}
                                             </span>
+                                            {friend.unread_count ? (
+                                                <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                                                    {friend.unread_count}
+                                                </Badge>
+                                            ) : null}
                                         </div>
                                     </div>
                                 </button>
                             ))}
-                            {friends.length === 0 && (
+                            {filteredFriends.length === 0 && (
                                 <div className="text-center text-sm text-muted-foreground py-8">
                                     暂无好友
                                 </div>
@@ -625,10 +756,10 @@ export default function ChatPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-slate-400">
-                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => toast.info("Video call coming soon!")}>
                           <Video className="h-5 w-5" />
                        </Button>
-                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => toast.info("Voice call coming soon!")}>
                           <Phone className="h-5 w-5" />
                        </Button>
                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setShowChatDetails(!showChatDetails)}>
@@ -639,11 +770,6 @@ export default function ChatPage() {
 
                   <div className="flex-1 flex flex-col overflow-hidden relative">
                     <ScrollArea className="flex-1 p-6" ref={scrollRef as any}>
-                      <div className="flex justify-center mb-6">
-                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs px-4 py-1 rounded-full font-medium">
-                              今天 12月24日
-                          </span>
-                      </div>
                       <div className="flex flex-col gap-6 min-h-0" ref={scrollRef}>
                          {messages.map((msg) => {
                            const isMe = msg.sender_id === currentUser?.id
@@ -657,16 +783,22 @@ export default function ChatPage() {
                                </Avatar>
                                <div className={cn("flex flex-col max-w-[65%]", isMe ? "items-end" : "items-start")}>
                                  <div className={cn(
-                                   "px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm",
-                                   isMe 
-                                     ? "bg-blue-600 text-white rounded-tr-sm" 
-                                     : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm"
-                                 )}>
-                                   {msg.content}
-                                 </div>
+                                  "px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm",
+                                  isMe 
+                                    ? "bg-blue-600 text-white rounded-tr-sm" 
+                                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm"
+                                )}>
+                                  {msg.type === 'image' ? (
+                                      <img src={msg.file_url || msg.content} alt="Image" className="max-w-[200px] rounded-lg" />
+                                  ) : msg.type === 'audio' ? (
+                                      <audio controls src={msg.file_url || msg.content} className="max-w-[200px]" />
+                                  ) : (
+                                      msg.content
+                                  )}
+                                </div>
                                  <span className="text-[11px] text-slate-400 mt-1 font-medium">
-                                     05:00 PM
-                                 </span>
+                                      {formatTime(msg.created_at)}
+                                  </span>
                                </div>
                              </div>
                            )
@@ -679,22 +811,67 @@ export default function ChatPage() {
                         onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
                         className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-2 rounded-full shadow-sm"
                       >
-                        <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
+                        <Button 
+                            type="button" 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={isRecording ? stopRecording : startRecording}
+                            className={cn(
+                                "h-10 w-10 rounded-full transition-colors",
+                                isRecording ? "text-red-500 bg-red-50 hover:bg-red-100 animate-pulse" : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50"
+                            )}
+                        >
                             <Mic className="h-5 w-5" />
                         </Button>
                         <Input 
                           value={inputValue}
                           onChange={(e) => setInputValue(e.target.value)}
-                          placeholder="输入消息..."
+                          placeholder={isRecording ? "Recording..." : "输入消息..."}
+                          disabled={isRecording}
                           className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 text-base"
                         />
-                         <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
+                        
+                        <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                        />
+                        
+                        <Button 
+                            type="button" 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
                             <ImageIcon className="h-5 w-5" />
                         </Button>
-                        <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
-                            <Smile className="h-5 w-5" />
-                        </Button>
-                        <Button type="submit" size="icon" disabled={!inputValue.trim()} className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all duration-300 hover:scale-105 active:scale-95 ml-1">
+                        
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
+                                    <Smile className="h-5 w-5" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2" align="end">
+                                <div className="grid grid-cols-5 gap-2">
+                                    {emojis.map(emoji => (
+                                        <button
+                                            key={emoji}
+                                            type="button"
+                                            className="text-2xl hover:bg-slate-100 p-2 rounded"
+                                            onClick={() => setInputValue(prev => prev + emoji)}
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        
+                        <Button type="submit" size="icon" disabled={!inputValue.trim() && !isRecording} className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all duration-300 hover:scale-105 active:scale-95 ml-1">
                           <Send className="h-4 w-4" />
                         </Button>
                       </form>

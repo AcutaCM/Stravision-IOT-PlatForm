@@ -437,7 +437,7 @@ export class ChatService {
   /**
    * Get friends list
    */
-  static async getFriends(userId: number): Promise<UserPublic[]> {
+  static async getFriends(userId: number): Promise<(UserPublic & { last_message?: Message, unread_count: number })[]> {
     await ensureDB()
     const db = getDB()
 
@@ -448,7 +448,25 @@ export class ChatService {
       WHERE f.user_id = ?
     `).all(userId) as User[]
 
-    return friends.map(toPublicUser)
+    return friends.map(friend => {
+      const lastMessage = db.prepare(`
+        SELECT * FROM messages
+        WHERE group_id IS NULL AND ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+        ORDER BY created_at DESC
+        LIMIT 1
+      `).get(userId, friend.id, friend.id, userId) as Message | undefined
+
+      const unread = db.prepare(`
+        SELECT COUNT(*) as count FROM messages
+        WHERE group_id IS NULL AND sender_id = ? AND receiver_id = ? AND (read_at IS NULL OR read_at = 0)
+      `).get(friend.id, userId) as { count: number }
+
+      return {
+        ...toPublicUser(friend),
+        last_message: lastMessage,
+        unread_count: unread.count
+      }
+    })
   }
 
   /**
