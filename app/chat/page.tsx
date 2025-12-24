@@ -76,7 +76,7 @@ export default function ChatPage() {
   const [addFriendEmail, setAddFriendEmail] = useState("")
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false)
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false)
-  const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false)
+  const [showChatDetails, setShowChatDetails] = useState(false)
   
   // Group creation state
   const [newGroupName, setNewGroupName] = useState("")
@@ -159,14 +159,14 @@ export default function ChatPage() {
 
   // Fetch group members when viewing group info
   useEffect(() => {
-    if (activeGroup && isGroupInfoOpen) {
+    if (activeGroup && showChatDetails) {
       fetch(`/api/groups/members?groupId=${activeGroup.id}`)
         .then(res => res.json())
         .then(data => {
           if (data.members) setGroupMembers(data.members)
         })
     }
-  }, [activeGroup, isGroupInfoOpen])
+  }, [activeGroup, showChatDetails])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -477,12 +477,12 @@ export default function ChatPage() {
                           onClick={() => switchToFriend(friend)}
                           className={cn(
                             "flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:bg-white/40 dark:hover:bg-white/10",
-                            activeFriend?.id === friend.id && "bg-white/60 dark:bg-white/15 shadow-sm"
+                            activeFriend?.id === friend.id && "bg-primary/10 text-primary dark:bg-primary/20 shadow-sm border-l-4 border-primary pl-2"
                           )}
                         >
                           <Avatar className="border-2 border-white/20">
                             <AvatarImage src={friend.avatar_url || undefined} />
-                            <AvatarFallback>{friend.username[0].toUpperCase()}</AvatarFallback>
+                            <AvatarFallback className={cn(activeFriend?.id === friend.id && "bg-primary text-primary-foreground")}>{friend.username[0].toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div className="flex-1 overflow-hidden">
                             <div className="font-medium truncate">{friend.username}</div>
@@ -508,12 +508,12 @@ export default function ChatPage() {
                           onClick={() => switchToGroup(group)}
                           className={cn(
                             "flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:bg-white/40 dark:hover:bg-white/10",
-                            activeGroup?.id === group.id && "bg-white/60 dark:bg-white/15 shadow-sm"
+                            activeGroup?.id === group.id && "bg-primary/10 text-primary dark:bg-primary/20 shadow-sm border-l-4 border-primary pl-2"
                           )}
                         >
                           <Avatar className="border-2 border-white/20">
                             <AvatarImage src={group.avatar_url || undefined} />
-                            <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
+                            <AvatarFallback className={cn("bg-primary/10 text-primary dark:bg-primary/20", activeGroup?.id === group.id && "bg-primary text-primary-foreground")}>
                               {group.name[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -591,7 +591,7 @@ export default function ChatPage() {
                           ) : (
                             <>
                               <AvatarImage src={activeGroup?.avatar_url || undefined} />
-                              <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
+                              <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20">
                                 {activeGroup?.name[0]}
                               </AvatarFallback>
                             </>
@@ -617,94 +617,15 @@ export default function ChatPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        {activeGroup && (
-                          <Dialog open={isGroupInfoOpen} onOpenChange={setIsGroupInfoOpen}>
-                            <DialogTrigger asChild>
-                               <Button variant="ghost" size="icon" title="Group Info">
-                                <Users className="h-5 w-5" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>群组成员</DialogTitle>
-                              </DialogHeader>
-                              <ScrollArea className="h-64 mt-4">
-                                 <div className="space-y-4">
-                                  {groupMembers.map(member => {
-                                    const isMe = member.user_id === currentUser?.id
-                                    const isSystemAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
-                                    const myMemberRecord = groupMembers.find(m => m.user_id === currentUser?.id)
-                                    const isGroupAdmin = myMemberRecord?.role === 'owner' || myMemberRecord?.role === 'admin'
-                                    const canManage = isSystemAdmin || isGroupAdmin
-                                    const targetIsAdmin = member.user.role === 'admin' || member.user.role === 'super_admin'
-                                    const showMuteButton = canManage && !isMe && !targetIsAdmin
-
-                                    return (
-                                      <div key={member.user_id} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                          <Avatar className="h-8 w-8">
-                                            <AvatarImage src={member.user.avatar_url || undefined} />
-                                            <AvatarFallback>{member.user.username[0]}</AvatarFallback>
-                                          </Avatar>
-                                          <div>
-                                            <div className="text-sm font-medium">
-                                              {member.user.username}
-                                              {member.role === 'owner' && <Badge variant="secondary" className="ml-2 text-[10px]">群主</Badge>}
-                                              {member.role === 'admin' && <Badge variant="secondary" className="ml-2 text-[10px]">管理员</Badge>}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">{member.user.email}</div>
-                                          </div>
-                                        </div>
-                                        {showMuteButton && (
-                                          <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className={cn("h-8 w-8", member.is_muted ? "text-red-500" : "text-slate-500")}
-                                            onClick={() => handleToggleMute(activeGroup.id, member.user_id, !member.is_muted)}
-                                            title={member.is_muted ? "Unmute" : "Mute"}
-                                          >
-                                            {member.is_muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                                          </Button>
-                                        )}
-                                      </div>
-                                    )
-                                  })}
-                                 </div>
-                              </ScrollArea>
-                              <DialogFooter>
-                                <Button variant="outline" className="w-full" onClick={() => setIsGroupInfoOpen(false)}>关闭</Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        )}
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-5 w-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {activeFriend && (
-                              <DropdownMenuItem onClick={() => handleBlockUser(activeFriend.id, true)} className="text-red-600">
-                                <Shield className="h-4 w-4 mr-2" />
-                                拉黑用户
-                              </DropdownMenuItem>
-                            )}
-                            {activeFriend && (
-                              <DropdownMenuItem onClick={() => handleBlockUser(activeFriend.id, false)}>
-                                <ShieldOff className="h-4 w-4 mr-2" />
-                                解除拉黑
-                              </DropdownMenuItem>
-                            )}
-                            {activeGroup && (
-                              <DropdownMenuItem className="text-red-600">
-                                <LogOut className="h-4 w-4 mr-2" />
-                                退出群组
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Chat Details"
+                          onClick={() => setShowChatDetails(!showChatDetails)}
+                          className={cn("transition-colors", showChatDetails && "bg-primary/10 text-primary")}
+                        >
+                           <MoreVertical className="h-5 w-5" />
+                        </Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -752,7 +673,7 @@ export default function ChatPage() {
                           placeholder="输入消息..."
                           className="flex-1 bg-white/50 dark:bg-black/50 border-white/10"
                         />
-                        <Button type="submit" size="icon" disabled={!inputValue.trim()} className="bg-blue-600 hover:bg-blue-700">
+                        <Button type="submit" size="icon" disabled={!inputValue.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300 hover:scale-105 active:scale-95">
                           <Send className="h-4 w-4" />
                         </Button>
                       </form>
@@ -767,6 +688,102 @@ export default function ChatPage() {
                   <p className="text-lg font-medium">选择一个好友或群组开始聊天</p>
                 </div>
               )}
+            </Card>
+
+            {/* Right Sidebar - Info Panel */}
+            <Card className={cn(
+              "w-80 flex-col h-full border border-white/10 shadow-2xl bg-white/40 dark:bg-black/40 backdrop-blur-xl transition-all duration-300 rounded-3xl overflow-hidden hidden md:flex",
+              showChatDetails ? "w-80 opacity-100 ml-6" : "w-0 opacity-0 border-0 ml-0 p-0"
+            )}>
+               <CardHeader className="px-6 py-4 border-b border-white/10 bg-white/50 dark:bg-black/20 min-w-[320px]">
+                  <CardTitle className="text-base font-medium">详情</CardTitle>
+               </CardHeader>
+               <ScrollArea className="flex-1 p-4 min-w-[320px]">
+                  {activeFriend && (
+                    <div className="flex flex-col items-center gap-4 py-8">
+                       <Avatar className="h-24 w-24 border-4 border-white/20 shadow-lg">
+                          <AvatarImage src={activeFriend.avatar_url || undefined} />
+                          <AvatarFallback className="text-2xl">{activeFriend.username[0].toUpperCase()}</AvatarFallback>
+                       </Avatar>
+                       <div className="text-center">
+                          <h3 className="text-xl font-bold">{activeFriend.username}</h3>
+                          <p className="text-sm text-muted-foreground">{activeFriend.email}</p>
+                       </div>
+                       
+                       <div className="w-full mt-8 space-y-3">
+                          <div className="p-4 rounded-xl bg-white/40 dark:bg-black/20 border border-white/10">
+                            <h4 className="text-xs font-medium text-muted-foreground mb-2">操作</h4>
+                            <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 h-10" onClick={() => handleBlockUser(activeFriend.id, true)}>
+                              <Shield className="mr-2 h-4 w-4" />
+                              拉黑用户
+                            </Button>
+                          </div>
+                       </div>
+                    </div>
+                  )}
+
+                  {activeGroup && (
+                    <div className="space-y-6">
+                       <div className="flex flex-col items-center gap-4 py-6">
+                          <Avatar className="h-20 w-20 border-4 border-white/20 shadow-lg">
+                             <AvatarImage src={activeGroup.avatar_url || undefined} />
+                             <AvatarFallback className="text-xl bg-primary/10 text-primary">{activeGroup.name[0].toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="text-center">
+                             <h3 className="text-lg font-bold">{activeGroup.name}</h3>
+                             <p className="text-sm text-muted-foreground">{groupMembers.length} 成员</p>
+                          </div>
+                       </div>
+
+                       <div>
+                          <h4 className="text-sm font-medium mb-3 px-1">成员列表</h4>
+                          <div className="space-y-2">
+                              {groupMembers.map(member => {
+                                const isMe = member.user_id === currentUser?.id
+                                const isSystemAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+                                const myMemberRecord = groupMembers.find(m => m.user_id === currentUser?.id)
+                                const isGroupAdmin = myMemberRecord?.role === 'owner' || myMemberRecord?.role === 'admin'
+                                const canManage = isSystemAdmin || isGroupAdmin
+                                const targetIsAdmin = member.user.role === 'admin' || member.user.role === 'super_admin'
+                                const showMuteButton = canManage && !isMe && !targetIsAdmin
+
+                                return (
+                                  <div key={member.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                      <Avatar className="h-8 w-8 shrink-0">
+                                        <AvatarImage src={member.user.avatar_url || undefined} />
+                                        <AvatarFallback>{member.user.username[0]}</AvatarFallback>
+                                      </Avatar>
+                                      <div className="overflow-hidden">
+                                        <div className="text-sm font-medium truncate flex items-center gap-1">
+                                          {member.user.username}
+                                          {member.role === 'owner' && <Badge variant="secondary" className="h-4 px-1 text-[10px]">群主</Badge>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {showMuteButton && (
+                                       <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className={cn("h-7 w-7", member.is_muted ? "text-red-500" : "text-slate-500")}
+                                          onClick={() => handleToggleMute(activeGroup.id, member.user_id, !member.is_muted)}
+                                       >
+                                          {member.is_muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                       </Button>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                          </div>
+                       </div>
+                       
+                       <Button variant="outline" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 border-red-200 dark:border-red-900/30">
+                          <LogOut className="mr-2 h-4 w-4" />
+                          退出群组
+                       </Button>
+                    </div>
+                  )}
+               </ScrollArea>
             </Card>
           </div>
         </div>
