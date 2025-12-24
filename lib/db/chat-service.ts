@@ -545,4 +545,24 @@ export class ChatService {
 
     return [...directMessages, ...groupMessages].sort((a, b) => b.created_at - a.created_at)
   }
+
+  /**
+   * Clear chat history
+   */
+  static async clearMessages(userId: number, friendId: number): Promise<{ success: boolean; message: string }> {
+    await ensureDB()
+    const db = getDB()
+
+    try {
+      db.prepare(`
+        DELETE FROM messages
+        WHERE group_id IS NULL 
+        AND ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
+      `).run(userId, friendId, friendId, userId)
+      return { success: true, message: 'Chat history cleared' }
+    } catch (error) {
+      console.error("Failed to clear messages:", error)
+      return { success: false, message: 'Internal error' }
+    }
+  }
 }

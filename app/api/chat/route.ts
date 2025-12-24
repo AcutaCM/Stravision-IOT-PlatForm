@@ -252,7 +252,7 @@ export async function POST(req: Request) {
         },
         parameters: {
           result_format: "message",
-          incremental_output: true,
+          // incremental_output: true, // 移除 incremental_output 以获取全量文本，确保 acc 逻辑正确
           ...(enableSearch ? { enable_search: true } : {}),
         },
       }
@@ -303,13 +303,18 @@ export async function POST(req: Request) {
         const stream = new ReadableStream({
           async start(controller) {
             let acc = ""
+            let buffer = "" // 添加缓冲区
             if (!reader) { controller.close(); return }
             try {
               while (true) {
                 const { done, value } = await reader.read()
                 if (done) break
                 const chunk = decoder.decode(value, { stream: true })
-                const lines = chunk.split("\n")
+                buffer += chunk
+                const lines = buffer.split("\n")
+                // 保留最后一个可能不完整的行
+                buffer = lines.pop() || ""
+
                 for (const line of lines) {
                   if (line.startsWith("data:")) {
                     const data = line.slice(5).trim()
@@ -320,8 +325,23 @@ export async function POST(req: Request) {
                         json.output?.choices?.[0]?.message?.content ||
                         json.output?.text || ""
                       if (typeof content === "string") {
-                        const next = content.slice(acc.length)
-                        acc = content
+                        // 百炼应用 SSE 默认通常返回增量，但也取决于具体配置
+                        // 如果 acc 逻辑导致无法输出，说明 content 是增量而非全量
+                        // 这里尝试自适应：如果 content 长度小于 acc 长度，可能是增量（或重新开始），或者 content 就是 delta
+                        
+                        // 观察发现百炼应用 SSE 返回的 text 通常是全量（accumulated）
+                        // 但为了保险，我们可以检查 content 是否包含 acc 前缀
+                        let next = ""
+                        if (content.startsWith(acc)) {
+                           next = content.slice(acc.length)
+                           acc = content
+                        } else {
+                           // 如果不以 acc 开头，可能 content 本身就是 delta，或者发生了跳跃
+                           // 假设是 delta
+                           next = content
+                           acc += content 
+                        }
+
                         if (next) {
                           const openaiFormat = {
                             id: json.request_id,
@@ -370,6 +390,7 @@ export async function POST(req: Request) {
           let acc = ""
           let accReasoning = ""
           let reasoningClosed = false
+          let buffer = "" // 添加缓冲区
           
           if (!reader) {
             controller.close()
@@ -382,7 +403,9 @@ export async function POST(req: Request) {
               if (done) break
 
               const chunk = decoder.decode(value, { stream: true })
-              const lines = chunk.split("\n")
+              buffer += chunk
+              const lines = buffer.split("\n")
+              buffer = lines.pop() || ""
 
               for (const line of lines) {
                 if (line.startsWith("data:")) {
@@ -420,11 +443,18 @@ export async function POST(req: Request) {
                     // DashScope returns accumulated reasoning_content
                     const rawReasoning = json.output?.choices?.[0]?.message?.reasoning_content || ""
                     if (typeof rawReasoning === "string" && rawReasoning.length > 0) {
-                      const nextReasoning = rawReasoning.slice(accReasoning.length)
+                      let nextReasoning = ""
+                      if (rawReasoning.startsWith(accReasoning)) {
+                         nextReasoning = rawReasoning.slice(accReasoning.length)
+                         accReasoning = rawReasoning
+                      } else {
+                         nextReasoning = rawReasoning
+                         accReasoning += rawReasoning
+                      }
+
                       if (nextReasoning) {
                         // If this is the start of reasoning, prepend <REASONING>
-                        const prefix = accReasoning.length === 0 ? "<REASONING>" : ""
-                        accReasoning = rawReasoning
+                        const prefix = accReasoning.length === nextReasoning.length ? "<REASONING>" : ""
                         
                         const openaiFormat = {
                           id: json.request_id,
@@ -444,8 +474,15 @@ export async function POST(req: Request) {
                     const raw = json.output?.choices?.[0]?.message?.content || ""
 
                     if (typeof raw === "string") {
-                      const next = raw.slice(acc.length)
-                      acc = raw
+                      let next = ""
+                      if (raw.startsWith(acc)) {
+                         next = raw.slice(acc.length)
+                         acc = raw
+                      } else {
+                         next = raw
+                         acc += raw
+                      }
+
                       if (next) {
                         // If we were reasoning and haven't closed it, close it now
                         let prefix = ""

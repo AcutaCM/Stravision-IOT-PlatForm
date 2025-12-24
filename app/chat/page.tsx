@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell, MessageCircle, Settings, Home, LayoutGrid, Sparkles } from "lucide-react"
+import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell, MessageCircle, Settings, Home, LayoutGrid, Sparkles, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { PageNavigation } from "@/components/page-navigation"
@@ -21,6 +21,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import Image from "next/image"
 import { UpdateAnnouncement } from "@/components/update-announcement"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 
 interface User {
   id: number
@@ -149,32 +150,26 @@ export default function ChatPage() {
 
   const emojis = ["👍", "❤️", "😂", "😮", "😢", "😡", "🎉", "🔥", "🤝", "👀"]
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
 
-    const formData = new FormData()
-    formData.append('file', file)
 
+  const handleClearHistory = async (friendId: number) => {
     try {
-        const res = await fetch('/api/chat/upload', {
+        const res = await fetch('/api/direct-messages/clear', {
             method: 'POST',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ friendId })
         })
         const data = await res.json()
-        if (data.success) {
-             const type = file.type.startsWith('image/') ? 'image' : 'audio'
-             const content = type === 'image' ? '[图片]' : '[语音]'
-             await handleSendMessage(content, type, data.url)
+        if (res.ok) {
+            toast.success("聊天记录已清空")
+            setMessages([])
+            fetchFriends() // Refresh last message in sidebar
         } else {
-            console.error("Upload error:", data.error)
-            toast.error(data.error || "Upload failed")
+            toast.error(data.error || "清空聊天记录失败")
         }
     } catch (error) {
-        console.error("Upload exception:", error)
-        toast.error("Upload failed")
+        toast.error("清空聊天记录失败")
     }
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const startRecording = async () => {
@@ -455,6 +450,52 @@ export default function ChatPage() {
     }
   }
 
+  const uploadFile = async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+        const res = await fetch('/api/chat/upload', {
+            method: 'POST',
+            body: formData
+        })
+        const data = await res.json()
+        if (data.success) {
+             const type = file.type.startsWith('image/') ? 'image' : 'audio'
+             const content = type === 'image' ? '[图片]' : '[语音]'
+             await handleSendMessage(content, type, data.url)
+        } else {
+            console.error("Upload error:", data.error)
+            toast.error(data.error || "Upload failed")
+        }
+    } catch (error) {
+        console.error("Upload exception:", error)
+        toast.error("Upload failed")
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadFile(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items
+    if (!items) return
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          uploadFile(file)
+          e.preventDefault() // Prevent default paste behavior
+        }
+      }
+    }
+  }, [handleSendMessage])
+
   const handleBlockUser = async (userId: number, block: boolean) => {
     try {
       const res = await fetch('/api/users/block', {
@@ -465,6 +506,10 @@ export default function ChatPage() {
       const data = await res.json()
       if (res.ok) {
         toast.success(data.message)
+        fetchFriends()
+        if (activeFriend && activeFriend.id === userId) {
+            setActiveFriend({ ...activeFriend, is_blocked: block })
+        }
       } else {
         toast.error(data.error || "更新拉黑状态失败")
       }
@@ -712,7 +757,7 @@ export default function ChatPage() {
               )}
 
               <ScrollArea className="flex-1 px-4">
-                <div className="space-y-6 pb-4">
+                <div className={cn("space-y-6", isMobile ? "pb-24" : "pb-4")}>
                     {/* Groups Section */}
                     {(!isMobile || viewMode === 'groups') && filteredGroups.length > 0 && (
                         <div className="space-y-2">
@@ -1001,6 +1046,7 @@ export default function ChatPage() {
                         <Input 
                           value={inputValue}
                         onChange={handleInputChange}
+                        onPaste={handlePaste}
                         placeholder={isRecording ? "正在录音..." : "输入消息..."}
                           disabled={isRecording}
                           className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 text-base"
@@ -1085,11 +1131,15 @@ export default function ChatPage() {
                        </div>
                        
                        <div className="w-full mt-8 space-y-3">
-                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">选项</h4>
-                            <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 h-12 rounded-xl" onClick={() => handleBlockUser(activeFriend.id, true)}>
-                              <Shield className="mr-3 h-5 w-5" />
-                              拉黑用户
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 space-y-2">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">选项</h4>
+                            <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 h-12 rounded-xl" onClick={() => handleBlockUser(activeFriend.id, !activeFriend.is_blocked)}>
+                              {activeFriend.is_blocked ? <ShieldOff className="mr-3 h-5 w-5" /> : <Shield className="mr-3 h-5 w-5" />}
+                              {activeFriend.is_blocked ? "解除拉黑" : "拉黑用户"}
+                            </Button>
+                            <Button variant="ghost" className="w-full justify-start text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/10 h-12 rounded-xl" onClick={() => handleClearHistory(activeFriend.id)}>
+                              <Trash2 className="mr-3 h-5 w-5" />
+                              清空聊天记录
                             </Button>
                           </div>
                        </div>
@@ -1165,26 +1215,7 @@ export default function ChatPage() {
           </div>
         </div>
         {isMobile && !activeFriend && !activeGroup && (
-           <div className="h-16 shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 grid grid-cols-6 items-center justify-items-center z-50">
-              <Link href="/monitor" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                 <Home className="h-6 w-6" />
-              </Link>
-              <Link href="/device-control" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                 <Settings className="h-6 w-6" />
-              </Link>
-              <Link href="/dashboard" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                 <LayoutGrid className="h-6 w-6" />
-              </Link>
-              <Link href="/ai-assistant" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                 <Sparkles className="h-6 w-6" />
-              </Link>
-              <div className="flex flex-col items-center justify-center gap-1 h-full w-full text-blue-600">
-                 <MessageSquare className="h-6 w-6" />
-              </div>
-              <Link href="/profile" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                 <UserIcon className="h-6 w-6" />
-              </Link>
-           </div>
+           <MobileBottomNav />
         )}
       </div>
     </div>
