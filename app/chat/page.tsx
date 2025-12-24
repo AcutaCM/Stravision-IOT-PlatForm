@@ -333,10 +333,18 @@ export default function ChatPage() {
   }, [activeGroup, showChatDetails])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const lastMessageIdRef = useRef<number | null>(null)
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom only when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg?.id !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastMsg?.id || null
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 100)
+    }
   }, [messages])
 
   const handleSendRequest = async () => {
@@ -1057,22 +1065,22 @@ export default function ChatPage() {
 
             {/* Right Sidebar - Info Panel */}
             <div className={cn(
-              "w-80 flex-col h-full bg-background border-l border-border/10 transition-all duration-300 hidden md:flex",
+              "w-80 flex-col h-full bg-background border-l border-border/10 transition-all duration-300 hidden md:flex shrink-0",
               showChatDetails ? "w-80 opacity-100" : "w-0 opacity-0 overflow-hidden"
             )}>
-               <div className="px-6 py-6 border-b border-border/10 min-w-[320px]">
+               <div className="px-6 py-6 border-b border-border/10">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">详情</h2>
                </div>
-               <ScrollArea className="flex-1 p-6 min-w-[320px]">
+               <ScrollArea className="flex-1 p-6">
                   {activeFriend && (
                     <div className="flex flex-col items-center gap-4 py-8">
                        <Avatar className="h-24 w-24 border-4 border-slate-50 dark:border-slate-800">
                           <AvatarImage src={activeFriend.avatar_url || undefined} />
                           <AvatarFallback className="text-2xl bg-blue-100 text-blue-600 font-bold">{activeFriend.username[0].toUpperCase()}</AvatarFallback>
                        </Avatar>
-                       <div className="text-center">
-                          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{activeFriend.username}</h3>
-                          <p className="text-sm text-slate-500">{activeFriend.email}</p>
+                       <div className="text-center w-full px-2">
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{activeFriend.username}</h3>
+                          <p className="text-sm text-slate-500 break-all">{activeFriend.email}</p>
                        </div>
                        
                        <div className="w-full mt-8 space-y-3">
