@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell } from "lucide-react"
+import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell, MessageCircle, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PageNavigation } from "@/components/page-navigation"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -238,7 +238,6 @@ export default function ChatPage() {
   // Group info state
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([])
 
-  const scrollRef = useRef<HTMLDivElement>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [viewMode, setViewMode] = useState<'messages' | 'groups'>('messages')
@@ -333,11 +332,11 @@ export default function ChatPage() {
     }
   }, [activeGroup, showChatDetails])
 
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
   // Scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleSendRequest = async () => {
@@ -515,9 +514,10 @@ export default function ChatPage() {
       {/* Background Gradients */}
       {/* Removed for cleaner look */}
 
-      <div className="relative z-10 grid grid-rows-[72px_1fr] md:grid-rows-[72px_1fr] h-full w-full">
+      <div className="relative z-10 flex flex-col h-full w-full">
         {/* Header - Kept global header but made it white/clean */}
-        <div className={cn("relative flex items-center px-8 border-b border-border/10 bg-background z-20", isMobile ? "hidden" : "flex")}>
+        {!isMobile && (
+        <div className="relative flex items-center px-8 border-b border-border/10 bg-background z-20 h-[72px] shrink-0">
           <div className="flex items-center gap-4">
             <div className="relative size-12">
               <Image src="/logo.svg" alt="logo" fill className="object-contain" />
@@ -535,9 +535,10 @@ export default function ChatPage() {
             {currentUser && <UserAvatarMenu user={currentUser as any} />}
           </div>
         </div>
+        )}
 
         {/* Main Content - 3 Column Layout Simulation */}
-        <div className="relative p-0 h-full overflow-hidden bg-background">
+        <div className="flex-1 overflow-hidden bg-background relative">
           <div className="flex h-full w-full max-w-[1600px] mx-auto">
             
             {/* Middle Column: Message List */}
@@ -546,14 +547,14 @@ export default function ChatPage() {
               isMobile && (activeFriend || activeGroup) ? "hidden" : "flex"
             )}>
               {isMobile ? (
-                 <div className="px-4 py-4 flex flex-col gap-4">
+                 <div className="px-4 py-3 flex flex-col gap-3 border-b border-border/5 bg-background sticky top-0 z-10">
                     <div className="flex items-center justify-between">
-                        <Avatar className="h-10 w-10">
+                        <Avatar className="h-9 w-9">
                             <AvatarImage src={currentUser?.avatar_url || undefined} />
                             <AvatarFallback>{currentUser?.username?.[0]}</AvatarFallback>
                         </Avatar>
                         
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-full p-1 relative">
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-full p-1 relative scale-90">
                             <button 
                                 onClick={() => setViewMode('messages')}
                                 className={cn(
@@ -574,9 +575,41 @@ export default function ChatPage() {
                             </button>
                         </div>
 
-                        <Button size="icon" variant="ghost" className="rounded-full">
-                            <Bell className="h-6 w-6 text-slate-600" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                            <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full">
+                                        <Plus className="h-5 w-5 text-slate-600" />
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>添加好友</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex gap-2 mt-4">
+                                        <Input 
+                                            placeholder="邮箱..." 
+                                            value={addFriendEmail}
+                                            onChange={(e) => setAddFriendEmail(e.target.value)}
+                                        />
+                                        <Button onClick={handleSendRequest}>发送请求</Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                            <Button size="icon" variant="ghost" className="rounded-full h-9 w-9">
+                                <Bell className="h-5 w-5 text-slate-600" />
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input 
+                            placeholder="搜索好友或群组" 
+                            className="pl-9 bg-slate-100 dark:bg-slate-800 border-none rounded-xl h-10" 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
                  </div>
               ) : (
@@ -884,8 +917,8 @@ export default function ChatPage() {
                   </div>
 
                   <div className="flex-1 flex flex-col overflow-hidden relative">
-                    <ScrollArea className="flex-1 p-6" ref={scrollRef as any}>
-                      <div className="flex flex-col gap-6 min-h-0" ref={scrollRef}>
+                    <ScrollArea className="flex-1 p-6">
+                      <div className="flex flex-col gap-6 min-h-0">
                          {messages.map((msg, index) => {
                            const isMe = msg.sender_id === currentUser?.id
                            const sender = isMe ? currentUser : (activeFriend || groupMembers.find(m => m.user_id === msg.sender_id)?.user)
@@ -935,6 +968,7 @@ export default function ChatPage() {
                              </div>
                            )
                          })}
+                         <div ref={messagesEndRef} />
                       </div>
                     </ScrollArea>
                     
@@ -1121,6 +1155,26 @@ export default function ChatPage() {
             </div>
           </div>
         </div>
+        {isMobile && !activeFriend && !activeGroup && (
+           <div className="h-16 shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 grid grid-cols-4 items-center justify-items-center z-50">
+              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-blue-600">
+                 <MessageCircle className="h-6 w-6" />
+                 <span className="text-[10px] font-medium">Chats</span>
+              </Button>
+              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-600">
+                 <Phone className="h-6 w-6" />
+                 <span className="text-[10px] font-medium">Calls</span>
+              </Button>
+              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-600">
+                 <Users className="h-6 w-6" />
+                 <span className="text-[10px] font-medium">People</span>
+              </Button>
+              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-600">
+                 <Settings className="h-6 w-6" />
+                 <span className="text-[10px] font-medium">Settings</span>
+              </Button>
+           </div>
+        )}
       </div>
     </div>
   )

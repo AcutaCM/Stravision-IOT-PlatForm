@@ -77,6 +77,8 @@ ENV TZ Asia/Shanghai
 
 # Use a shell script to fix permissions and start the app
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'mkdir -p /app/public/uploads' >> /app/entrypoint.sh && \
+    echo 'chown -R nextjs:nodejs /app/public/uploads' >> /app/entrypoint.sh && \
     echo 'chown -R nextjs:nodejs /app/data' >> /app/entrypoint.sh && \
     echo 'exec su-exec nextjs node server.js' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh && \
