@@ -13,8 +13,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell, MessageCircle, Settings } from "lucide-react"
+import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell, MessageCircle, Settings, Home, LayoutGrid, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 import { PageNavigation } from "@/components/page-navigation"
 import { ModeToggle } from "@/components/mode-toggle"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
@@ -1164,23 +1165,25 @@ export default function ChatPage() {
           </div>
         </div>
         {isMobile && !activeFriend && !activeGroup && (
-           <div className="h-16 shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 grid grid-cols-4 items-center justify-items-center z-50">
-              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-blue-600">
-                 <MessageCircle className="h-6 w-6" />
-                 <span className="text-[10px] font-medium">Chats</span>
-              </Button>
-              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-600">
-                 <Phone className="h-6 w-6" />
-                 <span className="text-[10px] font-medium">Calls</span>
-              </Button>
-              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-600">
-                 <Users className="h-6 w-6" />
-                 <span className="text-[10px] font-medium">People</span>
-              </Button>
-              <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 h-full w-full rounded-none hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-400 hover:text-slate-600">
+           <div className="h-16 shrink-0 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 grid grid-cols-6 items-center justify-items-center z-50">
+              <Link href="/monitor" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                 <Home className="h-6 w-6" />
+              </Link>
+              <Link href="/device-control" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                  <Settings className="h-6 w-6" />
-                 <span className="text-[10px] font-medium">Settings</span>
-              </Button>
+              </Link>
+              <Link href="/dashboard" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                 <LayoutGrid className="h-6 w-6" />
+              </Link>
+              <Link href="/ai-assistant" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                 <Sparkles className="h-6 w-6" />
+              </Link>
+              <div className="flex flex-col items-center justify-center gap-1 h-full w-full text-blue-600">
+                 <MessageSquare className="h-6 w-6" />
+              </div>
+              <Link href="/profile" className="flex flex-col items-center justify-center gap-1 h-full w-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                 <UserIcon className="h-6 w-6" />
+              </Link>
            </div>
         )}
       </div>
