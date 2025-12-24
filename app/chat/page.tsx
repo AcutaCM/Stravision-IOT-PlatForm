@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
@@ -13,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, UserPlus, Check, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut } from "lucide-react"
+import { Send, UserPlus, Check, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PageNavigation } from "@/components/page-navigation"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -185,15 +184,15 @@ export default function ChatPage() {
       const data = await res.json()
       
       if (res.ok) {
-        toast.success(data.message || "Request sent")
+        toast.success(data.message || "请求已发送")
         setAddFriendEmail("")
         setIsAddFriendOpen(false)
         fetchData()
       } else {
-        toast.error(data.error || "Failed to send request")
+        toast.error(data.error || "发送请求失败")
       }
     } catch (error) {
-      toast.error("Failed to send request")
+      toast.error("发送请求失败")
     }
   }
 
@@ -206,7 +205,7 @@ export default function ChatPage() {
       })
       
       if (res.ok) {
-        toast.success(action === 'accept' ? "Friend accepted" : "Request rejected")
+        toast.success(action === 'accept' ? "已接受好友请求" : "已拒绝好友请求")
         fetchData()
       }
     } catch (error) {
@@ -216,7 +215,7 @@ export default function ChatPage() {
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
-      toast.error("Group name is required")
+      toast.error("请输入群组名称")
       return
     }
 
@@ -232,16 +231,16 @@ export default function ChatPage() {
       const data = await res.json()
 
       if (res.ok) {
-        toast.success("Group created")
+        toast.success("群组创建成功")
         setNewGroupName("")
         setSelectedFriends([])
         setIsCreateGroupOpen(false)
         fetchData()
       } else {
-        toast.error(data.error || "Failed to create group")
+        toast.error(data.error || "创建群组失败")
       }
     } catch (error) {
-      toast.error("Failed to create group")
+      toast.error("创建群组失败")
     }
   }
 
@@ -272,7 +271,7 @@ export default function ChatPage() {
         setMessages([...messages, data.message])
         setInputValue("")
       } else {
-        toast.error(data.error || "Failed to send message")
+        toast.error(data.error || "发送消息失败")
       }
     } catch (error) {
       console.error("Failed to send message", error)
@@ -290,10 +289,10 @@ export default function ChatPage() {
       if (res.ok) {
         toast.success(data.message)
       } else {
-        toast.error(data.error || "Failed to update block status")
+        toast.error(data.error || "更新拉黑状态失败")
       }
     } catch (error) {
-      toast.error("Failed to block/unblock user")
+      toast.error("拉黑/取消拉黑用户失败")
     }
   }
 
@@ -316,10 +315,10 @@ export default function ChatPage() {
         const membersData = await membersRes.json()
         if (membersData.members) setGroupMembers(membersData.members)
       } else {
-        toast.error(data.error || "Failed to update mute status")
+        toast.error(data.error || "更新禁言状态失败")
       }
     } catch (error) {
-      toast.error("Failed to update mute status")
+      toast.error("更新禁言状态失败")
     }
   }
 
@@ -345,16 +344,13 @@ export default function ChatPage() {
     <div className="min-h-screen w-screen h-screen bg-background text-foreground transition-colors duration-500 overflow-hidden">
       <UpdateAnnouncement />
       {/* Background Gradients */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] animate-[float_10s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/10 blur-[120px] animate-[float_12s_ease-in-out_infinite_reverse]" />
-      </div>
+      {/* Removed for cleaner look */}
 
       <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
-        {/* Header */}
-        <div className="relative flex items-center px-8 border-b border-border/40 bg-background/60 backdrop-blur-md z-20">
+        {/* Header - Kept global header but made it white/clean */}
+        <div className="relative flex items-center px-8 border-b border-border/10 bg-background z-20">
           <div className="flex items-center gap-4">
-            <div className="relative size-12 animate-[breathe_4s_ease-in-out_infinite]">
+            <div className="relative size-12">
               <Image src="/logo.svg" alt="logo" fill className="object-contain" />
             </div>
             <div className="leading-tight">
@@ -371,350 +367,376 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="relative p-4 md:p-8 overflow-hidden h-full">
-          <div className="flex h-full gap-6 w-full max-w-[1600px] mx-auto">
+        {/* Main Content - 3 Column Layout Simulation */}
+        <div className="relative p-0 h-full overflow-hidden bg-background">
+          <div className="flex h-full w-full max-w-[1600px] mx-auto">
             
-            {/* Sidebar */}
-            <Card className={cn(
-              "w-full md:w-80 flex flex-col h-full border border-white/10 shadow-2xl bg-white/40 dark:bg-black/40 backdrop-blur-xl transition-all duration-300 rounded-3xl overflow-hidden",
+            {/* Middle Column: Message List */}
+            <div className={cn(
+              "w-full md:w-[400px] flex flex-col h-full border-r border-border/10 bg-background",
               isMobile && (activeFriend || activeGroup) ? "hidden" : "flex"
             )}>
-              <CardHeader className="px-4 py-4 border-b border-white/10 flex flex-row items-center justify-between bg-white/50 dark:bg-black/20">
-                <CardTitle className="text-lg font-medium">消息</CardTitle>
-                <div className="flex gap-1">
-                  <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-white/20" title="Create Group">
-                        <Users className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>创建群组</DialogTitle>
-                      </DialogHeader>
-                      <div className="flex flex-col gap-4 mt-4">
-                        <div className="space-y-2">
-                          <Label>群组名称</Label>
-                          <Input 
-                            placeholder="输入群组名称..." 
-                            value={newGroupName}
-                            onChange={(e) => setNewGroupName(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>选择成员</Label>
-                          <ScrollArea className="h-48 border rounded-md p-2">
-                            <div className="space-y-2">
-                              {friends.map(friend => (
-                                <div key={friend.id} className="flex items-center space-x-2">
-                                  <Checkbox 
-                                    id={`friend-${friend.id}`} 
-                                    checked={selectedFriends.includes(friend.id)}
-                                    onCheckedChange={() => toggleFriendSelection(friend.id)}
-                                  />
-                                  <Label htmlFor={`friend-${friend.id}`} className="flex-1 cursor-pointer flex items-center gap-2">
-                                     <Avatar className="h-6 w-6">
-                                      <AvatarImage src={friend.avatar_url || undefined} />
-                                      <AvatarFallback>{friend.username[0]}</AvatarFallback>
-                                    </Avatar>
-                                    {friend.username}
-                                  </Label>
+              <div className="px-6 py-6 flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">消息</h1>
+                    <div className="flex gap-2">
+                         <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                    <Edit className="h-5 w-5" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>创建群组</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex flex-col gap-4 mt-4">
+                                    <div className="space-y-2">
+                                        <Label>群组名称</Label>
+                                        <Input 
+                                            placeholder="群组名称..." 
+                                            value={newGroupName}
+                                            onChange={(e) => setNewGroupName(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>选择成员</Label>
+                                        <ScrollArea className="h-48 border rounded-md p-2">
+                                            <div className="space-y-2">
+                                                {friends.map(friend => (
+                                                    <div key={friend.id} className="flex items-center space-x-2">
+                                                        <Checkbox 
+                                                            id={`friend-${friend.id}`} 
+                                                            checked={selectedFriends.includes(friend.id)}
+                                                            onCheckedChange={() => toggleFriendSelection(friend.id)}
+                                                        />
+                                                        <Label htmlFor={`friend-${friend.id}`} className="flex-1 cursor-pointer flex items-center gap-2">
+                                                            <Avatar className="h-6 w-6">
+                                                                <AvatarImage src={friend.avatar_url || undefined} />
+                                                                <AvatarFallback>{friend.username[0]}</AvatarFallback>
+                                                            </Avatar>
+                                                            {friend.username}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                    <Button onClick={handleCreateGroup}>创建</Button>
                                 </div>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        </div>
-                        <Button onClick={handleCreateGroup}>创建</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-white/20" title="Add Friend">
-                        <UserPlus className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>添加好友</DialogTitle>
-                      </DialogHeader>
-                      <div className="flex gap-2 mt-4">
-                        <Input 
-                          placeholder="输入邮箱..." 
-                          value={addFriendEmail}
-                          onChange={(e) => setAddFriendEmail(e.target.value)}
-                        />
-                        <Button onClick={handleSendRequest}>发送请求</Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                            </DialogContent>
+                        </Dialog>
+                        <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                            <Search className="h-5 w-5" />
+                        </Button>
+                        <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
+                            <DialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                                    <Plus className="h-5 w-5" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>添加好友</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex gap-2 mt-4">
+                                    <Input 
+                                        placeholder="邮箱..." 
+                                        value={addFriendEmail}
+                                        onChange={(e) => setAddFriendEmail(e.target.value)}
+                                    />
+                                    <Button onClick={handleSendRequest}>发送请求</Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </div>
-              </CardHeader>
-              <Tabs defaultValue="friends" className="flex-1 flex flex-col">
-                <div className="px-4 py-2 bg-white/30 dark:bg-black/10">
-                  <TabsList className="w-full bg-white/50 dark:bg-black/20">
-                    <TabsTrigger value="friends" className="flex-1">好友</TabsTrigger>
-                    <TabsTrigger value="groups" className="flex-1">群组</TabsTrigger>
-                    <TabsTrigger value="requests" className="flex-1 relative">
-                      请求
-                      {requests.length > 0 && (
-                        <Badge variant="destructive" className="ml-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[8px]">
-                          {requests.length}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-                
-                <TabsContent value="friends" className="flex-1 mt-0">
-                  <ScrollArea className="h-full">
-                    <div className="flex flex-col gap-1 p-2">
-                      {friends.map(friend => (
-                        <button
-                          key={friend.id}
-                          onClick={() => switchToFriend(friend)}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:bg-white/40 dark:hover:bg-white/10",
-                            activeFriend?.id === friend.id && "bg-primary/10 text-primary dark:bg-primary/20 shadow-sm border-l-4 border-primary pl-2"
-                          )}
-                        >
-                          <Avatar className="border-2 border-white/20">
-                            <AvatarImage src={friend.avatar_url || undefined} />
-                            <AvatarFallback className={cn(activeFriend?.id === friend.id && "bg-primary text-primary-foreground")}>{friend.username[0].toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 overflow-hidden">
-                            <div className="font-medium truncate">{friend.username}</div>
-                            <div className="text-xs text-muted-foreground truncate">{friend.email}</div>
-                          </div>
-                        </button>
-                      ))}
-                      {friends.length === 0 && (
-                        <div className="text-center text-sm text-muted-foreground py-8">
-                          暂无好友
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
 
-                <TabsContent value="groups" className="flex-1 mt-0">
-                   <ScrollArea className="h-full">
-                    <div className="flex flex-col gap-1 p-2">
-                      {groups.map(group => (
-                        <button
-                          key={group.id}
-                          onClick={() => switchToGroup(group)}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 hover:bg-white/40 dark:hover:bg-white/10",
-                            activeGroup?.id === group.id && "bg-primary/10 text-primary dark:bg-primary/20 shadow-sm border-l-4 border-primary pl-2"
-                          )}
-                        >
-                          <Avatar className="border-2 border-white/20">
-                            <AvatarImage src={group.avatar_url || undefined} />
-                            <AvatarFallback className={cn("bg-primary/10 text-primary dark:bg-primary/20", activeGroup?.id === group.id && "bg-primary text-primary-foreground")}>
-                              {group.name[0].toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 overflow-hidden">
-                            <div className="font-medium truncate">{group.name}</div>
-                            <div className="text-xs text-muted-foreground truncate">群聊</div>
-                          </div>
-                        </button>
-                      ))}
-                      {groups.length === 0 && (
-                        <div className="text-center text-sm text-muted-foreground py-8">
-                          暂无群组
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-                
-                <TabsContent value="requests" className="flex-1 mt-0">
-                  <ScrollArea className="h-full">
-                    <div className="flex flex-col gap-2 p-2">
-                      {requests.map(req => (
-                        <div key={req.id} className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-white/40 dark:bg-black/20">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={req.requester.avatar_url || undefined} />
-                              <AvatarFallback>{req.requester.username[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="text-sm">
-                              <div className="font-medium">{req.requester.username}</div>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input placeholder="搜索" className="pl-9 bg-slate-100 dark:bg-slate-800 border-none rounded-full" />
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1 px-4">
+                <div className="space-y-6 pb-4">
+                    {/* Pinned Section (Using Groups as Pinned for now) */}
+                    {groups.length > 0 && (
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
+                                <MapPin className="h-3 w-3" /> 置顶消息
                             </div>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:bg-green-500/10" onClick={() => handleRespondRequest(req.id, 'accept')}>
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-500/10" onClick={() => handleRespondRequest(req.id, 'reject')}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
+                            <div className="space-y-1">
+                                {groups.map(group => (
+                                    <button
+                                        key={group.id}
+                                        onClick={() => switchToGroup(group)}
+                                        className={cn(
+                                            "w-full flex items-center gap-4 p-3 rounded-2xl text-left transition-all duration-200",
+                                            activeGroup?.id === group.id ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
+                                        )}
+                                    >
+                                        <div className="relative">
+                                            <Avatar className="h-12 w-12 border border-slate-100 dark:border-slate-800">
+                                                <AvatarImage src={group.avatar_url || undefined} />
+                                                <AvatarFallback className="bg-orange-100 text-orange-600 font-bold">
+                                                    {group.name[0].toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            {/* Online Indicator simulation */}
+                                            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{group.name}</span>
+                                                <span className="text-xs text-slate-400">12:30 PM</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-slate-500 truncate block max-w-[180px]">
+                                                    点击查看群组消息...
+                                                </span>
+                                                {/* Unread Badge Simulation */}
+                                                <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">2</Badge>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                      ))}
-                      {requests.length === 0 && (
-                        <div className="text-center text-sm text-muted-foreground py-8">
-                          暂无请求
+                    )}
+
+                    {/* Friend Requests Section */}
+                    {requests.length > 0 && (
+                        <div className="space-y-2 mb-6">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
+                                <UserPlus className="h-3 w-3" /> 好友请求
+                            </div>
+                            <div className="space-y-1">
+                                {requests.map(req => (
+                                    <div key={req.id} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                        <Avatar className="h-10 w-10 border border-slate-200 dark:border-slate-700">
+                                            <AvatarImage src={req.requester.avatar_url || undefined} />
+                                            <AvatarFallback>{req.requester.username[0]}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">{req.requester.username}</div>
+                                            <div className="text-xs text-slate-500">请求添加好友</div>
+                                        </div>
+                                        <div className="flex gap-1">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-green-500 hover:bg-green-100 dark:hover:bg-green-900/20" onClick={() => handleRespondRequest(req.id, 'accept')}>
+                                                <Check className="h-4 w-4" />
+                                            </Button>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20" onClick={() => handleRespondRequest(req.id, 'reject')}>
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                      )}
+                    )}
+
+                    {/* All Messages Section (Friends) */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
+                            <MessageSquare className="h-3 w-3" /> 全部消息
+                        </div>
+                        <div className="space-y-1">
+                            {friends.map(friend => (
+                                <button
+                                    key={friend.id}
+                                    onClick={() => switchToFriend(friend)}
+                                    className={cn(
+                                        "w-full flex items-center gap-4 p-3 rounded-2xl text-left transition-all duration-200",
+                                        activeFriend?.id === friend.id ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
+                                    )}
+                                >
+                                    <div className="relative">
+                                        <Avatar className="h-12 w-12 border border-slate-100 dark:border-slate-800">
+                                            <AvatarImage src={friend.avatar_url || undefined} />
+                                            <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">
+                                                {friend.username[0].toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-baseline mb-1">
+                                            <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{friend.username}</span>
+                                            <span className="text-xs text-slate-400">刚刚</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-slate-500 truncate block max-w-[180px]">
+                                                {friend.email}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                            {friends.length === 0 && (
+                                <div className="text-center text-sm text-muted-foreground py-8">
+                                    暂无好友
+                                </div>
+                            )}
+                        </div>
                     </div>
-                  </ScrollArea>
-                </TabsContent>
-              </Tabs>
-            </Card>
+                </div>
+              </ScrollArea>
+            </div>
+
+
 
             {/* Chat Area */}
-            <Card className={cn(
-              "flex-1 flex flex-col border border-white/10 shadow-2xl bg-white/60 dark:bg-black/60 backdrop-blur-xl transition-all duration-300 rounded-3xl overflow-hidden",
+            <div className={cn(
+              "flex-1 flex flex-col bg-background transition-all duration-300",
               isMobile && (!activeFriend && !activeGroup) ? "hidden" : "flex"
             )}>
               {(activeFriend || activeGroup) ? (
                 <>
-                  <CardHeader className="px-6 py-4 border-b border-white/10 bg-white/50 dark:bg-black/20 backdrop-blur-md sticky top-0 z-10">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {isMobile && (
-                          <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8" onClick={() => { setActiveFriend(null); setActiveGroup(null); }}>
-                            <ChevronLeft className="h-5 w-5" />
-                          </Button>
+                  <div className="px-6 py-4 border-b border-border/10 flex items-center justify-between bg-background sticky top-0 z-10">
+                    <div className="flex items-center gap-4">
+                      {isMobile && (
+                        <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8" onClick={() => { setActiveFriend(null); setActiveGroup(null); }}>
+                          <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                      )}
+                      <Avatar className="h-10 w-10">
+                        {activeFriend ? (
+                          <>
+                            <AvatarImage src={activeFriend.avatar_url || undefined} />
+                            <AvatarFallback className="bg-blue-100 text-blue-600 font-bold">{activeFriend.username[0]}</AvatarFallback>
+                          </>
+                        ) : (
+                          <>
+                            <AvatarImage src={activeGroup?.avatar_url || undefined} />
+                            <AvatarFallback className="bg-orange-100 text-orange-600 font-bold">
+                              {activeGroup?.name[0]}
+                            </AvatarFallback>
+                          </>
                         )}
-                        <Avatar className="h-10 w-10 border-2 border-white/20 shadow-sm">
-                          {activeFriend ? (
-                            <>
-                              <AvatarImage src={activeFriend.avatar_url || undefined} />
-                              <AvatarFallback>{activeFriend.username[0]}</AvatarFallback>
-                            </>
-                          ) : (
-                            <>
-                              <AvatarImage src={activeGroup?.avatar_url || undefined} />
-                              <AvatarFallback className="bg-primary/10 text-primary dark:bg-primary/20">
-                                {activeGroup?.name[0]}
-                              </AvatarFallback>
-                            </>
-                          )}
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-base">
-                            {activeFriend ? activeFriend.username : activeGroup?.name}
-                          </CardTitle>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            {activeFriend ? (
-                              <>
-                                <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                                在线
-                              </>
-                            ) : (
-                              <>
-                                <Users className="h-3 w-3" />
-                                {groupMembers.length} 成员
-                              </>
-                            )}
-                          </div>
+                      </Avatar>
+                      <div>
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                          {activeFriend ? activeFriend.username : activeGroup?.name}
+                        </div>
+                        <div className="text-xs text-green-500 font-medium">
+                          {activeFriend ? '正在输入...' : `${groupMembers.length} 成员`}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          title="Chat Details"
-                          onClick={() => setShowChatDetails(!showChatDetails)}
-                          className={cn("transition-colors", showChatDetails && "bg-primary/10 text-primary")}
-                        >
-                           <MoreVertical className="h-5 w-5" />
-                        </Button>
-                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent className="flex-1 p-0 flex flex-col overflow-hidden bg-white/20 dark:bg-black/20">
-                    <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
-                      <div className="flex flex-col gap-4 min-h-0" ref={scrollRef}>
+                    <div className="flex items-center gap-4 text-slate-400">
+                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <Video className="h-5 w-5" />
+                       </Button>
+                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <Phone className="h-5 w-5" />
+                       </Button>
+                       <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setShowChatDetails(!showChatDetails)}>
+                          <MoreVertical className="h-5 w-5" />
+                       </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col overflow-hidden relative">
+                    <ScrollArea className="flex-1 p-6" ref={scrollRef as any}>
+                      <div className="flex justify-center mb-6">
+                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs px-4 py-1 rounded-full font-medium">
+                              今天 12月24日
+                          </span>
+                      </div>
+                      <div className="flex flex-col gap-6 min-h-0" ref={scrollRef}>
                          {messages.map((msg) => {
                            const isMe = msg.sender_id === currentUser?.id
-                           const getSenderName = (id: number) => {
-                             const friend = friends.find(f => f.id === id)
-                             if (friend) return friend.username
-                             const member = groupMembers.find(m => m.user_id === id)
-                             if (member) return member.user.username
-                             return `用户 ${id}`
-                           }
+                           const sender = isMe ? currentUser : (activeFriend || groupMembers.find(m => m.user_id === msg.sender_id)?.user)
                            
                            return (
-                             <div key={msg.id} className={cn("flex w-full flex-col", isMe ? "items-end" : "items-start")}>
-                               {!isMe && activeGroup && (
-                                 <span className="text-[10px] text-muted-foreground mb-1 ml-1">
-                                   {getSenderName(msg.sender_id)}
+                             <div key={msg.id} className={cn("flex w-full gap-4", isMe ? "flex-row-reverse" : "flex-row")}>
+                               <Avatar className="h-10 w-10 mt-1 flex-shrink-0">
+                                  <AvatarImage src={sender?.avatar_url || undefined} />
+                                  <AvatarFallback>{sender?.username?.[0]}</AvatarFallback>
+                               </Avatar>
+                               <div className={cn("flex flex-col max-w-[65%]", isMe ? "items-end" : "items-start")}>
+                                 <div className={cn(
+                                   "px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm",
+                                   isMe 
+                                     ? "bg-blue-600 text-white rounded-tr-sm" 
+                                     : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm"
+                                 )}>
+                                   {msg.content}
+                                 </div>
+                                 <span className="text-[11px] text-slate-400 mt-1 font-medium">
+                                     05:00 PM
                                  </span>
-                               )}
-                               <div className={cn(
-                                 "max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-sm",
-                                 isMe 
-                                   ? "bg-blue-600 text-white rounded-tr-sm" 
-                                   : "bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-100 rounded-tl-sm"
-                               )}>
-                                 {msg.content}
                                </div>
                              </div>
                            )
                          })}
                       </div>
                     </ScrollArea>
-                    <div className="p-4 border-t border-white/10 bg-white/40 dark:bg-black/40 backdrop-blur-md">
+                    
+                    <div className="p-6 bg-background sticky bottom-0 z-10">
                       <form 
                         onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
-                        className="flex gap-2"
+                        className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-2 rounded-full shadow-sm"
                       >
+                        <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
+                            <Mic className="h-5 w-5" />
+                        </Button>
                         <Input 
                           value={inputValue}
                           onChange={(e) => setInputValue(e.target.value)}
                           placeholder="输入消息..."
-                          className="flex-1 bg-white/50 dark:bg-black/50 border-white/10"
+                          className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 text-base"
                         />
-                        <Button type="submit" size="icon" disabled={!inputValue.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-300 hover:scale-105 active:scale-95">
+                         <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
+                            <ImageIcon className="h-5 w-5" />
+                        </Button>
+                        <Button type="button" size="icon" variant="ghost" className="h-10 w-10 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50">
+                            <Smile className="h-5 w-5" />
+                        </Button>
+                        <Button type="submit" size="icon" disabled={!inputValue.trim()} className="h-10 w-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all duration-300 hover:scale-105 active:scale-95 ml-1">
                           <Send className="h-4 w-4" />
                         </Button>
                       </form>
                     </div>
-                  </CardContent>
+                  </div>
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                  <div className="h-20 w-20 bg-white/10 dark:bg-white/5 rounded-full flex items-center justify-center mb-4 animate-[pulse_4s_ease-in-out_infinite]">
-                    <MessageSquare className="h-10 w-10 text-slate-400" />
+                  <div className="h-24 w-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 animate-[pulse_4s_ease-in-out_infinite]">
+                    <MessageSquare className="h-12 w-12 text-blue-500" />
                   </div>
-                  <p className="text-lg font-medium">选择一个好友或群组开始聊天</p>
+                  <p className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">欢迎使用消息</p>
+                  <p className="text-slate-500">选择一个聊天开始发送消息</p>
                 </div>
               )}
-            </Card>
+            </div>
 
             {/* Right Sidebar - Info Panel */}
-            <Card className={cn(
-              "w-80 flex-col h-full border border-white/10 shadow-2xl bg-white/40 dark:bg-black/40 backdrop-blur-xl transition-all duration-300 rounded-3xl overflow-hidden hidden md:flex",
-              showChatDetails ? "w-80 opacity-100 ml-6" : "w-0 opacity-0 border-0 ml-0 p-0"
+            <div className={cn(
+              "w-80 flex-col h-full bg-background border-l border-border/10 transition-all duration-300 hidden md:flex",
+              showChatDetails ? "w-80 opacity-100" : "w-0 opacity-0 overflow-hidden"
             )}>
-               <CardHeader className="px-6 py-4 border-b border-white/10 bg-white/50 dark:bg-black/20 min-w-[320px]">
-                  <CardTitle className="text-base font-medium">详情</CardTitle>
-               </CardHeader>
-               <ScrollArea className="flex-1 p-4 min-w-[320px]">
+               <div className="px-6 py-6 border-b border-border/10 min-w-[320px]">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">详情</h2>
+               </div>
+               <ScrollArea className="flex-1 p-6 min-w-[320px]">
                   {activeFriend && (
                     <div className="flex flex-col items-center gap-4 py-8">
-                       <Avatar className="h-24 w-24 border-4 border-white/20 shadow-lg">
+                       <Avatar className="h-24 w-24 border-4 border-slate-50 dark:border-slate-800">
                           <AvatarImage src={activeFriend.avatar_url || undefined} />
-                          <AvatarFallback className="text-2xl">{activeFriend.username[0].toUpperCase()}</AvatarFallback>
+                          <AvatarFallback className="text-2xl bg-blue-100 text-blue-600 font-bold">{activeFriend.username[0].toUpperCase()}</AvatarFallback>
                        </Avatar>
                        <div className="text-center">
-                          <h3 className="text-xl font-bold">{activeFriend.username}</h3>
-                          <p className="text-sm text-muted-foreground">{activeFriend.email}</p>
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{activeFriend.username}</h3>
+                          <p className="text-sm text-slate-500">{activeFriend.email}</p>
                        </div>
                        
                        <div className="w-full mt-8 space-y-3">
-                          <div className="p-4 rounded-xl bg-white/40 dark:bg-black/20 border border-white/10">
-                            <h4 className="text-xs font-medium text-muted-foreground mb-2">操作</h4>
-                            <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 h-10" onClick={() => handleBlockUser(activeFriend.id, true)}>
-                              <Shield className="mr-2 h-4 w-4" />
+                          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900">
+                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">选项</h4>
+                            <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 h-12 rounded-xl" onClick={() => handleBlockUser(activeFriend.id, true)}>
+                              <Shield className="mr-3 h-5 w-5" />
                               拉黑用户
                             </Button>
                           </div>
@@ -725,18 +747,21 @@ export default function ChatPage() {
                   {activeGroup && (
                     <div className="space-y-6">
                        <div className="flex flex-col items-center gap-4 py-6">
-                          <Avatar className="h-20 w-20 border-4 border-white/20 shadow-lg">
+                          <Avatar className="h-24 w-24 border-4 border-slate-50 dark:border-slate-800">
                              <AvatarImage src={activeGroup.avatar_url || undefined} />
-                             <AvatarFallback className="text-xl bg-primary/10 text-primary">{activeGroup.name[0].toUpperCase()}</AvatarFallback>
+                             <AvatarFallback className="text-2xl bg-orange-100 text-orange-600 font-bold">{activeGroup.name[0].toUpperCase()}</AvatarFallback>
                           </Avatar>
                           <div className="text-center">
-                             <h3 className="text-lg font-bold">{activeGroup.name}</h3>
-                             <p className="text-sm text-muted-foreground">{groupMembers.length} 成员</p>
+                             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{activeGroup.name}</h3>
+                             <p className="text-sm text-slate-500">{groupMembers.length} 成员</p>
                           </div>
                        </div>
 
                        <div>
-                          <h4 className="text-sm font-medium mb-3 px-1">成员列表</h4>
+                          <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">成员</h4>
+                              <span className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full">{groupMembers.length}</span>
+                          </div>
                           <div className="space-y-2">
                               {groupMembers.map(member => {
                                 const isMe = member.user_id === currentUser?.id
@@ -748,16 +773,16 @@ export default function ChatPage() {
                                 const showMuteButton = canManage && !isMe && !targetIsAdmin
 
                                 return (
-                                  <div key={member.user_id} className="flex items-center justify-between p-2 rounded-lg hover:bg-white/40 dark:hover:bg-white/10 transition-colors">
+                                  <div key={member.user_id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors">
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                      <Avatar className="h-8 w-8 shrink-0">
+                                      <Avatar className="h-10 w-10 shrink-0">
                                         <AvatarImage src={member.user.avatar_url || undefined} />
-                                        <AvatarFallback>{member.user.username[0]}</AvatarFallback>
+                                        <AvatarFallback className="bg-slate-200 text-slate-600 font-bold">{member.user.username[0]}</AvatarFallback>
                                       </Avatar>
                                       <div className="overflow-hidden">
-                                        <div className="text-sm font-medium truncate flex items-center gap-1">
+                                        <div className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
                                           {member.user.username}
-                                          {member.role === 'owner' && <Badge variant="secondary" className="h-4 px-1 text-[10px]">群主</Badge>}
+                                          {member.role === 'owner' && <Badge variant="secondary" className="h-5 px-2 text-[10px] bg-orange-100 text-orange-600 hover:bg-orange-200">群主</Badge>}
                                         </div>
                                       </div>
                                     </div>
@@ -765,10 +790,10 @@ export default function ChatPage() {
                                        <Button 
                                           variant="ghost" 
                                           size="icon" 
-                                          className={cn("h-7 w-7", member.is_muted ? "text-red-500" : "text-slate-500")}
+                                          className={cn("h-8 w-8 rounded-full", member.is_muted ? "text-red-500 bg-red-50" : "text-slate-400 hover:text-slate-600")}
                                           onClick={() => handleToggleMute(activeGroup.id, member.user_id, !member.is_muted)}
                                        >
-                                          {member.is_muted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                          {member.is_muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                                        </Button>
                                     )}
                                   </div>
@@ -777,14 +802,14 @@ export default function ChatPage() {
                           </div>
                        </div>
                        
-                       <Button variant="outline" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 border-red-200 dark:border-red-900/30">
-                          <LogOut className="mr-2 h-4 w-4" />
+                       <Button variant="outline" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 border-red-200 dark:border-red-900/30 h-12 rounded-xl font-medium">
+                          <LogOut className="mr-3 h-5 w-5" />
                           退出群组
                        </Button>
                     </div>
                   )}
                </ScrollArea>
-            </Card>
+            </div>
           </div>
         </div>
       </div>
