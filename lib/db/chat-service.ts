@@ -27,6 +27,7 @@ export interface Message {
   content: string
   type: 'text' | 'image' | 'file'
   file_url?: string
+  group_id?: number | null
   read_at?: number
   created_at: number
 }
@@ -123,11 +124,38 @@ export class ChatService {
   static async getUserGroups(userId: number): Promise<Group[]> {
     await ensureDB()
     const db = getDB()
-    return db.prepare(`
-      SELECT g.* FROM groups g
+    
+    // Ensure last_read_at column exists (simple migration)
+    try {
+        const tableInfo = db.prepare("PRAGMA table_info(group_members)").all() as any[];
+        if (!tableInfo.some(c => c.name === 'last_read_at')) {
+            db.exec("ALTER TABLE group_members ADD COLUMN last_read_at INTEGER DEFAULT 0");
+        }
+    } catch (e) {}
+
+    const groups = db.prepare(`
+      SELECT g.*, gm.last_read_at 
+      FROM groups g
       JOIN group_members gm ON g.id = gm.group_id
       WHERE gm.user_id = ?
-    `).all(userId) as Group[]
+    `).all(userId) as (Group & { last_read_at: number })[]
+
+    return groups.map(group => {
+        const lastMessage = db.prepare(`
+            SELECT * FROM messages WHERE group_id = ? ORDER BY created_at DESC LIMIT 1
+        `).get(group.id) as Message | undefined
+
+        const unread = db.prepare(`
+            SELECT COUNT(*) as count FROM messages
+            WHERE group_id = ? AND created_at > ?
+        `).get(group.id, group.last_read_at || 0) as { count: number }
+
+        return {
+            ...group,
+            last_message: lastMessage,
+            unread_count: unread.count
+        }
+    })
   }
 
   /**
@@ -186,17 +214,22 @@ export class ChatService {
     }
 
     try {
+      // For group messages, receiver_id is not used but the column is NOT NULL.
+      // We use sender_id as a placeholder for receiver_id in group messages.
+      const actualReceiverId = groupId ? senderId : (receiverId || 0);
+
       const result = db.prepare(`
         INSERT INTO messages (sender_id, receiver_id, group_id, content, type, file_url, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(senderId, receiverId || null, groupId || null, content, type, fileUrl, Date.now())
+      `).run(senderId, actualReceiverId, groupId || null, content, type, fileUrl, Date.now())
 
       return {
         success: true,
         message: {
           id: result.lastInsertRowid as number,
           sender_id: senderId,
-          receiver_id: receiverId || 0,
+          receiver_id: actualReceiverId,
+          group_id: groupId || null,
           content,
           type,
           file_url: fileUrl,
@@ -204,6 +237,7 @@ export class ChatService {
         }
       }
     } catch (e) {
+      console.error("SendMessage Error:", e);
       return { success: false, error: 'Failed to send' }
     }
   }
@@ -223,6 +257,12 @@ export class ChatService {
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
       `).all(targetId, limit, offset) as Message[]
+      
+      // Mark group as read
+      try {
+        db.prepare("UPDATE group_members SET last_read_at = ? WHERE group_id = ? AND user_id = ?").run(Date.now(), targetId, userId)
+      } catch (e) {}
+
     } else {
       messages = db.prepare(`
         SELECT * FROM messages
@@ -230,6 +270,11 @@ export class ChatService {
         ORDER BY created_at DESC
         LIMIT ? OFFSET ?
       `).all(userId, targetId, targetId, userId, limit, offset) as Message[]
+      
+      // Mark direct messages as read
+      try {
+        db.prepare("UPDATE messages SET read_at = ? WHERE sender_id = ? AND receiver_id = ? AND read_at IS NULL").run(Date.now(), targetId, userId)
+      } catch (e) {}
     }
 
     return messages.reverse()

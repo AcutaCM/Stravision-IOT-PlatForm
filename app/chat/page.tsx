@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Send, UserPlus, Check, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip } from "lucide-react"
+import { Send, UserPlus, Check, CheckCheck, X, MessageSquare, User as UserIcon, ChevronLeft, Users, MoreVertical, Shield, ShieldOff, Volume2, VolumeX, Plus, LogOut, Edit, Search, Phone, Video, MapPin, Image as ImageIcon, Smile, Mic, Paperclip, Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PageNavigation } from "@/components/page-navigation"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -88,13 +88,64 @@ export default function ChatPage() {
   const [activeFriend, setActiveFriend] = useState<User | null>(null)
   const [activeGroup, setActiveGroup] = useState<Group | null>(null)
   
+  const [isTyping, setIsTyping] = useState(false)
+  
+  // Debounce typing status
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputValue(e.target.value)
+      
+      // Send typing status
+      if (activeFriend || activeGroup) {
+          // Throttle sending every 1s
+          if (!typingTimeoutRef.current) {
+              fetch('/api/chat/typing', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                      targetId: activeFriend?.id,
+                      groupId: activeGroup?.id
+                  })
+              })
+              typingTimeoutRef.current = setTimeout(() => {
+                  typingTimeoutRef.current = null
+              }, 1000)
+          }
+      }
+  }
+
+  // Poll for typing status of other user
+  useEffect(() => {
+      if (!activeFriend && !activeGroup) return
+      
+      const checkTyping = async () => {
+          try {
+              const params = new URLSearchParams()
+              if (activeFriend) params.append('targetId', activeFriend.id.toString())
+              if (activeGroup) params.append('groupId', activeGroup.id.toString())
+              
+              const res = await fetch(`/api/chat/typing?${params.toString()}`)
+              const data = await res.json()
+              setIsTyping(data.isTyping)
+          } catch (e) {
+              console.error(e)
+          }
+      }
+
+      checkTyping() // Check immediately
+      const interval = setInterval(checkTyping, 2000) // Poll every 2s
+      
+      return () => clearInterval(interval)
+  }, [activeFriend, activeGroup])
+
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   const [isRecording, setIsRecording] = useState(false)
+  
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const emojis = ["👍", "❤️", "😂", "😮", "😢", "😡", "🎉", "🔥", "🤝", "👀"]
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,11 +162,15 @@ export default function ChatPage() {
         })
         const data = await res.json()
         if (data.success) {
-             await handleSendMessage('[图片]', 'image', data.url)
+             const type = file.type.startsWith('image/') ? 'image' : 'audio'
+             const content = type === 'image' ? '[图片]' : '[语音]'
+             await handleSendMessage(content, type, data.url)
         } else {
+            console.error("Upload error:", data.error)
             toast.error(data.error || "Upload failed")
         }
     } catch (error) {
+        console.error("Upload exception:", error)
         toast.error("Upload failed")
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -186,6 +241,7 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [viewMode, setViewMode] = useState<'messages' | 'groups'>('messages')
 
   // Detect mobile
   useEffect(() => {
@@ -459,9 +515,9 @@ export default function ChatPage() {
       {/* Background Gradients */}
       {/* Removed for cleaner look */}
 
-      <div className="relative z-10 grid grid-rows-[72px_1fr] h-full w-full">
+      <div className="relative z-10 grid grid-rows-[72px_1fr] md:grid-rows-[72px_1fr] h-full w-full">
         {/* Header - Kept global header but made it white/clean */}
-        <div className="relative flex items-center px-8 border-b border-border/10 bg-background z-20">
+        <div className={cn("relative flex items-center px-8 border-b border-border/10 bg-background z-20", isMobile ? "hidden" : "flex")}>
           <div className="flex items-center gap-4">
             <div className="relative size-12">
               <Image src="/logo.svg" alt="logo" fill className="object-contain" />
@@ -489,6 +545,41 @@ export default function ChatPage() {
               "w-full md:w-[400px] flex flex-col h-full border-r border-border/10 bg-background",
               isMobile && (activeFriend || activeGroup) ? "hidden" : "flex"
             )}>
+              {isMobile ? (
+                 <div className="px-4 py-4 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={currentUser?.avatar_url || undefined} />
+                            <AvatarFallback>{currentUser?.username?.[0]}</AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-full p-1 relative">
+                            <button 
+                                onClick={() => setViewMode('messages')}
+                                className={cn(
+                                    "px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 z-10",
+                                    viewMode === 'messages' ? "bg-blue-600 text-white shadow-md" : "text-slate-500 hover:text-slate-700"
+                                )}
+                            >
+                                Message
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('groups')}
+                                className={cn(
+                                    "px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 z-10",
+                                    viewMode === 'groups' ? "bg-blue-600 text-white shadow-md" : "text-slate-500 hover:text-slate-700"
+                                )}
+                            >
+                                Group
+                            </button>
+                        </div>
+
+                        <Button size="icon" variant="ghost" className="rounded-full">
+                            <Bell className="h-6 w-6 text-slate-600" />
+                        </Button>
+                    </div>
+                 </div>
+              ) : (
               <div className="px-6 py-6 flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">消息</h1>
@@ -576,15 +667,18 @@ export default function ChatPage() {
                     />
                 </div>
               </div>
+              )}
 
               <ScrollArea className="flex-1 px-4">
                 <div className="space-y-6 pb-4">
-                    {/* Pinned Section (Using Groups as Pinned for now) */}
-                    {filteredGroups.length > 0 && (
+                    {/* Groups Section */}
+                    {(!isMobile || viewMode === 'groups') && filteredGroups.length > 0 && (
                         <div className="space-y-2">
+                            {!isMobile && (
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
                                 <MapPin className="h-3 w-3" /> 群组
                             </div>
+                            )}
                             <div className="space-y-1">
                                 {filteredGroups.map(group => (
                                     <button
@@ -592,7 +686,9 @@ export default function ChatPage() {
                                         onClick={() => switchToGroup(group)}
                                         className={cn(
                                             "w-full flex items-center gap-4 p-3 rounded-2xl text-left transition-all duration-200",
-                                            activeGroup?.id === group.id ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
+                                            isMobile 
+                                              ? "bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 mb-3" 
+                                              : (activeGroup?.id === group.id ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900")
                                         )}
                                     >
                                         <div className="relative">
@@ -602,8 +698,6 @@ export default function ChatPage() {
                                                     {group.name[0].toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            {/* Online Indicator simulation - Groups don't usually have online status, maybe just show if unread? */}
-                                            {/* <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span> */}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-baseline mb-1">
@@ -630,11 +724,13 @@ export default function ChatPage() {
                     )}
 
                     {/* Friend Requests Section */}
-                    {requests.length > 0 && (
+                    {(!isMobile || viewMode === 'messages') && requests.length > 0 && (
                         <div className="space-y-2 mb-6">
+                            {!isMobile && (
                             <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
                                 <UserPlus className="h-3 w-3" /> 好友请求
                             </div>
+                            )}
                             <div className="space-y-1">
                                 {requests.map(req => (
                                     <div key={req.id} className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
@@ -661,10 +757,13 @@ export default function ChatPage() {
                     )}
 
                     {/* All Messages Section (Friends) */}
+                    {(!isMobile || viewMode === 'messages') && (
                     <div className="space-y-2">
+                        {!isMobile && (
                         <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
                             <MessageSquare className="h-3 w-3" /> 全部消息
                         </div>
+                        )}
                         <div className="space-y-1">
                             {filteredFriends.map(friend => (
                                 <button
@@ -672,7 +771,9 @@ export default function ChatPage() {
                                     onClick={() => switchToFriend(friend)}
                                     className={cn(
                                         "w-full flex items-center gap-4 p-3 rounded-2xl text-left transition-all duration-200",
-                                        activeFriend?.id === friend.id ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
+                                        isMobile 
+                                          ? "bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 mb-3" 
+                                          : (activeFriend?.id === friend.id ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900")
                                     )}
                                 >
                                     <div className="relative">
@@ -682,7 +783,6 @@ export default function ChatPage() {
                                                 {friend.username[0].toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
-                                        {/* <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-black"></span> */}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-baseline mb-1">
@@ -711,6 +811,14 @@ export default function ChatPage() {
                             )}
                         </div>
                     </div>
+                    )}
+                    
+                    {/* Bottom Encryption Note for Mobile */}
+                    {isMobile && (
+                        <div className="text-center text-[10px] text-slate-400 mt-8 mb-4">
+                            Your personal messages are <span className="text-blue-500 font-medium">end-to-end-encrypted</span>
+                        </div>
+                    )}
                 </div>
               </ScrollArea>
             </div>
@@ -724,11 +832,14 @@ export default function ChatPage() {
             )}>
               {(activeFriend || activeGroup) ? (
                 <>
-                  <div className="px-6 py-4 border-b border-border/10 flex items-center justify-between bg-background sticky top-0 z-10">
+                  <div className={cn(
+                    "px-6 py-4 border-b border-border/10 flex items-center justify-between bg-background sticky top-0 z-10",
+                    isMobile ? "px-4 py-2 border-none shadow-sm" : ""
+                  )}>
                     <div className="flex items-center gap-4">
                       {isMobile && (
                         <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8" onClick={() => { setActiveFriend(null); setActiveGroup(null); }}>
-                          <ChevronLeft className="h-5 w-5" />
+                          <ChevronLeft className="h-6 w-6" />
                         </Button>
                       )}
                       <Avatar className="h-10 w-10">
@@ -747,11 +858,13 @@ export default function ChatPage() {
                         )}
                       </Avatar>
                       <div>
-                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                        <div className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight">
                           {activeFriend ? activeFriend.username : activeGroup?.name}
                         </div>
-                        <div className="text-xs text-green-500 font-medium">
-                          {activeFriend ? '正在输入...' : `${groupMembers.length} 成员`}
+                        <div className="text-xs text-slate-500 font-medium animate-pulse">
+                          {isTyping ? '正在输入...' : (
+                              activeFriend ? <span className="text-green-500">Online</span> : `${groupMembers.length} 成员`
+                          )}
                         </div>
                       </div>
                     </div>
@@ -762,51 +875,70 @@ export default function ChatPage() {
                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => toast.info("Voice call coming soon!")}>
                           <Phone className="h-5 w-5" />
                        </Button>
+                       {!isMobile && (
                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setShowChatDetails(!showChatDetails)}>
                           <MoreVertical className="h-5 w-5" />
                        </Button>
+                       )}
                     </div>
                   </div>
 
                   <div className="flex-1 flex flex-col overflow-hidden relative">
                     <ScrollArea className="flex-1 p-6" ref={scrollRef as any}>
                       <div className="flex flex-col gap-6 min-h-0" ref={scrollRef}>
-                         {messages.map((msg) => {
+                         {messages.map((msg, index) => {
                            const isMe = msg.sender_id === currentUser?.id
                            const sender = isMe ? currentUser : (activeFriend || groupMembers.find(m => m.user_id === msg.sender_id)?.user)
                            
+                           // Date separator logic
+                           const showDateSeparator = index === 0 || new Date(msg.created_at).toDateString() !== new Date(messages[index - 1].created_at).toDateString()
+
                            return (
-                             <div key={msg.id} className={cn("flex w-full gap-4", isMe ? "flex-row-reverse" : "flex-row")}>
-                               <Avatar className="h-10 w-10 mt-1 flex-shrink-0">
-                                  <AvatarImage src={sender?.avatar_url || undefined} />
-                                  <AvatarFallback>{sender?.username?.[0]}</AvatarFallback>
-                               </Avatar>
-                               <div className={cn("flex flex-col max-w-[65%]", isMe ? "items-end" : "items-start")}>
-                                 <div className={cn(
-                                  "px-5 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm",
-                                  isMe 
-                                    ? "bg-blue-600 text-white rounded-tr-sm" 
-                                    : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-sm"
-                                )}>
-                                  {msg.type === 'image' ? (
-                                      <img src={msg.file_url || msg.content} alt="Image" className="max-w-[200px] rounded-lg" />
-                                  ) : msg.type === 'audio' ? (
-                                      <audio controls src={msg.file_url || msg.content} className="max-w-[200px]" />
-                                  ) : (
-                                      msg.content
-                                  )}
-                                </div>
-                                 <span className="text-[11px] text-slate-400 mt-1 font-medium">
-                                      {formatTime(msg.created_at)}
-                                  </span>
-                               </div>
+                             <div key={msg.id} className="flex flex-col gap-4">
+                                {showDateSeparator && (
+                                    <div className="flex justify-center my-2">
+                                        <span className="text-xs text-slate-400 font-medium bg-slate-50 dark:bg-slate-900 px-3 py-1 rounded-full">
+                                            {new Date(msg.created_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className={cn("flex w-full gap-3", isMe ? "flex-row-reverse" : "flex-row")}>
+                                   {!isMe && (
+                                       <Avatar className="h-8 w-8 mt-1 flex-shrink-0">
+                                          <AvatarImage src={sender?.avatar_url || undefined} />
+                                          <AvatarFallback>{sender?.username?.[0]}</AvatarFallback>
+                                       </Avatar>
+                                   )}
+                                   <div className={cn("flex flex-col max-w-[75%]", isMe ? "items-end" : "items-start")}>
+                                     {!isMe && activeGroup && <span className="text-xs text-slate-500 ml-1 mb-1">{sender?.username}</span>}
+                                     <div className={cn(
+                                      "relative px-4 py-3 text-[15px] leading-relaxed shadow-sm min-w-[80px]",
+                                      isMe 
+                                        ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm" 
+                                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm"
+                                    )}>
+                                      {msg.type === 'image' ? (
+                                          <img src={msg.file_url || msg.content} alt="Image" className="max-w-full rounded-lg" />
+                                      ) : msg.type === 'audio' ? (
+                                          <audio controls src={msg.file_url || msg.content} className="max-w-full" />
+                                      ) : (
+                                          <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                                      )}
+                                      
+                                      <div className={cn("flex items-center gap-1 mt-1 text-[10px]", isMe ? "text-blue-100 justify-end" : "text-slate-400")}>
+                                          <span>{formatTime(msg.created_at)}</span>
+                                          {isMe && <CheckCheck className="h-3 w-3" />}
+                                      </div>
+                                    </div>
+                                   </div>
+                                 </div>
                              </div>
                            )
                          })}
                       </div>
                     </ScrollArea>
                     
-                    <div className="p-6 bg-background sticky bottom-0 z-10">
+                    <div className={cn("bg-background sticky bottom-0 z-10", isMobile ? "p-3" : "p-6")}>
                       <form 
                         onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
                         className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-2 rounded-full shadow-sm"
@@ -825,15 +957,15 @@ export default function ChatPage() {
                         </Button>
                         <Input 
                           value={inputValue}
-                          onChange={(e) => setInputValue(e.target.value)}
-                          placeholder={isRecording ? "Recording..." : "输入消息..."}
+                        onChange={handleInputChange}
+                        placeholder={isRecording ? "正在录音..." : "输入消息..."}
                           disabled={isRecording}
                           className="flex-1 bg-transparent border-none shadow-none focus-visible:ring-0 text-base"
                         />
                         
                         <input 
                             type="file" 
-                            accept="image/*" 
+                            accept="image/*,audio/*" 
                             className="hidden" 
                             ref={fileInputRef}
                             onChange={handleFileUpload}

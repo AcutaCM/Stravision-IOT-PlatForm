@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { promises as fs } from "fs"
 import path from "path"
+import { Buffer } from "buffer"
 
 export async function POST(req: Request) {
   try {
@@ -83,10 +84,10 @@ export async function POST(req: Request) {
       success: true,
       url: fileUrl,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Upload failed:", error)
     return NextResponse.json(
-      { error: "Upload failed" },
+      { error: `Upload failed: ${error.message}` },
       { status: 500 }
     )
   }
