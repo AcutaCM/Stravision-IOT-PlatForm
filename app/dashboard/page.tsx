@@ -365,7 +365,19 @@ export default function DashboardPage() {
                 <div key="fertility">
                   <DashboardChartCard
                     title="土壤肥力"
-                    value="78.5"
+                    value={(() => {
+                        if (!deviceData) return '--'
+                        // Calculate fertility based on NPK values
+                        // N: 0-200 mg/kg -> 0-100%
+                        const nScore = Math.min(100, (deviceData.earth_n / 200) * 100)
+                        // P: 0-100 mg/kg -> 0-100%
+                        const pScore = Math.min(100, (deviceData.earth_p / 100) * 100)
+                        // K: 0-300 mg/kg -> 0-100%
+                        const kScore = Math.min(100, (deviceData.earth_k / 300) * 100)
+                        
+                        const fertility = (nScore + pScore + kScore) / 3
+                        return fertility.toFixed(1)
+                    })()}
                     unit="%"
                     icon={<Leaf className="size-10 text-green-500" />}
                     type="fertility"

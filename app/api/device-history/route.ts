@@ -55,8 +55,8 @@ function generateDataForType(type: string, range: string) {
             variance = 5
             break
         case 'fertility':
-            baseValue = 150
-            variance = 20
+            baseValue = 75 // Percentage
+            variance = 10
             break
         case 'nitrogen':
             baseValue = 100
