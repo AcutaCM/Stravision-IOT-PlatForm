@@ -11,6 +11,7 @@ import { ToasterWrapper } from "@/components/toaster-wrapper";
 import { MessageNotificationListener } from "@/components/message-notification-listener";
 import { headers } from "next/headers";
 import { isIPBanned, recordAccessLog, getBanDetails } from "@/lib/db/security-service";
+import NextTopLoader from "nextjs-toploader";
 
 export const metadata: Metadata = {
   title: "stravision莓界 · 登录",
@@ -94,6 +95,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased font-sans`}>
+        <NextTopLoader color="#e11d48" showSpinner={false} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

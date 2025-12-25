@@ -70,19 +70,16 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
     const variants = {
         enter: (direction: number) => ({
-            x: direction > 0 ? "100%" : "-100%",
+            x: direction > 0 ? 20 : -20,
             opacity: 0,
-            zIndex: 1 // Ensure entering page is above or below? Usually above.
         }),
         center: {
             x: 0,
             opacity: 1,
-            zIndex: 0
         },
         exit: (direction: number) => ({
-            x: direction > 0 ? "-100%" : "100%",
+            x: direction > 0 ? -20 : 20,
             opacity: 0,
-            zIndex: -1
         })
     }
 
@@ -100,7 +97,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
                         x: { type: "spring", stiffness: 300, damping: 30 },
                         opacity: { duration: 0.2 }
                     }}
-                    className="w-full h-full"
+                    className="absolute w-full h-full overflow-y-auto"
                 >
                     <FrozenRouter>{children}</FrozenRouter>
                 </motion.div>
