@@ -82,7 +82,7 @@ function AlertToast({
           {loading ? "执行中..." : config.actionLabel}
         </Button>
 
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 px-3 gap-2">
               <Clock className="h-3.5 w-3.5" />
