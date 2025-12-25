@@ -72,14 +72,17 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         enter: (direction: number) => ({
             x: direction > 0 ? 20 : -20,
             opacity: 0,
+            zIndex: 10
         }),
         center: {
             x: 0,
             opacity: 1,
+            zIndex: 10
         },
         exit: (direction: number) => ({
             x: direction > 0 ? -20 : 20,
             opacity: 0,
+            zIndex: 0
         })
     }
 

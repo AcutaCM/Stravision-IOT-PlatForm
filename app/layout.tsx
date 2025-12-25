@@ -95,7 +95,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`antialiased font-sans`}>
-        <NextTopLoader color="#e11d48" showSpinner={false} />
+        <NextTopLoader color="var(--primary)" showSpinner={false} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
