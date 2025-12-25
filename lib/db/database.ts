@@ -104,6 +104,22 @@ export async function initDB(): Promise<void> {
     )
   `)
 
+  // 创建 login_logs 表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS login_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      ip TEXT NOT NULL,
+      country TEXT,
+      region TEXT,
+      city TEXT,
+      user_agent TEXT,
+      device_type TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+
   // 创建 banned_ips 表
   db.exec(`
     CREATE TABLE IF NOT EXISTS banned_ips (
@@ -142,6 +158,25 @@ export async function initDB(): Promise<void> {
       created_at INTEGER NOT NULL
     )
   `)
+
+  // 创建 sensor_readings 表 (存储传感器历史数据)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sensor_readings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      device_id TEXT DEFAULT 'default',
+      temperature REAL,
+      humidity REAL,
+      light REAL,
+      co2 REAL,
+      soil_moisture REAL,
+      earth_n REAL,
+      earth_p REAL,
+      earth_k REAL,
+      rainfall REAL,
+      created_at INTEGER NOT NULL
+    )
+  `)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_sensor_readings_created_at ON sensor_readings(created_at)`)
 
   // 创建 login_tickets 表 (用于移动端唤起APP后的跨浏览器登录)
   db.exec(`

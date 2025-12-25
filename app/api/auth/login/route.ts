@@ -4,6 +4,7 @@ import { loginSchema } from "@/lib/validations/auth"
 import { rateLimit } from "@/lib/rate-limit"
 import { NextRequest } from "next/server"
 import { verifyTurnstileToken } from "@/lib/turnstile"
+import { checkSuspiciousLogin, fetchIpLocation, recordLoginLog } from "@/lib/db/security-service"
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,8 +51,29 @@ export async function POST(req: NextRequest) {
     // 设置 httpOnly cookie
     await setAuthCookie(token)
 
+    // 安全检查：异地登录检测
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'unknown'
+    const userAgent = req.headers.get('user-agent') || 'unknown'
+    
+    // 异步获取位置信息（尽量不阻塞主流程太久，但在 API 路由中 await 是最安全的）
+    const location = await fetchIpLocation(ip)
+    
+    // 检查是否可疑（与历史记录对比）
+    const suspiciousCheck = await checkSuspiciousLogin(user.id, ip, location?.region || null)
+    
+    // 记录本次登录
+    await recordLoginLog(user.id, ip, userAgent, location)
+
     // 返回 UserPublic 信息
-    return Response.json({ ok: true, user })
+    return Response.json({ 
+      ok: true, 
+      user,
+      warning: suspiciousCheck.isSuspicious ? {
+        type: 'suspicious_login',
+        message: `检测到异地登录 (IP: ${ip}${location?.region ? `, ${location.region}` : ''})，请确认是您本人操作。`,
+        lastRegion: suspiciousCheck.lastRegion
+      } : undefined
+    })
   } catch (e) {
     console.error("登录失败:", e)
     return Response.json({ error: "服务异常" }, { status: 500 })

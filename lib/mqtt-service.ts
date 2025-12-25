@@ -8,6 +8,7 @@
 import mqtt from 'mqtt'
 import { MQTTConfig, getValidatedMQTTConfig } from './mqtt-config'
 import { sendWeComNotification } from './notification-service'
+import { saveSensorReading } from '@/lib/db/device-service'
 
 /**
  * Device Data Interface
@@ -435,6 +436,22 @@ export class MQTTService {
         // Check for critical anomalies and send notifications
         // Only check thresholds when env data is updated to avoid false alarms on initial 0s
         this.checkThresholds(this.latestData)
+        
+        // Save to database for historical tracking
+        // We only save basic environmental data, not spectral data which comes at high frequency
+        saveSensorReading({
+          temperature: this.latestData.temperature / 10,
+          humidity: this.latestData.humidity / 10,
+          light: this.latestData.light,
+          co2: this.latestData.co2,
+          soil_moisture: this.latestData.earth_water,
+          earth_n: this.latestData.earth_n,
+          earth_p: this.latestData.earth_p,
+          earth_k: this.latestData.earth_k,
+          rainfall: 0 // MQTT data currently doesn't include rainfall
+        }).catch(err => {
+          this.log('ERROR', `Failed to save sensor reading to DB: ${err}`)
+        })
       }
 
       // Notify all listeners

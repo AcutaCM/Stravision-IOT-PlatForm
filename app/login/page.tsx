@@ -3,11 +3,19 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Facebook, Building2, QrCode } from "lucide-react";
+import { Facebook, Building2, QrCode, ShieldAlert } from "lucide-react";
 import SplitText from "@/components/ui/split-text";
 import TextPressure from "@/components/ui/text-pressure";
 import TurnstileWidget from "@/components/ui/turnstile-widget";
@@ -19,6 +27,8 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [warning, setWarning] = useState<{ type: string; message: string; lastRegion: string | null } | null>(null);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -49,16 +59,33 @@ function LoginPage() {
         const data = await res.json().catch(() => ({}));
         setError(data?.error || "登录失败");
         setLoading(false);
+        setTurnstileToken("");
         return;
       }
       
-      // 登录成功后，手动刷新页面或跳转
+      // 登录成功
+      
+      // 检查是否有警告信息（如异地登录）
+      const responseData = await res.json();
+      
+      if (responseData.warning) {
+        setWarning(responseData.warning);
+        setShowWarningDialog(true);
+        setLoading(false); // Stop loading to allow interaction
+        return;
+      }
+
+      // 无警告，直接跳转
       window.location.href = "/monitor";
     } catch (e) {
       console.error("Login error:", e);
       setError("网络错误");
       setLoading(false);
     }
+  };
+
+  const handleProceed = () => {
+    window.location.href = "/monitor";
   };
 
   return (
@@ -193,6 +220,36 @@ function LoginPage() {
       </div>
         </div>
       </div>
+      
+      {/* 异地登录警告对话框 */}
+      <Dialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 mb-4">
+              <ShieldAlert className="h-6 w-6 text-orange-600" />
+            </div>
+            <DialogTitle className="text-center">安全警告</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              {warning?.message || "检测到账户存在异常登录活动。"}
+            </DialogDescription>
+          </DialogHeader>
+          {warning?.lastRegion && (
+            <div className="bg-muted/50 p-3 rounded-md text-sm text-center text-muted-foreground my-2">
+              上次登录地点: <span className="font-medium text-foreground">{warning.lastRegion}</span>
+            </div>
+          )}
+          <DialogFooter className="sm:justify-center">
+            <Button 
+              type="button" 
+              variant="default" 
+              className="w-full sm:w-auto min-w-[120px]"
+              onClick={handleProceed}
+            >
+              确认是我本人
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
