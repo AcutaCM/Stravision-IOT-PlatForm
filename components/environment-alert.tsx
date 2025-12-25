@@ -89,7 +89,7 @@ function AlertToast({
               忽略...
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" portal={false}>
             <DropdownMenuItem onClick={() => { onIgnore(60 * 60 * 1000); toast.dismiss(id); }}>
               忽略 1 小时
             </DropdownMenuItem>
