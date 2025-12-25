@@ -21,6 +21,8 @@ export function PageNavigation() {
 
   const activeIndex = navItems.findIndex((item) => pathname === item.href)
   const [selectedIndex, setSelectedIndex] = useState(activeIndex === -1 ? 0 : activeIndex)
+  // Use initial pathname as namespace to avoid layoutId conflicts during page transitions
+  const [namespace] = useState(pathname)
 
   // Sync state with pathname changes (e.g. browser back button or external navigation)
   useEffect(() => {
@@ -51,7 +53,7 @@ export function PageNavigation() {
             {/* 激活状态的背景 - 使用 layoutId 实现共享布局动画 */}
             {isActive && (
               <motion.div
-                layoutId="activeTab"
+                layoutId={`activeTab-${namespace}`}
                 className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg"
                 transition={{
                   type: "spring",
